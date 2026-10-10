@@ -71,7 +71,7 @@ try {
         assertStatus($current()['payment_state'] === 'reversed' && invoicePaymentDetails($db, $id)['credited'] === '100.00', 'Reversión incompleta.'); $filter('reversed');
         $act('reverse_invoice', ['reason' => $prefix], false); $act('cancel_invoice', [], false);
         [, $body] = statusRequest($path, $cookie); $dom = new DOMDocument(); $dom->loadHTML('<?xml encoding="UTF-8">' . $body); $xpath = new DOMXPath($dom);
-        assertStatus($xpath->query('//form//form')->length === 0 && $xpath->query('//*[@id="invoice-payments"]')->length === 1 && str_contains($body, 'Revertido'), 'Formulario de pagos inválido.');
+        assertStatus($xpath->query('//form//form')->length === 0 && $xpath->query('//*[@id="invoice-lines"]//*[@id="invoice-payments"]')->length === 1 && $xpath->query('//button[@data-invoice-wizard-open="invoice-payment-wizard"]')->length === 0 && str_contains($body, 'Revertido'), 'Resumen de pagos inválido o una factura revertida permite registrar pagos.');
         if ($kind === 'sale') {
             $blocked = statusRequest('ventas/index.php?id=' . $orderId, $cookie, ['csrf' => $orderToken, 'version' => '2', 'action' => 'cancel_quotation']);
             assertStatus($blocked[0] === 200 && loadSalesQuotation($db, $orderId)['status'] === 'sale', 'Se canceló una venta con factura relacionada.');

@@ -261,6 +261,22 @@ a:focus-visible, button:focus-visible { outline: 3px solid #5d4fc4; outline-offs
 .quotation-totals > div { display: flex; justify-content: space-between; gap: 24px; padding: 10px 0; border-bottom: 1px solid var(--line); }
 .quotation-totals dd { margin: 0; font-weight: 700; font-variant-numeric: tabular-nums; }
 .quotation-totals > div:last-child { color: #514397; font-size: 18px; }
+.invoice-payments-summary > .quotation-totals { margin-top: 0; }
+.invoice-outstanding { max-width: 640px; margin: 24px 0 0 auto; padding: 18px; border: 1px solid var(--line); border-radius: 12px; background: #f8f9fd; }
+.invoice-outstanding h2 { margin: 0 0 12px; font-size: 16px; }
+.invoice-outstanding-row { display: flex; align-items: center; gap: 16px; padding: 12px 0; border-top: 1px solid var(--line); }
+.invoice-outstanding-row > div:first-of-type { flex: 1; overflow-wrap: anywhere; }
+.invoice-outstanding-row small { display: block; color: var(--muted); font-size: 14px; }
+.invoice-outstanding-amount { text-align: right; font-variant-numeric: tabular-nums; }
+.invoice-payment-history { margin-top: 24px; }
+.invoice-payment-history summary { cursor: pointer; font-weight: 600; padding: 12px 0; }
+.invoice-wizard { width: min(660px, calc(100% - 32px)); max-height: calc(100dvh - 48px); padding: 0; border: 1px solid var(--line); border-radius: 16px; color: var(--ink); background: #fff; box-shadow: 0 24px 80px #15192740; }
+.invoice-wizard::backdrop { background: #15192780; }
+.invoice-wizard-header { display: flex; align-items: center; justify-content: space-between; gap: 16px; padding: 18px 24px; border-bottom: 1px solid var(--line); }
+.invoice-wizard-header h2 { margin: 0; font-size: 20px; }
+.invoice-wizard-body { padding: 24px; }
+.invoice-wizard-footer { display: flex; flex-wrap: wrap; gap: 12px; padding: 18px 24px; border-top: 1px solid var(--line); }
+@media (max-width: 520px) { .invoice-outstanding-row { flex-wrap: wrap; }.invoice-outstanding-row > div:first-of-type { flex-basis: 100%; }.invoice-outstanding-amount { flex: 1; text-align: left; }.invoice-wizard-body { padding: 18px; } }
 .quotation-sheet fieldset:disabled input, .quotation-sheet fieldset:disabled select, .quotation-sheet fieldset:disabled textarea { color: #414b60; background: #f5f7fb; }
 .product-options { display: flex; flex-wrap: wrap; gap: 24px; margin-top: 20px; }
 .product-stat-buttons { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 10px; }
