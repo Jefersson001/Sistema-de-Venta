@@ -6,6 +6,8 @@ require_once __DIR__ . '/connection.php';
 require_once __DIR__ . '/inventory-repository.php';
 require_once __DIR__ . '/tax-repository.php';
 require_once __DIR__ . '/module-page.php';
+require_once __DIR__ . '/inventory-stock-repository.php';
+require_once __DIR__ . '/storage-repository.php';
 
 function inventoryEscape(mixed $value): string
 {
@@ -48,6 +50,8 @@ function renderInventoryProducts(): void
             $page['categories'] = loadInventoryCategories($db);
             $page['purchaseTaxes'] = loadBusinessTaxes($db, 'compras');
             $page['saleTaxes'] = loadBusinessTaxes($db, 'ventas');
+            $page['productStock'] = $id ? loadInventoryProductStock($db, $id) : ['total' => '0.000', 'locations' => []];
+            $page['storage'] = loadStorageRelations($db);
         }
         if ($_SERVER['REQUEST_METHOD'] === 'POST' && $page['available']) {
             $token = $_POST['csrf'] ?? null;

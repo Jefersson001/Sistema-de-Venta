@@ -44,7 +44,7 @@ function expectProduct(bool $condition, string $message): void
 
 try {
     [$status, $form] = productRequest($base, 'index.php?new=1', $cookie);
-    expectProduct($status === 200 && ! str_contains($form, '<table') && preg_match('/name="csrf" value="([a-f0-9]+)"/', $form, $matches) === 1, 'El formulario no está separado.');
+    expectProduct($status === 200 && ! str_contains($form, 'aria-label="Listado de productos"') && preg_match('/name="csrf" value="([a-f0-9]+)"/', $form, $matches) === 1, 'El formulario no está separado.');
     $token = $matches[1];
     $dom = new DOMDocument();
     libxml_use_internal_errors(true);
@@ -58,10 +58,11 @@ try {
     $pages = $xpath->query('//*[@data-notebook-page]');
     expectProduct($pages->length === 6, 'Faltan páginas del notebook.');
     foreach ($pages as $page) {
-        if ($page->getAttribute('id') !== 'product-page-general') {
+        if (! in_array($page->getAttribute('id'), ['product-page-general', 'product-page-inventory'], true)) {
             expectProduct(trim($page->textContent) === '' && $page->childNodes->length === 0, 'Una pestaña pendiente no está vacía.');
         }
     }
+    expectProduct($xpath->query('//*[@id="product-page-inventory"]//table')->length === 1 && $xpath->query('//*[@data-product-stock-open and not(@disabled)]')->length === 1, 'No se muestra el detalle de existencias ni se habilita Cantidad a la mano.');
     expectProduct($xpath->query('//*[@id="product-page-general"]//input[@name="sale_price"]')->length === 1
         && $xpath->query('//*[@id="product-page-general"]//select[@name="purchase_tax_id"]')->length === 1
         && $xpath->query('//*[@id="product-page-general"]//select[@name="category_id"]')->length === 1, 'Faltan campos de información general.');

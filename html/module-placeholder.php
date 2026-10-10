@@ -43,6 +43,7 @@
                     <?php else: ?>
                         <strong><?= htmlspecialchars($module['name'], ENT_QUOTES, 'UTF-8') ?></strong>
                         <?php if ($moduleKey === 'ventas'): ?><span aria-hidden="true">/</span><span>Órdenes</span><span aria-hidden="true">/</span><span>Cotizaciones</span><?php endif; ?>
+                        <?php if ($moduleKey === 'inventario' && ($modulePageData['area'] ?? '') === 'operations'): ?><span aria-hidden="true">/</span><span>Operaciones</span><span aria-hidden="true">/</span><span><?= htmlspecialchars($modulePageData['definition']['label'], ENT_QUOTES, 'UTF-8') ?></span><?php endif; ?>
                     <?php endif; ?>
                 </div>
                 <div class="topbar-right">
@@ -57,14 +58,20 @@
                     <?php if ($moduleKey === 'ventas'): ?>
                         <details class="module-menu"><summary class="module-navigation-link <?= ! $isConfiguration ? 'module-navigation-active' : '' ?>">Órdenes <span aria-hidden="true">▾</span></summary><div class="module-menu-options"><a href="index.php" <?= ! $isConfiguration ? 'aria-current="page"' : '' ?>>Cotizaciones</a></div></details>
                     <?php else: ?>
-                        <a class="module-navigation-link <?= ! $isConfiguration ? 'module-navigation-active' : '' ?>" href="index.php" <?= ! $isConfiguration ? 'aria-current="page"' : '' ?>><?= $moduleKey === 'contactos' ? 'Contactos' : ($moduleKey === 'inventario' ? 'Productos' : 'Vista general') ?></a>
+                        <?php $isOverview = ! $isConfiguration && ($modulePageData['area'] ?? '') !== 'operations'; ?>
+                        <a class="module-navigation-link <?= $isOverview ? 'module-navigation-active' : '' ?>" href="index.php" <?= $isOverview ? 'aria-current="page"' : '' ?>><?= $moduleKey === 'contactos' ? 'Contactos' : ($moduleKey === 'inventario' ? 'Productos' : 'Vista general') ?></a>
+                    <?php endif; ?>
+                    <?php if ($moduleKey === 'inventario'): ?>
+                        <details class="module-menu"><summary class="module-navigation-link <?= ($modulePageData['area'] ?? '') === 'operations' ? 'module-navigation-active' : '' ?>">Operaciones <span aria-hidden="true">▾</span></summary><div class="module-menu-options">
+                            <?php foreach (['delivery' => 'Entregas', 'receipt' => 'Recepciones', 'internal' => 'Interno'] as $operationType => $operationLabel): ?><a href="operaciones.php?type=<?= $operationType ?>" <?= ($modulePageData['area'] ?? '') === 'operations' && ($modulePageData['type'] ?? '') === $operationType ? 'aria-current="page"' : '' ?>><?= $operationLabel ?></a><?php endforeach; ?>
+                        </div></details>
                     <?php endif; ?>
                     <a class="module-navigation-link <?= $isConfiguration ? 'module-navigation-active' : '' ?>" href="configuracion.php" <?= $isConfiguration ? 'aria-current="page"' : '' ?>><span aria-hidden="true">⚙</span> Configuración</a>
                 </nav>
                 <?php if ($moduleKey === 'contactos' && $modulePageData !== null): ?>
                     <?php require __DIR__ . '/contacts/page.php'; ?>
                 <?php elseif ($moduleKey === 'inventario' && $modulePageData !== null): ?>
-                    <?php require __DIR__ . ($isConfiguration ? '/inventory/configuration.php' : '/inventory/products.php'); ?>
+                    <?php require __DIR__ . ($isConfiguration ? '/inventory/configuration.php' : (($modulePageData['area'] ?? '') === 'operations' ? '/inventory/operations.php' : '/inventory/products.php')); ?>
                 <?php elseif ($moduleKey === 'ventas' && ! $isConfiguration && $modulePageData !== null): ?>
                     <?php require __DIR__ . '/sales/page.php'; ?>
                 <?php elseif ($moduleKey === 'contabilidad' && $isConfiguration && $modulePageData !== null): ?>

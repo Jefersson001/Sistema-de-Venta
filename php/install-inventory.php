@@ -11,7 +11,7 @@ require_once __DIR__ . '/connection.php';
 
 try {
     $db = createDatabaseConnection();
-    foreach (['004_inventory_categories.sql', '005_inventory_products.sql', '006_business_taxes.sql', '010_inventory_warehouses.sql'] as $file) {
+    foreach (['004_inventory_categories.sql', '005_inventory_products.sql', '006_business_taxes.sql', '010_inventory_warehouses.sql', '012_inventory_operations.sql', '013_inventory_stock.sql'] as $file) {
         $migration = file_get_contents(__DIR__ . '/migrations/' . $file);
         if ($migration === false) {
             throw new RuntimeException('No se pudo leer la migración de Inventario.');
@@ -35,7 +35,10 @@ try {
         $db->exec('ALTER TABLE inventory_products ADD sale_tax_id INT UNSIGNED NULL,
             ADD CONSTRAINT inventory_product_sale_tax FOREIGN KEY (sale_tax_id) REFERENCES business_taxes(id)');
     }
-    echo "Productos, categorías, almacenes y ubicaciones de Inventario instalados.\n";
+    if (! $db->query("SHOW COLUMNS FROM inventory_operations LIKE 'status'")->fetch()) {
+        $db->exec("ALTER TABLE inventory_operations ADD status ENUM('draft', 'done') NOT NULL DEFAULT 'draft'");
+    }
+    echo "Productos, operaciones y existencias de Inventario instalados.\n";
 } catch (Throwable $exception) {
     fwrite(STDERR, 'No se pudo instalar Inventario: ' . $exception->getMessage() . "\n");
     exit(1);

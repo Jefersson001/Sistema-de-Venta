@@ -1,4 +1,5 @@
 const searchInput = document.querySelector('[data-module-search]');
+document.querySelector('[data-product-stock-open]')?.addEventListener('click', () => document.querySelector('#product-tab-inventory')?.click());
 for (const warehouse of document.querySelectorAll('[data-location-warehouse]')) {
     const parent = warehouse.closest('form').querySelector('[data-location-parent]');
     const options = [...parent.options].map(option => option.cloneNode(true));

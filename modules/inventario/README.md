@@ -1,8 +1,20 @@
 # Inventario
 
+## Operaciones
+
+El menú Operaciones contiene Entregas, Recepciones e Interno, con listas y formularios separados, búsqueda y paginación. Las referencias se generan automáticamente como OUT/00001, IN/00002 e INT/00003. Se guardan fecha programada, contacto y notas internas.
+
+Las entregas muestran Dirección de entrega, relacionada con el cliente y su dirección concatenada, y un único selector obligatorio Ubicación de origen. Las recepciones relacionan un proveedor y una Ubicación de destino. Los traslados internos tienen Ubicación de origen y Ubicación de destino. Cada selector guarda la ubicación y muestra su ruta / almacén; el servidor obtiene el almacén de esa ubicación. No hay bloques Origen/Destino ni selectores separados de almacén. Los borradores anteriores que solo tienen almacén requieren elegir una ubicación al editarlos. El servidor valida las relaciones e impide traslados al mismo origen y destino. Las ubicaciones usadas por operaciones no pueden cambiar de almacén.
+
+Operaciones permite agregar y quitar líneas con Producto, Demanda (prevista) y Cantidad (a mover), con hasta tres decimales. También muestra existencias actuales en la ubicación de origen, o destino en recepciones. Guardar no modifica existencias. Validar mueve exclusivamente Cantidad: recepciones suman en destino, entregas restan en origen e internos trasladan entre ambas ubicaciones. La operación queda Realizado y no admite edición ni una segunda validación. No se permiten saldos negativos. Los movimientos, balances y cambio de estado se guardan en una única transacción y comprueban la versión del registro. La ficha del producto muestra Cantidad a la mano y su desglose en la pestaña Inventario.
+
+Las cantidades comienzan en cero y se cargan mediante recepciones. Aún no hay reservas, unidades de medida, devoluciones o generación de operaciones pendientes por diferencias entre demanda y cantidad. Las ventas no generan entregas automáticamente todavía.
+
+Instalar con `php/install-inventory.php` y verificar con `test/inventory-operations.php` mediante el ejecutable de PHP.
+
 La vista principal abre Productos en un listado con búsqueda y paginación. «Nuevo producto» o un registro abre un formulario separado con nombre y casillas independientes Venta y Compra. Ambas casillas comienzan desmarcadas. El formulario tiene seis pestañas, en este orden: Información general, Variantes, Ventas, Compras, Inventario y Contabilidad. Los datos se guardan en MySQL.
 
-Información general incluye precio de venta, impuesto de venta, impuesto de compra y categoría. El precio se almacena como decimal con dos posiciones, comienza en 0.00 y acepta punto o coma decimal. Las relaciones son opcionales; cada impuesto pertenece al módulo correspondiente, Ventas o Compras, y la categoría usa el catálogo de Inventario. Los catálogos de impuestos se administran en Configuración de Compras y Ventas, con solo el nombre. Las demás pestañas siguen vacías.
+Información general incluye precio de venta, impuesto de venta, impuesto de compra y categoría. El precio se almacena como decimal con dos posiciones, comienza en 0.00 y acepta punto o coma decimal. Las relaciones son opcionales; cada impuesto pertenece al módulo correspondiente, Ventas o Compras, y la categoría usa el catálogo de Inventario. Los catálogos de impuestos se administran en Configuración de Compras y Ventas, con solo el nombre. Inventario muestra existencias por ubicación; las demás pestañas siguen vacías.
 
 Configuración → Productos → Categorías abre el listado de categorías. «Nueva categoría» o «Editar» abre un formulario independiente con nombre y categoría superior opcional. Guardar vuelve al listado. Los datos se almacenan en MySQL y el catálogo empieza vacío.
 

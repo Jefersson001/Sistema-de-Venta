@@ -63,6 +63,14 @@ function saveInventoryStorage(PDO $db, string $section, array $data, ?int $id): 
                     }
                 }
             }
+            $tableExists = $db->query("SHOW TABLES LIKE 'inventory_operations'")->fetch();
+            if ($tableExists) {
+                $references = $db->prepare('SELECT COUNT(*) FROM inventory_operations WHERE source_location_id = ? OR destination_location_id = ?');
+                $references->execute([$id, $id]);
+                if ((int) $references->fetchColumn() > 0) {
+                    throw new InvalidArgumentException('Esta ubicación está relacionada con operaciones. No puede cambiar de almacén.');
+                }
+            }
         }
     }
     $table = match ($section) { 'warehouses' => 'inventory_warehouses', 'locations' => 'inventory_locations' };
