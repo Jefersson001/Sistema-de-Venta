@@ -1,6 +1,7 @@
 <?php
 declare(strict_types=1);
 require_once __DIR__ . '/commerce-repository.php';
+require_once __DIR__.'/payments-repository.php';
 
 function invoiceStatuses(): array { return ['draft' => 'Borrador', 'posted' => 'Registrado', 'cancel' => 'Cancelado']; }
 function invoicePaymentStates(): array { return ['not_paid' => 'Sin pagar', 'in_payment' => 'En proceso de pago', 'partial' => 'Parcialmente pagado', 'paid' => 'Pagado', 'reversed' => 'Revertido']; }
@@ -8,7 +9,7 @@ function invoiceFilterStates(): array { return invoiceStatuses() + ['sent' => 'E
 
 function invoicePaymentDetails(PDO $db, int $id): array
 {
-    $payments = $db->prepare('SELECT * FROM accounting_invoice_payments WHERE invoice_id = ? ORDER BY payment_date, id'); $payments->execute([$id]); $rows = $payments->fetchAll();
+    $payments = $db->prepare('SELECT l.*,p.name AS payment_name,p.currency_code AS payment_currency FROM accounting_invoice_payments l LEFT JOIN accounting_payments p ON p.id=l.payment_id WHERE l.invoice_id = ? ORDER BY l.payment_date,l.id'); $payments->execute([$id]); $rows = $payments->fetchAll();
     $settled = '0.00'; $pending = '0.00';
     foreach ($rows as $row) {
         if ($row['status'] === 'settled') $settled = bcadd($settled, $row['amount'], 2);
@@ -38,6 +39,7 @@ function invoiceRecomputePaymentState(PDO $db, array $invoice): void
 
 function transitionInvoiceStatus(PDO $db, int $id, ?int $version, string $action, array $input): void
 {
+    if(in_array($action,['register_payment','settle_payment','cancel_payment'],true)){paymentFromInvoice($db,$id,$version,$action,$input);return;}
     $query=$db->prepare('SELECT sale_id,purchase_id,reversal_of_id FROM accounting_invoices WHERE id=?');$query->execute([$id]);$relation=$query->fetch();
     if(!$relation)throw new InvalidArgumentException('La factura no existe.');$original=$relation['reversal_of_id'];
     workflowBegin($db);
@@ -56,26 +58,6 @@ function transitionInvoiceStatus(PDO $db, int $id, ?int $version, string $action
             if ($action === 'mark_invoice_sent') {
                 if ($invoice['sent_at']) throw new InvalidArgumentException('La factura ya está marcada como enviada.');
                 $db->prepare('UPDATE accounting_invoices SET sent_at = CURRENT_TIMESTAMP WHERE id = ?')->execute([$id]);
-            } elseif ($action === 'register_payment') {
-                $amount = salesDecimal($input['amount'] ?? '', 16, 2);
-                $date = $input['payment_date'] ?? '';
-                $parsed = is_string($date) ? DateTimeImmutable::createFromFormat('!Y-m-d', $date) : false;
-                if (! $amount || bccomp($amount, '0', 2) <= 0) throw new InvalidArgumentException('El importe del pago debe ser positivo, con hasta dos decimales.');
-                if (! $parsed || $parsed->format('Y-m-d') !== $date || $date < '1000-01-01' || $date > '9999-12-31') throw new InvalidArgumentException('Selecciona una fecha de pago válida.');
-                $reference = is_string($input['reference'] ?? null) ? trim($input['reference']) : '';
-                if (mb_strlen($reference) > 160) throw new InvalidArgumentException('La referencia del pago admite hasta 160 caracteres.');
-                if (bccomp(bcadd(bcadd($details['settled'], $details['pending'], 2), $amount, 2), $effectiveAmount, 2) > 0) throw new InvalidArgumentException('El pago supera el saldo pendiente de la factura.');
-                $db->prepare('INSERT INTO accounting_invoice_payments (invoice_id, amount, payment_date, reference) VALUES (?, ?, ?, ?)')->execute([$id, $amount, $date, $reference]);
-            } elseif (in_array($action, ['settle_payment', 'cancel_payment'], true)) {
-                $paymentId = salesId($input['payment_id'] ?? null); $payment = null;
-                foreach ($details['payments'] as $row) if ((int) $row['id'] === $paymentId) $payment = $row;
-                if (! $payment || $payment['status'] === 'cancel' || ($action === 'settle_payment' && $payment['status'] !== 'pending')) throw new InvalidArgumentException('El pago solicitado no admite esa acción.');
-                if($action==='cancel_payment' && $invoice['document_type']==='invoice') {
-                    $q=$db->prepare("SELECT COUNT(*) FROM accounting_invoice_payments p JOIN accounting_invoices c ON c.id=p.invoice_id WHERE c.reversal_of_id=? AND p.status IN ('pending','settled')");$q->execute([$id]);
-                    if($q->fetchColumn())throw new InvalidArgumentException('Cancela primero los reembolsos relacionados antes de anular el pago original.');
-                }
-                if($action==='settle_payment' && bccomp(bcadd($details['settled'],$payment['amount'],2),$effectiveAmount,2)>0)throw new InvalidArgumentException('El importe supera el saldo actual; cancela el pago y registra el importe correcto.');
-                $db->prepare('UPDATE accounting_invoice_payments SET status = ? WHERE id = ? AND invoice_id = ?')->execute([$action === 'settle_payment' ? 'settled' : 'cancel', $paymentId, $id]);
             } else throw new InvalidArgumentException('La acción de factura no es válida.');
             invoiceRecomputePaymentState($db, $invoice);
         }

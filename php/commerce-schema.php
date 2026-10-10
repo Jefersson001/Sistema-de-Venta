@@ -2,6 +2,7 @@
 declare(strict_types=1);
 require_once __DIR__ . '/status-schema.php';
 require_once __DIR__ . '/workflow-schema.php';
+require_once __DIR__.'/payments-schema.php';
 
 function installCommerceDocuments(PDO $db): void
 {
@@ -39,4 +40,5 @@ function installCommerceDocuments(PDO $db): void
     foreach (explode(';', $migration) as $statement) { if (trim($statement) !== '') { $db->exec($statement); } }
     installDocumentStatuses($db);
     installCommerceWorkflow($db);
+    installAccountingPayments($db);
 }

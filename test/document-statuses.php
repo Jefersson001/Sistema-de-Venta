@@ -112,6 +112,7 @@ try {
         foreach (['accounting_invoice_payments', 'accounting_invoice_reversals', 'accounting_invoice_lines'] as $table) $db->prepare('DELETE FROM ' . $table . ' WHERE invoice_id = ?')->execute([$id]);
         $db->prepare('DELETE FROM accounting_invoices WHERE id = ?')->execute([$id]);
     }
+    foreach(['client','supplier'] as $party)if(isset($fixtures[$party]))$db->prepare('DELETE FROM accounting_payments WHERE contact_id=?')->execute([$fixtures[$party]]);
     foreach ($orders as [$kind, $id]) {
         $db->prepare('DELETE FROM ' . ($kind === 'sale' ? 'sales_quotation_lines WHERE quotation_id' : 'purchase_order_lines WHERE order_id') . ' = ?')->execute([$id]);
         $db->prepare('DELETE FROM ' . ($kind === 'sale' ? 'sales_quotations' : 'purchase_orders') . ' WHERE id = ?')->execute([$id]);

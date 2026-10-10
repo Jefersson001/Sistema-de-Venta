@@ -3,6 +3,7 @@ declare(strict_types=1);
 require_once __DIR__ . '/connection.php';
 require_once __DIR__ . '/commerce-repository.php';
 require_once __DIR__ . '/module-page.php';
+require_once __DIR__.'/dashboard-repository.php';
 
 function renderPurchaseOrders(): void
 {
@@ -20,6 +21,7 @@ function renderPurchaseOrders(): void
         $page['record'] = $existing ?? ['name' => 'Nuevo', 'status' => 'draft', 'order_type' => 'receipt', 'version' => 0, 'order_date' => commerceToday(), 'lines' => [], 'base_amount' => '0.00', 'total_amount' => '0.00'];
         if ($page['view'] === 'form' && $page['available']) {
             $page['catalogs'] = loadPurchaseCatalogs($db, $existing);
+            if(!$existing)$page['record']['currency_code']=$page['catalogs']['settings']['primary_code'];
             $page['documentKind'] = 'purchase'; $page['links'] = $id ? commerceLinks($db, 'purchase', $id) : null;
         }
         if ($_SERVER['REQUEST_METHOD'] === 'POST' && $page['available']) {
@@ -50,6 +52,7 @@ function renderPurchaseOrders(): void
             $where = []; $params = [];
             if ($page['search'] !== '') { $where[] = '(o.name LIKE :reference OR c.name LIKE :supplier)'; $params['reference'] = $params['supplier'] = '%' . $page['search'] . '%'; }
             if ($page['statusFilter'] !== 'all') { $where[] = 'o.status = :status'; $params['status'] = $page['statusFilter']; }
+            if(($_GET['pending']??'')==='1')$where[]=dashboardPendingOrderCondition('purchase','o');
             $from = ' FROM purchase_orders o JOIN contacts c ON c.id = o.supplier_id'; $filter = $where ? ' WHERE ' . implode(' AND ', $where) : '';
             $count = $db->prepare('SELECT COUNT(*)' . $from . $filter); $count->execute($params); $page['total'] = (int) $count->fetchColumn();
             $page['pages'] = max(1, (int) ceil($page['total'] / 20)); $page['currentPage'] = min(salesId($_GET['page'] ?? null) ?? 1, $page['pages']);

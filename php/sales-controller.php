@@ -5,6 +5,7 @@ require_once __DIR__ . '/sales-repository.php';
 require_once __DIR__ . '/sales-delivery-repository.php';
 require_once __DIR__ . '/commerce-repository.php';
 require_once __DIR__ . '/module-page.php';
+require_once __DIR__.'/dashboard-repository.php';
 
 function renderSalesQuotations(): void
 {
@@ -26,6 +27,7 @@ function renderSalesQuotations(): void
             'order_date' => (new DateTimeImmutable('now', new DateTimeZone('America/Caracas')))->format('Y-m-d')];
         if ($page['view'] === 'form' && $page['available']) {
             $page['catalogs'] = loadSalesCatalogs($db, $existing);
+            if(!$existing)$page['record']['currency_code']=$page['catalogs']['settings']['primary_code'];
             $page['delivery'] = $id ? loadSalesDelivery($db, $id) : null;
             $page['documentKind'] = 'sale'; $page['links'] = $id ? commerceLinks($db, 'sale', $id) : null;
         }
@@ -72,6 +74,7 @@ function renderSalesQuotations(): void
             if ($page['statusFilter'] === 'quotations') { $where[] = "q.status IN ('draft', 'sent')"; }
             elseif ($page['statusFilter'] !== 'all') { $where[] = 'q.status = :status'; $params['status'] = $page['statusFilter']; }
             if ($page['search'] !== '') { $where[] = '(q.name LIKE :reference OR c.name LIKE :customer)'; $params['reference'] = '%' . $page['search'] . '%'; $params['customer'] = $params['reference']; }
+            if(($_GET['pending']??'')==='1')$where[]=dashboardPendingOrderCondition('sale','q');
             $filter = $where ? ' WHERE ' . implode(' AND ', $where) : '';
             $count = $db->prepare('SELECT COUNT(*) FROM sales_quotations q JOIN contacts c ON c.id = q.customer_id' . $filter);
             $count->execute($params); $page['total'] = (int) $count->fetchColumn();

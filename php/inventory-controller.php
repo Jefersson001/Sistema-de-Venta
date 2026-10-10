@@ -8,6 +8,7 @@ require_once __DIR__ . '/tax-repository.php';
 require_once __DIR__ . '/module-page.php';
 require_once __DIR__ . '/inventory-stock-repository.php';
 require_once __DIR__ . '/storage-repository.php';
+require_once __DIR__.'/currency-repository.php';
 
 function inventoryEscape(mixed $value): string
 {
@@ -37,7 +38,7 @@ function renderInventoryProducts(): void
             $page['errors'][] = 'El producto solicitado no existe.';
         }
         if ($id) {
-            $statement = $db->prepare('SELECT id, name, sale_enabled, purchase_enabled, sale_price, category_id, purchase_tax_id, sale_tax_id, product_type, invoice_policy, cost_price FROM inventory_products WHERE id = ?');
+            $statement = $db->prepare('SELECT id, name, sale_enabled, purchase_enabled, sale_price, category_id, purchase_tax_id, sale_tax_id, product_type, invoice_policy, cost_price, currency_code FROM inventory_products WHERE id = ?');
             $statement->execute([$id]);
             $page['record'] = $statement->fetch() ?: [];
             if (! $page['record']) {
@@ -47,6 +48,7 @@ function renderInventoryProducts(): void
             }
         }
         if ($page['view'] === 'form' && $page['available']) {
+            $page['settings']=accountingCurrencies($db);
             $page['categories'] = loadInventoryCategories($db);
             $page['purchaseTaxes'] = loadBusinessTaxes($db, 'compras');
             $page['saleTaxes'] = loadBusinessTaxes($db, 'ventas');
@@ -65,7 +67,10 @@ function renderInventoryProducts(): void
                 http_response_code(400);
                 $page['errors'][] = 'La operación solicitada no es válida.';
             } else {
-                [$data, $page['errors']] = validateInventoryProduct($_POST, $page['categories'], $page['purchaseTaxes'], $page['saleTaxes']);
+                $input=$_POST;$input['currency_code']??=$page['record']['currency_code']??$page['settings']['primary_code'];
+                if(!in_array($input['currency_code'],array_merge(accountingCurrencyCodes($page['settings']),[$page['record']['currency_code']??null]),true)){$page['errors'][]='Selecciona una moneda configurada.';}
+                [$data, $productErrors] = validateInventoryProduct($input, $page['categories'], $page['purchaseTaxes'], $page['saleTaxes']);
+                $page['errors']=array_merge($page['errors'],$productErrors);
                 $page['record'] = $data + ($id ? ['id' => $id] : []);
                 if (! $page['errors']) {
                     try {

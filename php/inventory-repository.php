@@ -136,6 +136,7 @@ function validateInventoryProduct(array $input, array $categories = [], array $p
     $cost=is_string($input['cost_price']??null)?str_replace(',','.',trim($input['cost_price'])):'0';
     if(!preg_match('/^[0-9]{1,10}(\.[0-9]{1,2})?$/',$cost)) { $errors[]='Indica un costo válido con hasta dos decimales.'; $cost='0'; }
     $data['cost_price']=$cost;
+    $currency=$input['currency_code']??'USD';if(!is_string($currency)||!preg_match('/^[A-Z]{3}$/',$currency)){$errors[]='Selecciona una moneda válida.';$currency='USD';}$data['currency_code']=$currency;
     return [$data, $errors];
 }
 
@@ -148,10 +149,10 @@ function saveInventoryProduct(PDO $db, array $data, ?int $id): int
     if ($id) {
         $data['id'] = $id;
         $sql = 'UPDATE inventory_products SET name = :name, sale_enabled = :sale_enabled, purchase_enabled = :purchase_enabled,
-            sale_price = :sale_price, category_id = :category_id, purchase_tax_id = :purchase_tax_id, sale_tax_id = :sale_tax_id, product_type=:product_type, invoice_policy=:invoice_policy, cost_price=:cost_price WHERE id = :id';
+            sale_price = :sale_price, category_id = :category_id, purchase_tax_id = :purchase_tax_id, sale_tax_id = :sale_tax_id, product_type=:product_type, invoice_policy=:invoice_policy, cost_price=:cost_price, currency_code=:currency_code WHERE id = :id';
     } else {
-        $sql = 'INSERT INTO inventory_products (name, sale_enabled, purchase_enabled, sale_price, category_id, purchase_tax_id, sale_tax_id, product_type, invoice_policy, cost_price)
-            VALUES (:name, :sale_enabled, :purchase_enabled, :sale_price, :category_id, :purchase_tax_id, :sale_tax_id, :product_type, :invoice_policy, :cost_price)';
+        $sql = 'INSERT INTO inventory_products (name, sale_enabled, purchase_enabled, sale_price, category_id, purchase_tax_id, sale_tax_id, product_type, invoice_policy, cost_price, currency_code)
+            VALUES (:name, :sale_enabled, :purchase_enabled, :sale_price, :category_id, :purchase_tax_id, :sale_tax_id, :product_type, :invoice_policy, :cost_price, :currency_code)';
     }
     $db->prepare($sql)->execute($data);
     return $id ?? (int) $db->lastInsertId();

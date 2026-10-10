@@ -1,6 +1,7 @@
 <?php
 declare(strict_types=1);
 require_once __DIR__ . '/workflow-repository.php';
+require_once __DIR__.'/currency-repository.php';
 require_once __DIR__ . '/storage-repository.php';
 
 function salesEscape(mixed $value): string
@@ -69,11 +70,11 @@ function loadSalesCatalogs(PDO $db, ?array $existing): array
     }
     unset($seller);
     $assignedProducts = array_map(static fn ($line) => (int) $line['product_id'], $existing['lines'] ?? []);
-    $products = $db->query('SELECT id, name, sale_price, sale_tax_id, sale_enabled, product_type, invoice_policy, cost_price FROM inventory_products ORDER BY name, id')->fetchAll();
+    $products = $db->query('SELECT id, name, sale_price, sale_tax_id, sale_enabled, product_type, invoice_policy, cost_price, currency_code FROM inventory_products ORDER BY name, id')->fetchAll();
     $products = array_values(array_filter($products, static fn ($product) => $product['sale_enabled'] || in_array((int) $product['id'], $assignedProducts, true)));
     $taxes = $db->query("SELECT id, name, rate FROM business_taxes WHERE module_key = 'ventas' ORDER BY name, id")->fetchAll();
     $terms = $db->query('SELECT id, name FROM accounting_payment_terms ORDER BY name, id')->fetchAll();
-    return ['customers' => $customerRecords, 'salespeople' => $sellerRecords,
+    return ['settings'=>$existing?['primary_code'=>$existing['currency_primary_code'],'alternate_code'=>$existing['currency_alternate_code'],'exchange_rate'=>$existing['exchange_rate']]:accountingCurrencies($db),'customers' => $customerRecords, 'salespeople' => $sellerRecords,
         'products' => $products, 'taxes' => $taxes, 'terms' => $terms];
 }
 
@@ -111,7 +112,11 @@ function validateSalesQuotation(array $input, array $catalogs, ?array $existing 
     $sameCustomer = $existing && (int) $existing['customer_id'] === $customerId;
     $seller = salesRecord($catalogs['salespeople'], $sellerId);
     $address = $customer ? salesAddress($customer) : '';
-    $data = ['customer_id' => $customerId, 'order_date' => $date, 'order_type' => $orderType, 'payment_term_id' => $termId,
+    $settings=$catalogs['settings']??['primary_code'=>'USD','alternate_code'=>'VES','exchange_rate'=>null];
+    try{$settings['exchange_rate']=accountingExchangeRate($input['exchange_rate']??$existing['exchange_rate']??$settings['exchange_rate']);}catch(InvalidArgumentException $e){$errors[]=$e->getMessage();}
+    $currency=$input['currency_code']??$existing['currency_code']??$settings['primary_code'];
+    if(!is_string($currency)||!in_array($currency,array_merge(accountingCurrencyCodes($settings),[$existing['currency_code']??null]),true)){$errors[]='Selecciona una moneda configurada para la orden.';$currency=$settings['primary_code'];}
+    $data = ['currency_primary_code'=>$settings['primary_code'],'currency_alternate_code'=>$settings['alternate_code'],'exchange_rate'=>$settings['exchange_rate'],'currency_code'=>$currency,'customer_id' => $customerId, 'order_date' => $date, 'order_type' => $orderType, 'payment_term_id' => $termId,
         'salesperson_id' => $sellerId, 'invoice_address' => $sameCustomer ? $existing['invoice_address'] : $address,
         'delivery_address' => $sameCustomer ? $existing['delivery_address'] : $address,
         'warehouse_id' => salesId($seller['warehouse_id'] ?? null), 'location_id' => salesId($seller['location_id'] ?? null),
@@ -140,6 +145,7 @@ function validateSalesQuotation(array $input, array $catalogs, ?array $existing 
         $amounts = commerceAmounts($quantity ?? '0', $price ?? '0', $rate);
         $base = $amounts['base_amount'];
         $total = bcadd($total, $amounts['total_amount'], 2); $baseTotal = bcadd($baseTotal, $base, 2); $taxTotal = bcadd($taxTotal, $amounts['tax_amount'], 2);
+        try{$cost=$sameProduct && ($existing['currency_code']??'USD')===$currency ? ($oldLine['unit_cost']??'0') : accountingConvert($product['cost_price']??'0',$product['currency_code']??'USD',$currency,$settings);}catch(InvalidArgumentException $e){$errors[]=$e->getMessage();$cost='0';}
         $lines[] = ['product_id' => $productId, 'product_name' => $product['name'] ?? '',
             'quantity' => $quantity ?? (is_string($raw['quantity'] ?? null) ? $raw['quantity'] : ''),
             'unit_price' => $price ?? (is_string($raw['unit_price'] ?? null) ? $raw['unit_price'] : ''),
@@ -147,7 +153,7 @@ function validateSalesQuotation(array $input, array $catalogs, ?array $existing 
             'tax_amount' => $amounts['tax_amount'], 'base_amount' => $base, 'total_amount' => $amounts['total_amount'],
             'product_type' => $sameProduct ? ($oldLine['product_type'] ?? 'goods') : ($product['product_type'] ?? 'goods'),
             'invoice_policy' => $orderType === 'invoice' ? 'ordered' : ($sameProduct ? ($oldLine['invoice_policy'] ?? 'delivered') : ($product['invoice_policy'] ?? 'delivered')),
-            'unit_cost' => $sameProduct ? ($oldLine['unit_cost'] ?? '0') : ($product['cost_price'] ?? '0')];
+            'unit_cost' => $cost];
     }
     if (bccomp($total, '9999999999999999.99', 2) > 0) { $errors[] = 'El importe de la cotización excede el máximo permitido.'; }
     $data['base_amount'] = $baseTotal; $data['tax_amount'] = $taxTotal;

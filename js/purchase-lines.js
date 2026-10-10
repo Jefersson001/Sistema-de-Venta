@@ -39,7 +39,8 @@ if (purchaseForm) {
             const supplier = purchaseForm.querySelector('[data-purchase-supplier]').value;
             const prices = JSON.parse(document.querySelector('[data-supplier-prices]')?.textContent || '[]');
             const vendorPrice=prices.find(p=>String(p.product_id)===event.target.value && String(p.supplier_id)===supplier);
-            row.querySelector('[data-order-price]').value = vendorPrice?.price || option?.dataset.price || '0.00';
+            const price=vendorPrice?.price || option?.dataset.price || '0.00';const currency=purchaseForm.querySelector('[data-order-currency]');
+            try{row.querySelector('[data-order-price]').value=currency&&typeof convertOrderMoney==='function'?convertOrderMoney(price,option?.dataset.currency||currency.value,currency.value,{...orderCurrencySettings,exchange_rate:purchaseForm.querySelector('[data-order-exchange]')?.value||orderCurrencySettings.exchange_rate}):price;}catch(error){window.alert(error.message);}
             row.querySelector('[data-order-tax]').value = option?.dataset.tax === '0' ? '' : (option?.dataset.tax || '');
             updateTotals();
         });

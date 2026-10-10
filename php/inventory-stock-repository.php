@@ -98,7 +98,7 @@ function validateInventoryStockOperation(PDO $db, int $id, ?int $version): void
         if ($type==='receipt' && empty($operation['return_of_id'])) {
             $costs=[];
             foreach($lines as $line) if($line['purchase_line_id'] && bccomp($line['quantity'],'0',3)>0) {
-                $price=$db->prepare('SELECT unit_price FROM purchase_order_lines WHERE id=?');$price->execute([$line['purchase_line_id']]);$price=(string)$price->fetchColumn();
+                $price=$db->prepare('SELECT l.unit_price,o.currency_code,o.currency_primary_code AS primary_code,o.currency_alternate_code AS alternate_code,o.exchange_rate FROM purchase_order_lines l JOIN purchase_orders o ON o.id=l.order_id WHERE l.id=?');$price->execute([$line['purchase_line_id']]);$purchasePrice=$price->fetch();$productCurrency=$db->prepare('SELECT currency_code FROM inventory_products WHERE id=?');$productCurrency->execute([$line['product_id']]);$price=accountingConvert($purchasePrice['unit_price'],$purchasePrice['currency_code'],(string)$productCurrency->fetchColumn(),$purchasePrice);
                 $product=(int)$line['product_id'];$costs[$product]??=['quantity'=>'0.000','amount'=>'0.00000'];
                 $costs[$product]['quantity']=bcadd($costs[$product]['quantity'],$line['quantity'],3);$costs[$product]['amount']=bcadd($costs[$product]['amount'],bcmul($line['quantity'],$price,5),5);
             }

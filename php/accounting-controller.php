@@ -17,6 +17,7 @@ function accountingId(mixed $value): ?int
 
 function renderAccountingConfiguration(): void
 {
+    if(is_string($_GET['section']??null)&&in_array($_GET['section'],['accounts','methods','currencies'],true)) { require_once __DIR__.'/payment-configuration-controller.php';renderPaymentConfiguration($_GET['section']);return; }
     if (session_status() !== PHP_SESSION_ACTIVE) { session_start(); }
     $_SESSION['accounting_csrf'] ??= bin2hex(random_bytes(32));
     $config = require __DIR__ . '/config/database.php';

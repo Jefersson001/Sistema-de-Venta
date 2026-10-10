@@ -131,6 +131,8 @@ a:focus-visible, button:focus-visible { outline: 3px solid #5d4fc4; outline-offs
 .overview-card { display: flex; min-width: 0; flex-direction: column; padding: 22px; border: 1px solid var(--line); border-radius: 14px; background: #fff; }
 .overview-label { color: #414b60; font-size: 14px; font-weight: 700; }
 .overview-card .overview-value { margin: 12px 0 8px; color: var(--ink); font-family: Manrope, sans-serif; font-size: 19px; font-weight: 700; }
+.overview-value { overflow-wrap: anywhere; }
+.inventory-alert li .overview-link { margin: 0; }
 .overview-card p { color: var(--muted); font-size: 14px; line-height: 1.6; }
 .overview-link { display: inline-flex; min-height: 44px; align-items: center; gap: 8px; margin-top: auto; color: #514397; font-size: 14px; font-weight: 700; }
 .overview-link:hover { text-decoration: underline; }

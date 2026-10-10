@@ -87,11 +87,11 @@
                 <section class="quick-actions" aria-labelledby="actions-title">
                     <div>
                         <h2 id="actions-title">Acciones rápidas</h2>
-                        <p class="section-subtitle" id="actions-help">Crea un contacto. El registro de ventas y compras estará disponible próximamente.</p>
+                        <p class="section-subtitle" id="actions-help">Crea una venta, una compra o un contacto.</p>
                     </div>
                     <div class="action-buttons" aria-describedby="actions-help">
-                        <button class="action-button action-primary" type="button" disabled>Nueva venta <span>Próximamente</span></button>
-                        <button class="action-button" type="button" disabled>Registrar compra <span>Próximamente</span></button>
+                        <a class="action-button action-primary" href="modules/ventas/index.php?new=1">Nueva venta <span aria-hidden="true">→</span></a>
+                        <a class="action-button" href="modules/compras/index.php?new=1">Registrar compra <span aria-hidden="true">→</span></a>
                         <a class="action-button" href="modules/contactos/index.php?new=1">Crear contacto <span aria-hidden="true">→</span></a>
                     </div>
                 </section>
@@ -100,44 +100,49 @@
                     <div class="section-heading">
                         <div>
                             <p class="eyebrow">RESUMEN DEL NEGOCIO</p>
-                            <h2 id="overview-title">Pendientes y alertas</h2>
+                            <h2 id="overview-title">Pendientes y alertas</h2><?php if($dashboard['available']): ?><p class="section-subtitle">Principal: <?= htmlspecialchars($dashboard['settings']['primary_code'],ENT_QUOTES,'UTF-8') ?> · Alterna: <?= htmlspecialchars($dashboard['settings']['alternate_code'],ENT_QUOTES,'UTF-8') ?>. Los saldos se muestran separados por moneda.</p><?php endif; ?>
                             <p class="section-subtitle"><?= $databaseStatus['connected']
-                                ? 'Los indicadores estarán disponibles cuando los módulos registren operaciones.'
+                                ? ($dashboard['available']?'Información calculada a partir de órdenes, movimientos, facturas y pagos.':'No se pudo cargar el resumen. Verifica la instalación de los módulos.')
                                 : 'No se pueden consultar los indicadores mientras la base de datos esté desconectada.' ?></p>
                         </div>
                     </div>
                     <div class="overview-grid">
                         <article class="overview-card">
                             <span class="overview-label">Ventas por completar</span>
-                            <p class="overview-value">Sin datos disponibles</p>
+                            <p class="overview-value"><?= $dashboard['available'] ? $dashboard['sales'] : '—' ?></p>
                             <p>Consulta aquí los pedidos que aún necesitan atención.</p>
-                            <a class="overview-link" href="modules/ventas/index.php">Ir a Ventas <span aria-hidden="true">→</span></a>
+                            <a class="overview-link" href="modules/ventas/index.php?status=sale&amp;pending=1">Ir a Ventas <span aria-hidden="true">→</span></a>
                         </article>
                         <article class="overview-card">
-                            <span class="overview-label">Compras por recibir</span>
-                            <p class="overview-value">Sin datos disponibles</p>
-                            <p>Da seguimiento a la mercancía pendiente de recepción.</p>
-                            <a class="overview-link" href="modules/compras/index.php">Ir a Compras <span aria-hidden="true">→</span></a>
+                            <span class="overview-label">Compras por completar</span>
+                            <p class="overview-value"><?= $dashboard['available'] ? $dashboard['purchases'] : '—' ?></p>
+                            <p>Órdenes con cantidades pendientes de recibir o facturar.</p>
+                            <a class="overview-link" href="modules/compras/index.php?status=purchase&amp;pending=1">Ir a Compras <span aria-hidden="true">→</span></a>
                         </article>
                         <article class="overview-card">
                             <span class="overview-label">Cobros pendientes</span>
-                            <p class="overview-value">Sin datos disponibles</p>
-                            <p>Revisa las cuentas por cobrar cuando se registren facturas y pagos.</p>
-                            <a class="overview-link" href="modules/contabilidad/index.php">Ir a Contabilidad <span aria-hidden="true">→</span></a>
+                            <p class="overview-value"><?= $dashboard['available'] ? htmlspecialchars(dashboardMoney($dashboard['receivables']),ENT_QUOTES,'UTF-8') : '—' ?></p>
+                            <p>Saldo de facturas registradas, descontando pagos confirmados y notas de crédito.</p>
+                            <a class="overview-link" href="modules/contabilidad/index.php?type=customer&amp;unpaid=1">Ir a Contabilidad <span aria-hidden="true">→</span></a>
                         </article>
+                        <article class="overview-card"><span class="overview-label">Pagos a proveedores pendientes</span><p class="overview-value"><?= $dashboard['available']?htmlspecialchars(dashboardMoney($dashboard['payables']),ENT_QUOTES,'UTF-8'):'—' ?></p><a class="overview-link" href="modules/contabilidad/index.php?type=supplier&amp;unpaid=1">Consultar facturas de proveedores →</a></article>
+                        <article class="overview-card"><span class="overview-label">Facturas vencidas</span><p class="overview-value"><?= $dashboard['available']?$dashboard['overdue']:'—' ?></p><p>Clientes y proveedores con saldo y vencimiento anterior a hoy.</p><a class="overview-link" href="modules/contabilidad/index.php?type=customer&amp;overdue=1">Clientes →</a> <a class="overview-link" href="modules/contabilidad/index.php?type=supplier&amp;overdue=1">Proveedores →</a></article>
+                        <article class="overview-card"><span class="overview-label">Pagos sin aplicar</span><p class="overview-value"><?= $dashboard['available']?htmlspecialchars(dashboardMoney($dashboard['unallocated']),ENT_QUOTES,'UTF-8'):'—' ?></p><a class="overview-link" href="modules/contabilidad/pagos.php?type=customer&amp;available=1">Clientes →</a> <a class="overview-link" href="modules/contabilidad/pagos.php?type=supplier&amp;available=1">Proveedores →</a></article>
                     </div>
                     <div class="inventory-alert">
                         <span class="inventory-alert-icon" aria-hidden="true">!</span>
                         <div>
                             <h3>Alertas de inventario</h3>
+                            <?php if($dashboard['available']): ?><ul><?php foreach($dashboard['alerts'] as $alert): ?><li><a class="overview-link" href="modules/inventario/index.php?id=<?= (int)$alert['id'] ?>"><?= htmlspecialchars($alert['name'],ENT_QUOTES,'UTF-8') ?></a> · Disponible <?= htmlspecialchars($alert['available'],ENT_QUOTES,'UTF-8') ?></li><?php endforeach; ?></ul><?php endif; ?>
                             <p><?= $databaseStatus['connected']
-                                ? 'Sin datos disponibles. Las alertas necesitan productos, existencias y un stock mínimo definido.'
+                                ? ($dashboard['available']?$dashboard['alert_count'].' productos sin cantidad disponible después de reservas.':'No se pudo consultar la disponibilidad.')
                                 : 'No se puede comprobar el inventario sin conexión a la base de datos.' ?></p>
                         </div>
                         <a class="overview-link" href="modules/inventario/index.php">Ir a Inventario <span aria-hidden="true">→</span></a>
                     </div>
                 </section>
 
+                <?php if($dashboard['available']): ?><section class="business-overview"><h2>Tareas pendientes</h2><div class="overview-grid"><?php foreach($dashboard['tasks'] as $task): ?><article class="overview-card"><a class="overview-link" href="<?= htmlspecialchars($task['href'],ENT_QUOTES,'UTF-8') ?>"><?= htmlspecialchars($task['label'],ENT_QUOTES,'UTF-8') ?></a><p><?= htmlspecialchars($task['detail'],ENT_QUOTES,'UTF-8') ?></p></article><?php endforeach; ?><?php if(!$dashboard['tasks']): ?><p>No hay operaciones pendientes ni facturas vencidas con saldo.</p><?php endif; ?></div></section><?php endif; ?>
                 <section class="module-section" aria-labelledby="modules-title">
                     <div class="section-heading">
                         <div>

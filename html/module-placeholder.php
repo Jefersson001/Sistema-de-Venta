@@ -45,6 +45,7 @@
                         <?php if ($moduleKey === 'ventas'): ?><span aria-hidden="true">/</span><span>Órdenes</span><span aria-hidden="true">/</span><span>Cotizaciones</span><?php endif; ?>
                         <?php if ($moduleKey === 'compras'): ?><span aria-hidden="true">/</span><span>Órdenes</span><span aria-hidden="true">/</span><span>Solicitudes de cotización</span><?php endif; ?>
                         <?php if ($moduleKey === 'contabilidad' && ($modulePageData['area'] ?? '') === 'invoices'): ?><span aria-hidden="true">/</span><span><?= ($modulePageData['type'] ?? '') === 'supplier' ? 'Proveedores' : 'Clientes' ?></span><span aria-hidden="true">/</span><span>Facturas</span><?php endif; ?>
+                        <?php if ($moduleKey==='contabilidad' && ($modulePageData['area']??'')==='payments'): ?><span aria-hidden="true">/</span><span><?= ($modulePageData['type']??'')==='supplier'?'Proveedores':'Clientes' ?></span><span aria-hidden="true">/</span><span>Pagos</span><?php endif; ?>
                         <?php if ($moduleKey === 'inventario' && ($modulePageData['area'] ?? '') === 'operations'): ?><span aria-hidden="true">/</span><span>Operaciones</span><span aria-hidden="true">/</span><span><?= htmlspecialchars($modulePageData['definition']['label'], ENT_QUOTES, 'UTF-8') ?></span><?php endif; ?>
                     <?php endif; ?>
                 </div>
@@ -60,7 +61,7 @@
                     <?php if (in_array($moduleKey, ['ventas', 'compras'], true)): ?>
                         <details class="module-menu"><summary class="module-navigation-link <?= ! $isConfiguration ? 'module-navigation-active' : '' ?>">Órdenes <span aria-hidden="true">▾</span></summary><div class="module-menu-options"><a href="index.php" <?= ! $isConfiguration ? 'aria-current="page"' : '' ?>><?= $moduleKey === 'ventas' ? 'Cotizaciones' : 'Solicitudes de cotización' ?></a></div></details>
                     <?php elseif ($moduleKey === 'contabilidad'): ?>
-                        <?php foreach (['customer' => 'Clientes', 'supplier' => 'Proveedores'] as $invoiceType => $invoiceLabel): ?><details class="module-menu"><summary class="module-navigation-link <?= ! $isConfiguration && ($modulePageData['type'] ?? '') === $invoiceType ? 'module-navigation-active' : '' ?>"><?= $invoiceLabel ?> <span aria-hidden="true">▾</span></summary><div class="module-menu-options"><a href="index.php?type=<?= $invoiceType ?>">Facturas</a></div></details><?php endforeach; ?>
+                        <?php foreach (['customer' => 'Clientes', 'supplier' => 'Proveedores'] as $invoiceType => $invoiceLabel): ?><details class="module-menu"><summary class="module-navigation-link <?= ! $isConfiguration && ($modulePageData['type'] ?? '') === $invoiceType ? 'module-navigation-active' : '' ?>"><?= $invoiceLabel ?> <span aria-hidden="true">▾</span></summary><div class="module-menu-options"><a href="index.php?type=<?= $invoiceType ?>">Facturas</a><a href="pagos.php?type=<?= $invoiceType ?>">Pagos</a></div></details><?php endforeach; ?>
                     <?php else: ?>
                         <?php $isOverview = ! $isConfiguration && ! in_array($modulePageData['area'] ?? '', ['operations', 'reports'], true); ?>
                         <a class="module-navigation-link <?= $isOverview ? 'module-navigation-active' : '' ?>" href="index.php" <?= $isOverview ? 'aria-current="page"' : '' ?>><?= $moduleKey === 'contactos' ? 'Contactos' : ($moduleKey === 'inventario' ? 'Productos' : 'Vista general') ?></a>
@@ -80,9 +81,9 @@
                 <?php elseif ($moduleKey === 'ventas' && ! $isConfiguration && $modulePageData !== null): ?>
                     <?php require __DIR__ . '/sales/page.php'; ?>
                 <?php elseif ($moduleKey === 'contabilidad' && $isConfiguration && $modulePageData !== null): ?>
-                    <?php require __DIR__ . '/accounting/configuration.php'; ?>
+                    <?php require __DIR__ . (($modulePageData['area']??'')==='payment_configuration'?'/accounting/payment-configuration.php':'/accounting/configuration.php'); ?>
                 <?php elseif ($moduleKey === 'contabilidad' && ! $isConfiguration && $modulePageData !== null): ?>
-                    <?php require __DIR__ . '/accounting/invoices.php'; ?>
+                    <?php require __DIR__ . (($modulePageData['area']??'')==='payments'?'/accounting/payments.php':'/accounting/invoices.php'); ?>
                 <?php elseif ($moduleKey === 'compras' && ! $isConfiguration && ($modulePageData['area'] ?? '') === 'purchase_order'): ?>
                     <?php require __DIR__ . '/purchases/page.php'; ?>
                 <?php elseif ($isConfiguration && in_array($moduleKey, ['compras', 'ventas'], true) && $modulePageData !== null): ?>

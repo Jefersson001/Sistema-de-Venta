@@ -30,11 +30,11 @@ function loadPurchaseCatalogs(PDO $db, ?array $existing): array
         LEFT JOIN contact_countries country ON country.id = c.country_id LEFT JOIN contact_states state ON state.id = c.state_id LEFT JOIN contact_cities city ON city.id = c.city_id
         WHERE (t.system_key = 'supplier' AND c.active = 1) OR c.id = ? ORDER BY c.name, c.id");
     $contacts->execute([$existing['supplier_id'] ?? null]);
-    $products = $db->query('SELECT id, name, purchase_enabled, purchase_tax_id AS tax_id, cost_price AS price, product_type, invoice_policy, cost_price FROM inventory_products ORDER BY name, id')->fetchAll();
+    $products = $db->query('SELECT id, name, purchase_enabled, purchase_tax_id AS tax_id, cost_price AS price, product_type, invoice_policy, cost_price, currency_code FROM inventory_products ORDER BY name, id')->fetchAll();
     $assigned = array_map(static fn ($line) => (int) $line['product_id'], $existing['lines'] ?? []);
     $products = array_values(array_filter($products, static fn ($product) => $product['purchase_enabled'] || in_array((int) $product['id'], $assigned, true)));
     foreach($products as &$product)$product['sale_price']=$product['price'];unset($product);
-    return ['customers' => $contacts->fetchAll(), 'products' => $products, 'supplierPrices' => $db->query('SELECT product_id,supplier_id,price FROM product_supplier_prices')->fetchAll(),
+    return ['settings'=>$existing?['primary_code'=>$existing['currency_primary_code'],'alternate_code'=>$existing['currency_alternate_code'],'exchange_rate'=>$existing['exchange_rate']]:accountingCurrencies($db),'customers' => $contacts->fetchAll(), 'products' => $products, 'supplierPrices' => $db->query('SELECT product_id,supplier_id,price FROM product_supplier_prices')->fetchAll(),
         'taxes' => $db->query("SELECT id, name, rate FROM business_taxes WHERE module_key = 'compras' ORDER BY name, id")->fetchAll(),
         'terms' => $db->query('SELECT id, name FROM accounting_payment_terms ORDER BY name, id')->fetchAll(), 'salespeople' => [], 'storage' => loadStorageRelations($db)];
 }
@@ -48,7 +48,7 @@ function validatePurchaseOrder(array $input, array $catalogs, ?array $existing):
     $mode = $input['order_type'] ?? ($existing['order_type'] ?? 'receipt');
     $mapped['order_type'] = $mode === 'receipt' ? 'delivery' : $mode;
     $mapped['salesperson_id'] = '';
-    $old = $existing ? ['customer_id' => $existing['supplier_id'], 'invoice_address' => $existing['invoice_address'], 'delivery_address' => $existing['invoice_address'], 'lines' => $existing['lines']] : null;
+    $old = $existing ? ['customer_id' => $existing['supplier_id'], 'invoice_address' => $existing['invoice_address'], 'delivery_address' => $existing['invoice_address'], 'lines' => $existing['lines'], 'currency_code'=>$existing['currency_code'],'exchange_rate'=>$existing['exchange_rate']] : null;
     [$data, $lines, $errors] = validateSalesQuotation($mapped, $catalogs, $old);
     if (! is_string($mode) || ! in_array($mode, ['receipt', 'invoice'], true)) { $errors[] = 'Selecciona un tipo de orden de compra válido.'; }
     $data['supplier_id'] = $data['customer_id']; $data['order_type'] = $mode === 'invoice' ? 'invoice' : 'receipt';

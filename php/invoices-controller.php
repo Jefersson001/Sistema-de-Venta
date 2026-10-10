@@ -27,7 +27,14 @@ function renderAccountingInvoices(): void
         }
         if ($_SERVER['REQUEST_METHOD'] === 'POST' && $page['available']) {
             if (! is_string($_POST['csrf'] ?? null) || ! hash_equals($page['csrf'], $_POST['csrf'])) { http_response_code(403); $page['errors'][] = 'La sesión del formulario no es válida.'; }
-            elseif (! $id || ! in_array($_POST['action'] ?? '', ['save_invoice', 'confirm_invoice', 'cancel_invoice', 'mark_invoice_sent', 'register_payment', 'settle_payment', 'cancel_payment', 'reverse_invoice', 'create_credit'], true)) { http_response_code(400); $page['errors'][] = 'La operación no es válida.'; }
+            elseif (! $id || ! in_array($_POST['action'] ?? '', ['save_invoice', 'confirm_invoice', 'cancel_invoice', 'mark_invoice_sent', 'register_payment', 'settle_payment', 'cancel_payment', 'reverse_invoice', 'create_credit','apply_existing_payment'], true)) { http_response_code(400); $page['errors'][] = 'La operación no es válida.'; }
+            elseif ($_POST['action']==='apply_existing_payment') {
+                try {
+                    $paymentId=salesId($_POST['existing_payment_id']??null);if(!$paymentId)throw new InvalidArgumentException('Selecciona un pago disponible.');
+                    transitionAccountingPayment($db,$paymentId,salesId($_POST['payment_version']??null),'apply_payment',['invoice_id'=>$id,'invoice_version'=>$_POST['version']??null,'amount'=>$_POST['amount']??'']);
+                    header('Location: index.php?type='.$type.'&id='.$id,true,303);exit;
+                }catch(InvalidArgumentException $e){$page['errors'][]=$e->getMessage();}
+            }
             elseif (in_array($_POST['action'], ['reverse_invoice','create_credit'], true)) {
                 try {
                     $credit = createCreditNote($db,$id,salesId($_POST['version']??null),is_string($_POST['reason']??null)?$_POST['reason']:'');
@@ -84,6 +91,12 @@ function renderAccountingInvoices(): void
             $page['documentKind'] = $type === 'customer' ? 'sale' : 'purchase';
             $page['links'] = commerceLinks($db, $page['documentKind'], (int) $page['record'][$type === 'customer' ? 'sale_id' : 'purchase_id']);
             $page['paymentDetails'] = invoicePaymentDetails($db, $id);
+            $page['settings']=accountingCurrencies($db);$page['paymentAccounts']=$db->query('SELECT * FROM accounting_payment_accounts ORDER BY name,id')->fetchAll();$page['paymentMethods']=$db->query('SELECT * FROM accounting_payment_methods ORDER BY name,id')->fetchAll();$page['availablePayments']=[];
+            if($page['record']['status']==='posted'&&$page['record']['payment_state']!=='reversed'){
+                $inbound=($type==='customer')===($page['record']['document_type']==='invoice');$q=$db->prepare("SELECT id FROM accounting_payments WHERE contact_id=? AND partner_type=? AND direction=? AND status IN('pending','settled') ORDER BY payment_date,id");$q->execute([$page['record']['contact_id'],$type,$inbound?'inbound':'outbound']);
+                $d=$page['paymentDetails'];$balance=bcsub(paymentInvoiceAmount($db,$page['record']),bcadd($d['pending'],$d['settled'],2),2);
+                foreach($q->fetchAll(PDO::FETCH_COLUMN) as $paymentId){$p=loadAccountingPayment($db,(int)$paymentId);if(bccomp($p['available'],'0',2)<=0)continue;try{$max=accountingConvert($balance,$page['record']['currency_code'],$p['currency_code'],$p);}catch(InvalidArgumentException $e){continue;}$p['maximum']=bccomp($max,$p['available'],2)>0?$p['available']:$max;if(bccomp($p['maximum'],'0',2)>0)$page['availablePayments'][]=$p;}
+            }
             $page['paymentDetails']['effective_amount']=$page['record']['document_type']==='credit'?creditRefundAmount($db,$page['record']):bcsub($page['record']['total_amount'],$page['paymentDetails']['credited'],2);
         } elseif ($page['available']) {
             $page['search'] = is_string($_GET['q'] ?? null) ? mb_substr(trim($_GET['q']), 0, 160) : '';
@@ -94,6 +107,8 @@ function renderAccountingInvoices(): void
             if (isset(invoiceStatuses()[$page['statusFilter']])) { $where .= ' AND i.status = :status'; $params['status'] = $page['statusFilter']; }
             elseif ($page['statusFilter'] === 'sent') { $where .= " AND i.status = 'posted' AND i.sent_at IS NOT NULL"; }
             elseif (isset(invoicePaymentStates()[$page['statusFilter']])) { $where .= " AND i.status = 'posted' AND i.payment_state = :payment_state"; $params['payment_state'] = $page['statusFilter']; }
+            if(($_GET['unpaid']??'')==='1'||($_GET['overdue']??'')==='1')$where.=" AND i.status='posted' AND i.document_type='invoice' AND i.payment_state IN('not_paid','in_payment','partial')";
+            if(($_GET['overdue']??'')==='1'){$where.=' AND i.due_date < :today';$params['today']=commerceToday();}
             $from = ' FROM accounting_invoices i JOIN contacts c ON c.id = i.contact_id';
             $count = $db->prepare('SELECT COUNT(*)' . $from . $where); $count->execute($params); $page['total'] = (int) $count->fetchColumn();
             $page['pages'] = max(1, (int) ceil($page['total'] / 20)); $page['currentPage'] = min(salesId($_GET['page'] ?? null) ?? 1, $page['pages']);

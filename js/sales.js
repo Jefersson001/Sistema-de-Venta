@@ -63,7 +63,9 @@ if (quotationForm) {
         const product = row.querySelector('[data-line-product]');
         product.addEventListener('change', () => {
             const selected = product.selectedOptions[0];
-            row.querySelector('[data-line-price]').value = selected?.dataset.price ?? '0.00';
+            const currency=quotationForm.querySelector('[data-order-currency]');
+            try{row.querySelector('[data-line-price]').value=currency&&typeof convertOrderMoney==='function'?convertOrderMoney(selected?.dataset.price??'0.00',selected?.dataset.currency||currency.value,currency.value,{...orderCurrencySettings,exchange_rate:quotationForm.querySelector('[data-order-exchange]')?.value||orderCurrencySettings.exchange_rate}):selected?.dataset.price??'0.00';}catch(error){window.alert(error.message);}
+
             const tax = row.querySelector('[data-line-tax]');
             const taxId = selected?.dataset.tax ?? '';
             tax.value = [...tax.options].some(option => option.value === taxId) ? taxId : '';
