@@ -3,12 +3,8 @@ declare(strict_types=1);
 require_once __DIR__ . '/connection.php';
 require_once __DIR__ . '/sales-repository.php';
 require_once __DIR__ . '/sales-delivery-repository.php';
+require_once __DIR__ . '/commerce-repository.php';
 require_once __DIR__ . '/module-page.php';
-
-function salesEscape(mixed $value): string
-{
-    return htmlspecialchars((string) ($value ?? ''), ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
-}
 
 function renderSalesQuotations(): void
 {
@@ -31,6 +27,7 @@ function renderSalesQuotations(): void
         if ($page['view'] === 'form' && $page['available']) {
             $page['catalogs'] = loadSalesCatalogs($db, $existing);
             $page['delivery'] = $id ? loadSalesDelivery($db, $id) : null;
+            $page['documentKind'] = 'sale'; $page['links'] = $id ? commerceLinks($db, 'sale', $id) : null;
         }
         if ($_SERVER['REQUEST_METHOD'] === 'POST' && $page['available']) {
             $token = $_POST['csrf'] ?? null;
@@ -39,6 +36,11 @@ function renderSalesQuotations(): void
                 http_response_code(403); $page['errors'][] = 'La sesión del formulario no es válida. Recarga la página.';
             } elseif ($page['view'] !== 'form') {
                 http_response_code(400); $page['errors'][] = 'La operación solicitada no es válida.';
+            } elseif ($action === 'create_invoice' && $id) {
+                try {
+                    $invoiceId = createCommerceInvoice($db, 'sale', $id);
+                    header('Location: ../contabilidad/index.php?type=customer&id=' . $invoiceId, true, 303); exit;
+                } catch (InvalidArgumentException $exception) { $page['errors'][] = $exception->getMessage(); }
             } elseif ($action === 'create_delivery' && $id) {
                 try {
                     $deliveryId = createSalesDelivery($db, $id);
@@ -54,10 +56,10 @@ function renderSalesQuotations(): void
                         header('Location: index.php?id=' . $savedId, true, 303); exit;
                     } catch (InvalidArgumentException $exception) { $page['errors'][] = $exception->getMessage(); }
                 }
-            } elseif ($id && in_array($action, ['mark_sent', 'confirm_sale'], true)) {
+            } elseif ($id && in_array($action, ['mark_sent', 'confirm_sale', 'cancel_quotation'], true)) {
                 try {
-                    transitionSalesQuotation($db, $id, salesId($_POST['version'] ?? null), $action === 'mark_sent' ? 'sent' : 'sale');
-                    $_SESSION['sales_flash'] = $action === 'mark_sent' ? 'Cotización marcada como enviada.' : 'Orden de venta confirmada.';
+                    transitionSalesQuotation($db, $id, salesId($_POST['version'] ?? null), match ($action) { 'mark_sent' => 'sent', 'cancel_quotation' => 'cancel', default => 'sale' });
+                    $_SESSION['sales_flash'] = match ($action) { 'mark_sent' => 'Cotización marcada como enviada.', 'cancel_quotation' => 'Cotización cancelada.', default => 'Orden de venta confirmada.' };
                     header('Location: index.php?id=' . $id, true, 303); exit;
                 } catch (InvalidArgumentException $exception) { $page['errors'][] = $exception->getMessage(); }
             } else { http_response_code(400); $page['errors'][] = 'La operación solicitada no es válida.'; }
@@ -65,7 +67,7 @@ function renderSalesQuotations(): void
         if ($page['view'] === 'list' && $page['available']) {
             $page['search'] = is_string($_GET['q'] ?? null) ? mb_substr(trim($_GET['q']), 0, 160, 'UTF-8') : '';
             $status = $_GET['status'] ?? 'all';
-            $page['statusFilter'] = is_string($status) && in_array($status, ['quotations', 'all', 'draft', 'sent', 'sale'], true) ? $status : 'all';
+            $page['statusFilter'] = is_string($status) && in_array($status, ['quotations', 'all', 'draft', 'sent', 'sale', 'cancel'], true) ? $status : 'all';
             $where = []; $params = [];
             if ($page['statusFilter'] === 'quotations') { $where[] = "q.status IN ('draft', 'sent')"; }
             elseif ($page['statusFilter'] !== 'all') { $where[] = 'q.status = :status'; $params['status'] = $page['statusFilter']; }

@@ -4,5 +4,5 @@
     <td><input name="lines[<?= salesEscape($lineKey) ?>][unit_price]" aria-label="Precio unitario" inputmode="decimal" maxlength="13" value="<?= salesEscape($line['unit_price'] ?? '0.00') ?>" data-line-price></td>
     <td><select name="lines[<?= salesEscape($lineKey) ?>][tax_id]" aria-label="Impuesto" data-line-tax><option value="">Sin impuesto</option><?php foreach ($page['catalogs']['taxes'] as $tax): ?><option value="<?= (int) $tax['id'] ?>" <?= (int) ($line['tax_id'] ?? 0) === (int) $tax['id'] ? 'selected' : '' ?>><?= salesEscape($tax['name']) ?></option><?php endforeach; ?></select></td>
     <td class="quotation-money" data-line-base><?= salesEscape($line['base_amount'] ?? '0.00') ?></td><td class="quotation-money" data-line-total><?= salesEscape($line['total_amount'] ?? '0.00') ?></td>
-    <?php if (! $confirmed): ?><td><button class="contact-button quotation-remove" type="button" aria-label="Eliminar línea" data-remove-line hidden>×</button></td><?php endif; ?>
+    <?php if (! ($locked ?? $confirmed)): ?><td><button class="contact-button quotation-remove" type="button" aria-label="Eliminar línea" data-remove-line hidden>×</button></td><?php endif; ?>
 </tr>

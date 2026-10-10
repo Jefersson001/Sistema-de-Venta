@@ -2,9 +2,14 @@
 declare(strict_types=1);
 require_once __DIR__ . '/storage-repository.php';
 
+function salesEscape(mixed $value): string
+{
+    return htmlspecialchars((string) ($value ?? ''), ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
+}
+
 function salesStatuses(): array
 {
-    return ['draft' => 'Cotización', 'sent' => 'Cotización enviada', 'sale' => 'Orden de venta'];
+    return ['draft' => 'Cotización', 'sent' => 'Cotización enviada', 'sale' => 'Orden de venta', 'cancel' => 'Cancelado'];
 }
 
 function salesOrderTypes(): array
@@ -151,6 +156,7 @@ function saveSalesQuotation(PDO $db, array $data, array $lines, ?int $id, ?int $
             $lock->execute([$id]); $current = $lock->fetch();
             if (! $current || (int) $current['version'] !== $version) { throw new InvalidArgumentException('La cotización cambió en otra ventana. Recarga la página antes de guardar.'); }
             if ($current['status'] === 'sale') { throw new InvalidArgumentException('La orden de venta ya está confirmada y no admite cambios.'); }
+            if ($current['status'] === 'cancel') { throw new InvalidArgumentException('La cotización cancelada no admite cambios.'); }
             $sql = 'UPDATE sales_quotations SET ' . implode(', ', array_map(static fn ($field) => $field . ' = :' . $field, $fields)) . ', version = version + 1 WHERE id = :id';
             $db->prepare($sql)->execute($data + ['id' => $id]);
             $db->prepare('DELETE FROM sales_quotation_lines WHERE quotation_id = ?')->execute([$id]);
@@ -174,6 +180,14 @@ function transitionSalesQuotation(PDO $db, int $id, ?int $version, string $targe
         $statement = $db->prepare('SELECT status, version FROM sales_quotations WHERE id = ? FOR UPDATE');
         $statement->execute([$id]); $current = $statement->fetch();
         if (! $current || (int) $current['version'] !== $version) { throw new InvalidArgumentException('La cotización cambió. Recarga la página antes de continuar.'); }
+        if ($target === 'cancel') {
+            if (! in_array($current['status'], ['draft', 'sent', 'sale'], true)) throw new InvalidArgumentException('La cotización ya está cancelada.');
+            $linked = $db->prepare('SELECT COUNT(*) FROM inventory_operations WHERE quotation_id = ?'); $linked->execute([$id]);
+            $invoice = $db->prepare('SELECT COUNT(*) FROM accounting_invoices WHERE sale_id = ?'); $invoice->execute([$id]);
+            if ($linked->fetchColumn() || $invoice->fetchColumn()) throw new InvalidArgumentException('La orden tiene documentos relacionados y no se puede cancelar desde la cotización.');
+            $db->prepare("UPDATE sales_quotations SET status = 'cancel', version = version + 1 WHERE id = ?")->execute([$id]);
+            $db->commit(); return;
+        }
         if (! (($target === 'sent' && $current['status'] === 'draft') || ($target === 'sale' && in_array($current['status'], ['draft', 'sent'], true)))) {
             throw new InvalidArgumentException('El cambio de estado no es válido.');
         }

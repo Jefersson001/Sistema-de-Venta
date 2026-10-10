@@ -2,6 +2,8 @@
 declare(strict_types=1);
 require_once __DIR__ . '/inventory-controller.php';
 require_once __DIR__ . '/inventory-operations-repository.php';
+require_once __DIR__ . '/commerce-repository.php';
+require_once __DIR__ . '/operation-status-repository.php';
 
 function renderInventoryOperations(): void
 {
@@ -35,10 +37,15 @@ function renderInventoryOperations(): void
         $page['storage'] = loadStorageRelations($db);
         if ($page['view'] === 'form' && $page['available']) {
             $page['sourceOrder'] = null;
+            $page['documentKind'] = null; $page['links'] = null;
             if (! empty($existing['quotation_id'])) {
                 $source = $db->prepare('SELECT q.*, seller.name AS seller_name FROM sales_quotations q
                     LEFT JOIN contacts seller ON seller.id = q.salesperson_id WHERE q.id = ?');
                 $source->execute([$existing['quotation_id']]); $page['sourceOrder'] = $source->fetch() ?: null;
+                if ($page['sourceOrder']) { $page['documentKind'] = 'sale'; $page['links'] = commerceLinks($db, 'sale', (int) $existing['quotation_id']); }
+            } elseif (! empty($existing['purchase_order_id'])) {
+                $page['sourceOrder'] = loadPurchaseOrder($db, (int) $existing['purchase_order_id']);
+                if ($page['sourceOrder']) { $page['documentKind'] = 'purchase'; $page['links'] = commerceLinks($db, 'purchase', (int) $existing['purchase_order_id']); }
             }
             $query = $db->prepare('SELECT c.id, c.name, c.active, c.partner_location_id FROM contacts c JOIN contact_types t ON t.id = c.type_id
                 WHERE t.system_key = ? AND (c.active = 1 OR c.id = ?) ORDER BY c.name, c.id');
@@ -64,22 +71,39 @@ function renderInventoryOperations(): void
             $token = $_POST['csrf'] ?? null;
             if (! is_string($token) || ! hash_equals($page['csrf'], $token)) {
                 http_response_code(403); $page['errors'][] = 'La sesión del formulario no es válida. Recarga la página.';
-            } elseif ($page['view'] !== 'form' || ! in_array($_POST['action'] ?? '', ['save_operation', 'validate_operation'], true)) {
+            } elseif ($page['view'] !== 'form' || ! in_array($_POST['action'] ?? '', ['save_operation', 'validate_operation', 'create_invoice', 'confirm_operation', 'check_ready'], true)) {
                 http_response_code(400); $page['errors'][] = 'La operación solicitada no es válida.';
+            } elseif (($_POST['action'] ?? '') === 'create_invoice') {
+                if (! $page['sourceOrder']) { http_response_code(400); $page['errors'][] = 'Esta operación no tiene una orden relacionada para facturar.'; }
+                else {
+                    try {
+                        $invoiceId = createCommerceInvoice($db, $page['documentKind'], (int) $page['sourceOrder']['id']);
+                        header('Location: ../contabilidad/index.php?type=' . ($page['documentKind'] === 'sale' ? 'customer' : 'supplier') . '&id=' . $invoiceId, true, 303); exit;
+                    } catch (InvalidArgumentException $exception) { $page['errors'][] = $exception->getMessage(); }
+                }
             } elseif (($existing['status'] ?? '') === 'done') {
                 $page['errors'][] = 'La operación realizada no admite cambios.';
+            } elseif (in_array($_POST['action'] ?? '', ['confirm_operation', 'check_ready'], true)) {
+                if (! $id) $page['errors'][] = 'Guarda la operación antes de continuar.';
+                else {
+                    try {
+                        transitionInventoryOperation($db, $id, inventoryId($_POST['version'] ?? null), $_POST['action']);
+                        $_SESSION['inventory_flash'] = $_POST['action'] === 'confirm_operation' ? 'Operación En espera.' : 'Operación Lista para validar.';
+                        header('Location: operaciones.php?type=' . $type . '&id=' . $id, true, 303); exit;
+                    } catch (InvalidArgumentException $exception) { $page['errors'][] = $exception->getMessage(); }
+                }
             } elseif (($_POST['action'] ?? '') === 'validate_operation') {
                 if (! $id) { $page['errors'][] = 'Guarda la operación antes de validar.'; }
                 else {
                     try {
                         validateInventoryStockOperation($db, $id, inventoryId($_POST['version'] ?? null));
-                        $_SESSION['inventory_flash'] = 'Operación realizada. Existencias actualizadas.';
+                        $_SESSION['inventory_flash'] = 'Operación Hecha. Existencias actualizadas.';
                         header('Location: operaciones.php?type=' . $type . '&id=' . $id, true, 303); exit;
                     } catch (InvalidArgumentException $exception) { $page['errors'][] = $exception->getMessage(); }
                 }
             } else {
                 [$data, $page['errors']] = validateInventoryOperation($_POST, $type, $page['storage'], $page['contacts']);
-                if ($page['sourceOrder'] && $data['contact_id'] !== (int) $page['sourceOrder']['customer_id']) {
+                if ($page['sourceOrder'] && $data['contact_id'] !== (int) $page['sourceOrder'][$page['documentKind'] === 'sale' ? 'customer_id' : 'supplier_id']) {
                     $page['errors'][] = 'La dirección de entrega debe corresponder al cliente de la orden de venta.';
                 }
                 [$lines, $lineErrors] = validateInventoryOperationLines($_POST['lines'] ?? [], $page['products']);

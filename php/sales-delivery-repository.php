@@ -17,6 +17,7 @@ function createSalesDelivery(PDO $db, int $quotationId): int
         if (! $order || $order['status'] !== 'sale') { throw new InvalidArgumentException('Confirma la orden de venta antes de crear la entrega.'); }
         $existing = loadSalesDelivery($db, $quotationId);
         if ($existing) { $db->commit(); return (int) $existing['id']; }
+        if ($order['order_type'] === 'invoice') { throw new InvalidArgumentException('Esta orden es de tipo Factura y no genera entrega.'); }
         $linesQuery = $db->prepare('SELECT * FROM sales_quotation_lines WHERE quotation_id = ? ORDER BY position, id');
         $linesQuery->execute([$quotationId]); $lines = $linesQuery->fetchAll();
         if (! $lines) { throw new InvalidArgumentException('La orden debe tener productos para generar una entrega.'); }

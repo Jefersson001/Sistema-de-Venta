@@ -64,7 +64,7 @@ function saveInventoryOperation(PDO $db, array $data, ?int $id, ?int $version, a
             }
             if ($current['status'] === 'done') { throw new InvalidArgumentException('La operación realizada no admite cambios.'); }
             $db->prepare('UPDATE inventory_operations SET ' . implode(', ', array_map(static fn ($field) => $field . ' = :' . $field, $fields))
-                . ', version = version + 1 WHERE id = :id')->execute($data + ['id' => $id]);
+                . ", status = CASE WHEN status = 'ready' THEN 'waiting' ELSE status END, version = version + 1 WHERE id = :id")->execute($data + ['id' => $id]);
         } else {
             $db->prepare('INSERT INTO inventory_operations (' . implode(', ', $fields) . ') VALUES (:' . implode(', :', $fields) . ')')->execute($data);
             $id = (int) $db->lastInsertId();

@@ -91,10 +91,10 @@ try {
     expectSales((int) $quotation['payment_term_id'] === $fixtures['term'] && (int) $quotation['salesperson_id'] === $fixtures['seller'], 'No se guardaron las relaciones.');
     expectSales((int) $quotation['warehouse_id'] === $fixtures['warehouse'] && (int) $quotation['location_id'] === $fixtures['location']
         && $quotation['storage_label'] === $prefix . ' ubicación / ' . $prefix . ' almacén', 'No se trajo el almacén del vendedor relacionado al cliente.');
-    $post['version'] = (string) $quotation['version']; $post['lines'][0]['unit_price'] = '20.00'; $post['order_type'] = 'invoice';
+    $post['version'] = (string) $quotation['version']; $post['lines'][0]['unit_price'] = '20.00'; $post['order_type'] = 'delivery';
     [$status] = salesRequest($base, 'ventas/index.php?id=' . $id, $cookie, $post); expectSales($status === 303, 'No se editó la cotización.');
     $edited = loadSalesQuotation($db, $id);
-    expectSales($edited['order_type'] === 'invoice', 'No se guardó el tipo Factura.');
+    expectSales($edited['order_type'] === 'delivery', 'No se guardó el tipo Orden de entrega.');
     expectSales($edited['name'] === $quotation['name'] && $edited['total_amount'] === '62.51' && count($edited['lines']) === 2, 'La edición duplicó líneas o alteró el correlativo.');
     [$status, $body] = salesRequest($base, 'ventas/index.php?id=' . $id, $cookie, $post);
     expectSales($status === 200 && str_contains($body, 'otra ventana'), 'Se permitió sobrescribir una versión más reciente.');
@@ -106,7 +106,7 @@ try {
         [$status, $stateForm] = salesRequest($base, 'ventas/index.php?id=' . $id, $cookie);
         expectSales($status === 200 && str_contains($stateForm, 'data-quotation-delivery') === ($target === 'sale'), 'Entrega debe aparecer únicamente en la orden de venta.');
     }
-    expectSales(loadSalesQuotation($db, $id)['order_type'] === 'invoice', 'La confirmación cambió el tipo de orden.');
+    expectSales(loadSalesQuotation($db, $id)['order_type'] === 'delivery', 'La confirmación cambió el tipo de orden.');
     expectSales(loadInventoryProductIndicators($db, $fixtures['product_main'])['sold'] === '3.125', 'Vendido no incluye la venta confirmada.');
     [$status, $soldReport] = salesRequest($base, 'inventario/informes.php?view=sold&product_id=' . $fixtures['product_main'], $cookie);
     expectSales($status === 200 && str_contains($soldReport, '3.125') && str_contains($soldReport, '../ventas/index.php?id=' . $id), 'Vendido no abre el detalle filtrado del producto.');
@@ -145,6 +145,13 @@ try {
         $db->prepare('INSERT INTO inventory_stock (product_id, location_id, quantity) VALUES (?, ?, ?)')->execute([$line['product_id'], $fixtures['location'], $line['demand']]);
     }
     $db->prepare('UPDATE inventory_operation_lines SET quantity = demand WHERE operation_id = ?')->execute([$delivery['id']]);
+    $validatePost['action'] = 'confirm_operation';
+    [$status] = salesRequest($base, 'inventario/operaciones.php?type=delivery&id=' . $delivery['id'], $cookie, $validatePost);
+    expectSales($status === 303, 'No se confirmó la entrega.');
+    $validatePost['action'] = 'check_ready'; $validatePost['version'] = '2';
+    [$status] = salesRequest($base, 'inventario/operaciones.php?type=delivery&id=' . $delivery['id'], $cookie, $validatePost);
+    expectSales($status === 303, 'La entrega no quedó Lista.');
+    $validatePost['action'] = 'validate_operation'; $validatePost['version'] = '3';
     [$status] = salesRequest($base, 'inventario/operaciones.php?type=delivery&id=' . $delivery['id'], $cookie, $validatePost);
     expectSales($status === 303 && loadSalesDelivery($db, $id)['status'] === 'done', 'No se validó la entrega relacionada.');
     [$status, $body] = salesRequest($base, 'ventas/index.php?id=' . $id, $cookie);

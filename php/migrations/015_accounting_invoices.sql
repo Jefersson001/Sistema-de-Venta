@@ -1,0 +1,38 @@
+CREATE TABLE IF NOT EXISTS accounting_invoices (
+    id INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    name VARCHAR(32) NULL UNIQUE,
+    invoice_type ENUM('customer', 'supplier') NOT NULL,
+    sale_id INT UNSIGNED NULL UNIQUE,
+    purchase_id INT UNSIGNED NULL UNIQUE,
+    contact_id INT UNSIGNED NOT NULL,
+    invoice_address TEXT NOT NULL,
+    invoice_date DATE NOT NULL,
+    due_date DATE NULL,
+    payment_term_id INT UNSIGNED NULL,
+    salesperson_id INT UNSIGNED NULL,
+    base_amount DECIMAL(18,2) NOT NULL,
+    total_amount DECIMAL(18,2) NOT NULL,
+    status ENUM('draft', 'posted') NOT NULL DEFAULT 'draft',
+    version INT UNSIGNED NOT NULL DEFAULT 1,
+    FOREIGN KEY (sale_id) REFERENCES sales_quotations(id),
+    FOREIGN KEY (purchase_id) REFERENCES purchase_orders(id),
+    FOREIGN KEY (contact_id) REFERENCES contacts(id),
+    FOREIGN KEY (payment_term_id) REFERENCES accounting_payment_terms(id),
+    FOREIGN KEY (salesperson_id) REFERENCES contacts(id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+CREATE TABLE IF NOT EXISTS accounting_invoice_lines (
+    id INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    invoice_id INT UNSIGNED NOT NULL,
+    position INT UNSIGNED NOT NULL,
+    product_id INT UNSIGNED NOT NULL,
+    product_name VARCHAR(160) NOT NULL,
+    quantity DECIMAL(12,3) NOT NULL,
+    unit_price DECIMAL(12,2) NOT NULL,
+    tax_id INT UNSIGNED NULL,
+    tax_name VARCHAR(120) NULL,
+    base_amount DECIMAL(18,2) NOT NULL,
+    total_amount DECIMAL(18,2) NOT NULL,
+    FOREIGN KEY (invoice_id) REFERENCES accounting_invoices(id),
+    FOREIGN KEY (product_id) REFERENCES inventory_products(id),
+    FOREIGN KEY (tax_id) REFERENCES business_taxes(id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;

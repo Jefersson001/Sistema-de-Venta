@@ -43,7 +43,8 @@ function validateInventoryStockOperation(PDO $db, int $id, ?int $version): void
         $query = $db->prepare('SELECT * FROM inventory_operations WHERE id = ? FOR UPDATE');
         $query->execute([$id]); $operation = $query->fetch();
         if (! $operation || (int) $operation['version'] !== $version) { throw new InvalidArgumentException('La operación cambió. Recarga antes de validar.'); }
-        if ($operation['status'] !== 'draft') { throw new InvalidArgumentException('La operación ya está realizada.'); }
+        if ($operation['status'] === 'done') { throw new InvalidArgumentException('La operación ya está realizada.'); }
+        if ($operation['status'] !== 'ready') { throw new InvalidArgumentException('Confirma la operación y comprueba su disponibilidad hasta que esté Listo antes de validar.'); }
         $type = $operation['operation_type'];
         $storage = loadStorageRelations($db);
         $source = inventoryId($operation['source_location_id']);

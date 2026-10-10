@@ -91,8 +91,18 @@ try {
         return [(int) $matches[1], $data];
     };
     $validateStock = function (string $type, int $id, string $csrf) use ($db, $cookie): array {
-        $query = $db->prepare('SELECT version FROM inventory_operations WHERE id = ?'); $query->execute([$id]);
-        $post = ['action' => 'validate_operation', 'csrf' => $csrf, 'version' => $query->fetchColumn()];
+        $query = $db->prepare('SELECT version, status FROM inventory_operations WHERE id = ?'); $query->execute([$id]); $current = $query->fetch();
+        if ($current['status'] === 'draft') {
+            $response = operationRequest('type=' . $type . '&id=' . $id, $cookie, ['action' => 'confirm_operation', 'csrf' => $csrf, 'version' => $current['version']]);
+            if ($response[0] !== 303) return $response;
+            $query->execute([$id]); $current = $query->fetch();
+        }
+        if ($current['status'] === 'waiting') {
+            $response = operationRequest('type=' . $type . '&id=' . $id, $cookie, ['action' => 'check_ready', 'csrf' => $csrf, 'version' => $current['version']]);
+            if ($response[0] !== 303) return $response;
+            $query->execute([$id]); $current = $query->fetch();
+        }
+        $post = ['action' => 'validate_operation', 'csrf' => $csrf, 'version' => $current['version']];
         [$status, $form] = operationRequest('type=' . $type . '&id=' . $id, $cookie);
         if (str_contains($form, 'data-operation-validate')) {
             $dom = new DOMDocument(); libxml_use_internal_errors(true); $dom->loadHTML('<?xml encoding="UTF-8">' . $form);
@@ -110,7 +120,18 @@ try {
     checkOperation(loadInventoryProductStock($db, $product)['total'] === '0.000', 'Guardar un borrador modificó el stock.');
     $receiptLines = loadInventoryOperationLines($db, $receiptId);
     checkOperation($receiptLines[0]['demand'] === '12.000' && $receiptLines[0]['quantity'] === '10.125', 'Se confundieron demanda y cantidad.');
+    [$status, $body] = operationRequest('type=receipt&id=' . $receiptId, $cookie, ['action' => 'validate_operation', 'csrf' => $receiptPost['csrf'], 'version' => '1']);
+    checkOperation($status === 200 && str_contains($body, 'Listo') && loadInventoryProductStock($db, $product)['total'] === '0.000', 'Se validó directamente un borrador.');
+    [$status] = operationRequest('type=receipt&id=' . $receiptId, $cookie, ['action' => 'confirm_operation', 'csrf' => $receiptPost['csrf'], 'version' => '1']);
+    checkOperation($status === 303, 'No pasó de Borrador a En espera.');
+    [$status] = operationRequest('type=receipt&id=' . $receiptId, $cookie, ['action' => 'check_ready', 'csrf' => $receiptPost['csrf'], 'version' => '2']);
+    checkOperation($status === 303 && loadInventoryProductStock($db, $product)['total'] === '0.000', 'Comprobar disponibilidad movió existencias.');
+    $changedReceipt = $receiptPost + ['version' => '3'];
+    [$status] = operationRequest('type=receipt&id=' . $receiptId, $cookie, $changedReceipt);
+    $stateQuery = $db->prepare('SELECT status FROM inventory_operations WHERE id = ?'); $stateQuery->execute([$receiptId]);
+    checkOperation($status === 303 && $stateQuery->fetchColumn() === 'waiting', 'Editar una operación lista no obliga a comprobar de nuevo.');
     [$status] = $validateStock('receipt', $receiptId, $receiptPost['csrf']); checkOperation($status === 303, 'No se validó la recepción.');
+    $stateQuery->execute([$receiptId]); checkOperation($stateQuery->fetchColumn() === 'done', 'Validar no dejó Hecho.');
     checkOperation(loadInventoryProductStock($db, $product)['total'] === '10.125', 'La recepción no sumó la cantidad real.');
     checkOperation(loadInventoryProductIndicators($db, $product)['incoming'] === '1', 'Entrada no cuenta la recepción realizada.');
     [$status, $body] = $validateStock('receipt', $receiptId, $receiptPost['csrf']);
@@ -135,6 +156,7 @@ try {
         ['product_id' => $product, 'demand' => '5.000', 'quantity' => '5.000']]);
     [$status, $body] = $validateStock('internal', $failedId, $failedPost['csrf']);
     checkOperation($status === 200 && str_contains($body, 'suficiente') && loadInventoryProductStock($db, $product)['total'] === '8.125', 'Se permitió stock negativo con líneas duplicadas o hubo movimientos parciales.');
+    $stateQuery->execute([$failedId]); checkOperation($stateQuery->fetchColumn() === 'waiting', 'Una operación sin disponibilidad debe seguir En espera.');
     $query = $db->prepare('SELECT COUNT(*) FROM inventory_stock_moves WHERE operation_id = ?'); $query->execute([$failedId]);
     checkOperation((int) $query->fetchColumn() === 0, 'Una validación fallida dejó movimientos.');
     $curl = curl_init('http://localhost/project/modules/inventario/index.php?id=' . $product);

@@ -1,4 +1,5 @@
 const searchInput = document.querySelector('[data-module-search]');
+document.querySelector('[data-invoice-payments-open]')?.addEventListener('click', () => document.querySelector('#invoice-tab-payments')?.click());
 for (const toggle of document.querySelectorAll('[data-report-group-toggle]')) {
     for (const row of document.querySelectorAll('[data-report-group]')) {
         if (row.dataset.reportGroup === toggle.dataset.reportGroupToggle) row.hidden = true;

@@ -239,7 +239,11 @@ a:focus-visible, button:focus-visible { outline: 3px solid #5d4fc4; outline-offs
 .quotation-status li { padding: 10px 14px; border: 1px solid #dce1eb; color: #596579; background: #fff; font-size: 13px; font-weight: 600; }
 .quotation-status li:first-child { border-radius: 9px 0 0 9px; }
 .quotation-status li:last-child { border-radius: 0 9px 9px 0; }
-.quotation-status li[aria-current] { border-color: #514397; color: #514397; background: #f0edfc; }
+.quotation-status li[aria-current], .invoice-status li.is-active { border-color: #514397; color: #514397; background: #f0edfc; }
+.invoice-toolbar { align-items: flex-start; flex-direction: column; }
+.invoice-status-wrap { width: 100%; min-width: 0; overflow-x: auto; padding-bottom: 4px; }
+.invoice-status { flex-wrap: nowrap; width: max-content; }
+.invoice-status li { flex-shrink: 0; white-space: nowrap; }
 .quotation-state-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 12px; margin-bottom: 20px; }
 .quotation-sheet .quotation-fields { margin: 0; }
 .quotation-lines { min-width: 950px; }
