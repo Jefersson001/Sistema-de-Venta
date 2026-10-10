@@ -58,24 +58,27 @@
                     <?php if ($moduleKey === 'ventas'): ?>
                         <details class="module-menu"><summary class="module-navigation-link <?= ! $isConfiguration ? 'module-navigation-active' : '' ?>">Órdenes <span aria-hidden="true">▾</span></summary><div class="module-menu-options"><a href="index.php" <?= ! $isConfiguration ? 'aria-current="page"' : '' ?>>Cotizaciones</a></div></details>
                     <?php else: ?>
-                        <?php $isOverview = ! $isConfiguration && ($modulePageData['area'] ?? '') !== 'operations'; ?>
+                        <?php $isOverview = ! $isConfiguration && ! in_array($modulePageData['area'] ?? '', ['operations', 'reports'], true); ?>
                         <a class="module-navigation-link <?= $isOverview ? 'module-navigation-active' : '' ?>" href="index.php" <?= $isOverview ? 'aria-current="page"' : '' ?>><?= $moduleKey === 'contactos' ? 'Contactos' : ($moduleKey === 'inventario' ? 'Productos' : 'Vista general') ?></a>
                     <?php endif; ?>
                     <?php if ($moduleKey === 'inventario'): ?>
                         <details class="module-menu"><summary class="module-navigation-link <?= ($modulePageData['area'] ?? '') === 'operations' ? 'module-navigation-active' : '' ?>">Operaciones <span aria-hidden="true">▾</span></summary><div class="module-menu-options">
                             <?php foreach (['delivery' => 'Entregas', 'receipt' => 'Recepciones', 'internal' => 'Interno'] as $operationType => $operationLabel): ?><a href="operaciones.php?type=<?= $operationType ?>" <?= ($modulePageData['area'] ?? '') === 'operations' && ($modulePageData['type'] ?? '') === $operationType ? 'aria-current="page"' : '' ?>><?= $operationLabel ?></a><?php endforeach; ?>
                         </div></details>
+                        <details class="module-menu"><summary class="module-navigation-link <?= ($modulePageData['area'] ?? '') === 'reports' ? 'module-navigation-active' : '' ?>">Informes <span aria-hidden="true">▾</span></summary><div class="module-menu-options"><a href="informes.php?view=movements">Historial de movimientos</a><a href="informes.php?view=stock">Existencias por ubicación</a></div></details>
                     <?php endif; ?>
                     <a class="module-navigation-link <?= $isConfiguration ? 'module-navigation-active' : '' ?>" href="configuracion.php" <?= $isConfiguration ? 'aria-current="page"' : '' ?>><span aria-hidden="true">⚙</span> Configuración</a>
                 </nav>
                 <?php if ($moduleKey === 'contactos' && $modulePageData !== null): ?>
                     <?php require __DIR__ . '/contacts/page.php'; ?>
                 <?php elseif ($moduleKey === 'inventario' && $modulePageData !== null): ?>
-                    <?php require __DIR__ . ($isConfiguration ? '/inventory/configuration.php' : (($modulePageData['area'] ?? '') === 'operations' ? '/inventory/operations.php' : '/inventory/products.php')); ?>
+                    <?php require __DIR__ . ($isConfiguration ? '/inventory/configuration.php' : (match ($modulePageData['area'] ?? '') { 'operations' => '/inventory/operations.php', 'reports' => '/inventory/reports.php', default => '/inventory/products.php' })); ?>
                 <?php elseif ($moduleKey === 'ventas' && ! $isConfiguration && $modulePageData !== null): ?>
                     <?php require __DIR__ . '/sales/page.php'; ?>
                 <?php elseif ($moduleKey === 'contabilidad' && $isConfiguration && $modulePageData !== null): ?>
                     <?php require __DIR__ . '/accounting/configuration.php'; ?>
+                <?php elseif ($moduleKey === 'compras' && ! $isConfiguration && ($modulePageData['area'] ?? '') === 'purchase_order'): ?>
+                    <?php require __DIR__ . '/purchases/order.php'; ?>
                 <?php elseif ($isConfiguration && in_array($moduleKey, ['compras', 'ventas'], true) && $modulePageData !== null): ?>
                     <?php require __DIR__ . '/taxes/configuration.php'; ?>
                 <?php elseif ($isConfiguration): ?>

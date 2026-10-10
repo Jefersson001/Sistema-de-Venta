@@ -1,5 +1,7 @@
 # Contactos
 
+La pestaña Inventario de clientes y proveedores incluye Ubicación relacionada. El campo relaciona ubicaciones externas de tipo Cliente o Proveedor según el contacto; si queda vacío se usa la ubicación predeterminada del tipo. El servidor impide relacionar un cliente con una ubicación de proveedor o con una ubicación interna. El vendedor conserva su Almacén relacionado para determinar el origen de las entregas.
+
 El módulo incluye listado con búsqueda, filtros por tipo y estado, paginación de 20 registros, formulario de creación/edición y archivo/restauración.
 
 Configuración abre un menú de catálogos. Cada catálogo abre primero su listado; «Nuevo» y «Editar» abren una vista de formulario independiente. Guardar o volver al listado regresa a la lista del catálogo.

@@ -51,6 +51,7 @@ function renderInventoryProducts(): void
             $page['purchaseTaxes'] = loadBusinessTaxes($db, 'compras');
             $page['saleTaxes'] = loadBusinessTaxes($db, 'ventas');
             $page['productStock'] = $id ? loadInventoryProductStock($db, $id) : ['total' => '0.000', 'locations' => []];
+            $page['productIndicators'] = $id ? loadInventoryProductIndicators($db, $id) : ['incoming' => '0', 'outgoing' => '0', 'sold' => '0.000', 'purchased' => '0.000'];
             $page['storage'] = loadStorageRelations($db);
         }
         if ($_SERVER['REQUEST_METHOD'] === 'POST' && $page['available']) {

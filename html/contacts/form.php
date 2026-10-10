@@ -4,6 +4,7 @@ $editing = isset($record['id']);
 $selectedType = contactCatalogRecord($page['catalogs']['types'], contactId($record['type_id'] ?? null));
 $isClient = ($selectedType['system_key'] ?? null) === 'client';
 $isSeller = ($selectedType['system_key'] ?? null) === 'salesperson';
+$isExternalPartner = in_array($selectedType['system_key'] ?? '', ['client', 'supplier'], true);
 ?>
 <section aria-labelledby="contact-title">
     <div class="contact-toolbar">
@@ -83,6 +84,9 @@ $isSeller = ($selectedType['system_key'] ?? null) === 'salesperson';
             </section>
             <section class="notebook-page" id="page-inventory" data-notebook-page aria-labelledby="tab-inventory">
                 <h2 class="notebook-page-title">Inventario</h2>
+                <div class="contact-form-grid" data-partner-location-field <?= ! $isExternalPartner ? 'hidden' : '' ?>>
+                    <label>Ubicación relacionada<select name="partner_location_id" <?= ! $isExternalPartner ? 'disabled' : '' ?>><option value="">Ubicación predeterminada</option><?php foreach ($page['storage']['locations'] as $location): ?><?php if (in_array($location['location_type'], ['customer', 'supplier'], true)): ?><option value="<?= (int) $location['id'] ?>" data-partner-kind="<?= $location['location_type'] === 'customer' ? 'client' : 'supplier' ?>" <?= (int) ($record['partner_location_id'] ?? 0) === (int) $location['id'] ? 'selected' : '' ?>><?= contactEscape($location['name']) ?></option><?php endif; ?><?php endforeach; ?></select><small>Cliente: destino de entregas. Proveedor: origen de recepciones.</small></label>
+                </div>
                 <div class="contact-form-grid" data-storage-seller-field <?= ! $isSeller ? 'hidden' : '' ?>>
                     <label>Almacén relacionado
                         <select name="warehouse_id" data-related-warehouse <?= ! $isSeller ? 'disabled' : '' ?>>

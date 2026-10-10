@@ -40,9 +40,23 @@ function renderInventoryOperations(): void
                     LEFT JOIN contacts seller ON seller.id = q.salesperson_id WHERE q.id = ?');
                 $source->execute([$existing['quotation_id']]); $page['sourceOrder'] = $source->fetch() ?: null;
             }
-            $query = $db->prepare('SELECT c.id, c.name, c.active FROM contacts c JOIN contact_types t ON t.id = c.type_id
+            $query = $db->prepare('SELECT c.id, c.name, c.active, c.partner_location_id FROM contacts c JOIN contact_types t ON t.id = c.type_id
                 WHERE t.system_key = ? AND (c.active = 1 OR c.id = ?) ORDER BY c.name, c.id');
             $query->execute([$page['definition']['role'], $existing['contact_id'] ?? null]); $page['contacts'] = $query->fetchAll();
+            $page['externalLocationLabel'] = '';
+            if ($type !== 'internal') {
+                $locationType = $type === 'receipt' ? 'supplier' : 'customer';
+                foreach ($page['contacts'] as &$contact) {
+                    $externalLocation = storagePartnerLocation($page['storage'], $locationType, inventoryId($contact['partner_location_id']));
+                    $contact['external_label'] = $externalLocation['name'] ?? '';
+                    if ((int) $contact['id'] === (int) ($page['record']['contact_id'] ?? 0)) { $page['externalLocationLabel'] = $contact['external_label']; }
+                }
+                unset($contact);
+                if ($existing && $existing['status'] === 'done') {
+                    $externalLocation = storageRecord($page['storage']['locations'], inventoryId($existing[$type === 'receipt' ? 'source_location_id' : 'destination_location_id']));
+                    if ($externalLocation) { $page['externalLocationLabel'] = $externalLocation['name']; }
+                }
+            }
             $page['products'] = $db->query('SELECT id, name FROM inventory_products ORDER BY name, id')->fetchAll();
             $page['stock'] = $db->query('SELECT product_id, location_id, quantity FROM inventory_stock')->fetchAll();
         }

@@ -18,7 +18,7 @@ function loadInventoryWarehouses(PDO $db): array
 
 function loadInventoryLocations(PDO $db): array
 {
-    return $db->query('SELECT id, name, warehouse_id, parent_id FROM inventory_locations ORDER BY name, id')->fetchAll();
+    return $db->query('SELECT id, name, warehouse_id, parent_id, location_type, system_key FROM inventory_locations ORDER BY name, id')->fetchAll();
 }
 
 function validateInventoryStorage(string $section, array $input, array $warehouses, array $locations, ?int $id): array
@@ -28,18 +28,22 @@ function validateInventoryStorage(string $section, array $input, array $warehous
     if ($name === '' || mb_strlen($name, 'UTF-8') > 160) { $errors[] = 'Escribe un nombre de entre 1 y 160 caracteres.'; }
     $data = ['name' => $name];
     if ($section === 'locations') {
-        $warehouse = inventoryId($input['warehouse_id'] ?? null);
+        $original = inventoryCategoryRecord($locations, $id);
+        $location_type = $input['location_type'] ?? ($original['location_type'] ?? 'internal');
+        if (! is_string($location_type) || ! in_array($location_type, ['internal', 'customer', 'supplier'], true)) { $errors[] = 'Selecciona un tipo de ubicación válido.'; $location_type = 'internal'; }
+        $data['location_type'] = $location_type;
+        $warehouse = $location_type === 'internal' ? inventoryId($input['warehouse_id'] ?? null) : null;
         $parent = inventoryId($input['parent_id'] ?? null);
         $data['warehouse_id'] = $warehouse;
         $data['parent_id'] = $parent;
-        if (! inventoryCategoryRecord($warehouses, $warehouse)) { $errors[] = 'Selecciona un almacén válido.'; }
+        if ($location_type === 'internal' && ! inventoryCategoryRecord($warehouses, $warehouse)) { $errors[] = 'Selecciona un almacén válido.'; }
         $parentRecord = inventoryCategoryRecord($locations, $parent);
         if (($input['parent_id'] ?? '') !== '' && ! $parentRecord) { $errors[] = 'Selecciona una ubicación superior válida.'; }
-        if ($parentRecord && (int) $parentRecord['warehouse_id'] !== $warehouse) { $errors[] = 'La ubicación superior debe pertenecer al mismo almacén.'; }
+        if ($parentRecord && (inventoryId($parentRecord['warehouse_id']) !== $warehouse || ($parentRecord['location_type'] ?? 'internal') !== $location_type)) { $errors[] = 'La ubicación superior debe pertenecer al mismo almacén y tipo.'; }
         $descendants = $id ? inventoryCategoryDescendants($locations, $id) : [];
         if ($parent && in_array($parent, $descendants, true)) { $errors[] = 'La ubicación superior no puede ser la misma ubicación ni una de sus sububicaciones.'; }
         $original = inventoryCategoryRecord($locations, $id);
-        if ($original && $warehouse !== (int) $original['warehouse_id'] && count($descendants) > 1) {
+        if ($original && ($warehouse !== inventoryId($original['warehouse_id']) || $location_type !== $original['location_type']) && count($descendants) > 1) {
             $errors[] = 'No se puede cambiar el almacén de una ubicación con sububicaciones. Reorganiza primero sus sububicaciones.';
         }
     }
@@ -49,9 +53,13 @@ function validateInventoryStorage(string $section, array $input, array $warehous
 function saveInventoryStorage(PDO $db, string $section, array $data, ?int $id): int
 {
     if ($section === 'locations' && $id) {
-        $original = $db->prepare('SELECT warehouse_id FROM inventory_locations WHERE id = ?');
+        $original = $db->prepare('SELECT warehouse_id, location_type, system_key FROM inventory_locations WHERE id = ?');
         $original->execute([$id]);
-        if ((int) $original->fetchColumn() !== $data['warehouse_id']) {
+        $previous = $original->fetch();
+        if (inventoryId($previous['warehouse_id']) !== $data['warehouse_id'] || $previous['location_type'] !== $data['location_type']) {
+            if ($previous['system_key']) { throw new InvalidArgumentException('No puedes cambiar el tipo de una ubicación predeterminada.'); }
+            $partnerReferences = $db->prepare('SELECT COUNT(*) FROM contacts WHERE partner_location_id = ?'); $partnerReferences->execute([$id]);
+            if ((int) $partnerReferences->fetchColumn() > 0) { throw new InvalidArgumentException('Esta ubicación está relacionada con contactos. No puedes cambiar su tipo.'); }
             foreach (['contacts', 'sales_quotations'] as $table) {
                 $columns = $db->prepare("SELECT COUNT(*) FROM information_schema.COLUMNS WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = ? AND COLUMN_NAME IN ('warehouse_id', 'location_id')");
                 $columns->execute([$table]);
@@ -74,7 +82,7 @@ function saveInventoryStorage(PDO $db, string $section, array $data, ?int $id): 
         }
     }
     $table = match ($section) { 'warehouses' => 'inventory_warehouses', 'locations' => 'inventory_locations' };
-    $fields = $section === 'warehouses' ? ['name'] : ['name', 'warehouse_id', 'parent_id'];
+    $fields = $section === 'warehouses' ? ['name'] : ['name', 'warehouse_id', 'parent_id', 'location_type'];
     if ($id) {
         $sql = 'UPDATE ' . $table . ' SET ' . implode(', ', array_map(static fn ($field) => $field . ' = :' . $field, $fields)) . ' WHERE id = :id';
         $data['id'] = $id;

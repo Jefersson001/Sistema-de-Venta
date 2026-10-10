@@ -6,6 +6,11 @@ if (operationForm) {
     const validation = document.querySelector('[data-operation-validate]');
     const stock = JSON.parse(document.querySelector('[data-operation-stock]').textContent);
     const location = operationForm.querySelector('[name="source_location_id"]') || operationForm.querySelector('[name="destination_location_id"]');
+    const contact = operationForm.querySelector('[name="contact_id"]');
+    const external = operationForm.querySelector('[data-operation-external]');
+    contact?.addEventListener('change', () => {
+        if (external) external.value = contact.selectedOptions[0]?.dataset.externalLabel || '';
+    });
     let next = body.children.length;
     function markDirty() {
         if (!validation) return;

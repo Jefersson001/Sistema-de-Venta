@@ -27,6 +27,12 @@ try {
         $contacts[$role] = (int) $db->lastInsertId();
     }
     $db->prepare('UPDATE contacts SET address = ?, postal_code = ? WHERE id = ?')->execute(['Calle de prueba', '1234', $contacts['client']]);
+    $externalLocations = [];
+    foreach (['client' => 'customer', 'supplier' => 'supplier'] as $role => $locationType) {
+        $db->prepare('INSERT INTO inventory_locations (name, location_type) VALUES (?, ?)')->execute([$prefix . $locationType, $locationType]);
+        $externalLocations[$role] = (int) $db->lastInsertId();
+        $db->prepare('UPDATE contacts SET partner_location_id = ? WHERE id = ?')->execute([$externalLocations[$role], $contacts[$role]]);
+    }
     $db->prepare('INSERT INTO inventory_products (name) VALUES (?)')->execute([$prefix]); $product = (int) $db->lastInsertId();
     foreach (inventoryOperationTypes() as $type => $definition) {
         [$status, $form] = operationRequest('type=' . $type . '&new=1', $cookie);
@@ -50,6 +56,9 @@ try {
         checkOperation($record['operation_type'] === $type && str_starts_with($record['name'], $definition['prefix'] . '/') && $record['notes'] === $prefix, 'No persistieron el tipo, referencia o notas.');
         checkOperation($type !== 'receipt' || $record['source_warehouse_id'] === null, 'La recepción guardó un origen interno.');
         checkOperation($type !== 'delivery' || $record['destination_warehouse_id'] === null, 'La entrega guardó un destino interno.');
+        if ($type !== 'internal') {
+            checkOperation((int) $record[$type === 'receipt' ? 'source_location_id' : 'destination_location_id'] === $externalLocations[$type === 'receipt' ? 'supplier' : 'client'], 'No se tomó la ubicación externa relacionada al contacto.');
+        }
         checkOperation($type !== 'delivery' || ((int) $record['source_location_id'] === $location && (int) $record['source_warehouse_id'] === $warehouses[0]), 'La entrega debe derivar el almacén de la ubicación e ignorar el almacén enviado.');
         checkOperation($type === 'delivery' || ((int) $record['destination_location_id'] === $destinationLocation && (int) $record['destination_warehouse_id'] === $warehouses[1]), 'No se guardó la ubicación de destino y su almacén.');
         [$status, $list] = operationRequest('type=' . $type . '&q=' . rawurlencode($record['name']), $cookie);
@@ -97,11 +106,13 @@ try {
         return operationRequest('type=' . $type . '&id=' . $id, $cookie, $post);
     };
     [$receiptId, $receiptPost] = $createStockOperation('receipt', '10.125');
+    checkOperation(loadInventoryProductIndicators($db, $product)['incoming'] === '0', 'Entrada cuenta un borrador como movimiento realizado.');
     checkOperation(loadInventoryProductStock($db, $product)['total'] === '0.000', 'Guardar un borrador modificó el stock.');
     $receiptLines = loadInventoryOperationLines($db, $receiptId);
     checkOperation($receiptLines[0]['demand'] === '12.000' && $receiptLines[0]['quantity'] === '10.125', 'Se confundieron demanda y cantidad.');
     [$status] = $validateStock('receipt', $receiptId, $receiptPost['csrf']); checkOperation($status === 303, 'No se validó la recepción.');
     checkOperation(loadInventoryProductStock($db, $product)['total'] === '10.125', 'La recepción no sumó la cantidad real.');
+    checkOperation(loadInventoryProductIndicators($db, $product)['incoming'] === '1', 'Entrada no cuenta la recepción realizada.');
     [$status, $body] = $validateStock('receipt', $receiptId, $receiptPost['csrf']);
     checkOperation($status === 200 && str_contains($body, 'no admite cambios') && loadInventoryProductStock($db, $product)['total'] === '10.125', 'Una segunda validación duplicó existencias.');
     [$status, $body] = operationRequest('type=receipt&id=' . $receiptId, $cookie, $receiptPost);
@@ -111,8 +122,14 @@ try {
     $balances = loadInventoryProductStock($db, $product);
     checkOperation($balances['total'] === '10.125' && $balances['locations'][0]['quantity'] === '7.000' && $balances['locations'][1]['quantity'] === '3.125', 'El interno no conservó el total o no movió entre ubicaciones.');
     [$deliveryId, $deliveryPost] = $createStockOperation('delivery', '2.000');
+    checkOperation(loadInventoryProductIndicators($db, $product)['outgoing'] === '0', 'Salida cuenta un borrador como movimiento realizado.');
     [$status] = $validateStock('delivery', $deliveryId, $deliveryPost['csrf']); checkOperation($status === 303, 'No se validó la entrega.');
     checkOperation(loadInventoryProductStock($db, $product)['total'] === '8.125', 'La entrega no descontó existencias.');
+    $externalBalance = $db->prepare('SELECT quantity FROM inventory_stock WHERE product_id = ? AND location_id = ?');
+    $externalBalance->execute([$product, $externalLocations['client']]); checkOperation($externalBalance->fetchColumn() === '2.000', 'No se registraron las unidades que salieron al cliente.');
+    $externalBalance->execute([$product, $externalLocations['supplier']]); checkOperation($externalBalance->fetchColumn() === '-10.125', 'No se registró el origen proveedor de la recepción.');
+    $indicators = loadInventoryProductIndicators($db, $product);
+    checkOperation($indicators['outgoing'] === '1' && $indicators['sold'] === '0.000' && $indicators['purchased'] === '0.000', 'No se cuenta la salida realizada o una entrega manual alteró ventas o compras.');
     [$failedId, $failedPost] = $createStockOperation('internal', '5.000', '5.000', [
         ['product_id' => $product, 'demand' => '5.000', 'quantity' => '5.000'],
         ['product_id' => $product, 'demand' => '5.000', 'quantity' => '5.000']]);
@@ -122,7 +139,25 @@ try {
     checkOperation((int) $query->fetchColumn() === 0, 'Una validación fallida dejó movimientos.');
     $curl = curl_init('http://localhost/project/modules/inventario/index.php?id=' . $product);
     curl_setopt($curl, CURLOPT_RETURNTRANSFER, true); $productForm = curl_exec($curl); curl_close($curl);
-    checkOperation(is_string($productForm) && str_contains($productForm, '8.125') && str_contains($productForm, 'Existencias por ubicación') && str_contains($productForm, '7.000'), 'La ficha del producto no muestra las existencias reales.');
+    checkOperation(is_string($productForm) && str_contains($productForm, '8.125') && str_contains($productForm, 'view=stock&amp;product_id=' . $product) && ! str_contains($productForm, '<h2 class="notebook-page-title">Existencias por ubicación'), 'Cantidad a la mano no abre directamente su informe o la pestaña mantiene el detalle.');
+    foreach (['movements', 'stock', 'outgoing', 'incoming'] as $reportView) {
+        $curl = curl_init('http://localhost/project/modules/inventario/informes.php?view=' . $reportView . '&product_id=' . $product);
+        curl_setopt($curl, CURLOPT_RETURNTRANSFER, true); $report = curl_exec($curl); $reportStatus = curl_getinfo($curl, CURLINFO_RESPONSE_CODE); curl_close($curl);
+        checkOperation($reportStatus === 200 && is_string($report) && str_contains($report, $prefix) && ! preg_match('/Fatal error|Warning:|Notice:/', $report), 'No se cargó el informe de inventario.');
+        $reportDom = new DOMDocument(); libxml_use_internal_errors(true); $reportDom->loadHTML('<?xml encoding="UTF-8">' . $report);
+        $reportXpath = new DOMXPath($reportDom);
+        checkOperation($reportXpath->query('//table/tbody/tr')->length === ($reportView === 'movements' ? 3 : ($reportView === 'stock' ? 2 : 1)), 'El informe duplica movimientos o mezcla estados.');
+        checkOperation(str_contains($report, match ($reportView) { 'movements', 'incoming' => '10.125', 'outgoing' => '2.000', default => '1.125' }), 'El informe no muestra cantidades reales del movimiento.');
+    }
+    [$secondReceiptId, $secondReceiptPost] = $createStockOperation('receipt', '1.000');
+    [$status] = $validateStock('receipt', $secondReceiptId, $secondReceiptPost['csrf']); checkOperation($status === 303, 'No se validó la segunda recepción.');
+    checkOperation(loadInventoryProductIndicators($db, $product)['incoming'] === '2', 'Las recepciones individuales se agruparon en un solo movimiento.');
+    $curl = curl_init('http://localhost/project/modules/inventario/informes.php?view=incoming&product_id=' . $product);
+    curl_setopt($curl, CURLOPT_RETURNTRANSFER, true); $twoReceipts = curl_exec($curl); curl_close($curl);
+    $historyDom = new DOMDocument(); $historyDom->loadHTML('<?xml encoding="UTF-8">' . $twoReceipts); $historyXpath = new DOMXPath($historyDom);
+    checkOperation($historyXpath->query('//table/tbody/tr')->length === 2, 'El historial no muestra una fila por recepción.');
+    $db->prepare('UPDATE inventory_stock_moves SET created_at = DATE_SUB(CURRENT_TIMESTAMP, INTERVAL 2 YEAR) WHERE operation_id = ?')->execute([$secondReceiptId]);
+    checkOperation(loadInventoryProductIndicators($db, $product)['incoming'] === '1', 'Entrada incluye movimientos anteriores a 12 meses.');
     [$invalidLines, $errors] = validateInventoryOperationLines([['product_id' => $product, 'demand' => '1', 'quantity' => '-1']], [['id' => $product]]);
     checkOperation(count($errors) > 0, 'Se aceptó una cantidad negativa.');
     [$status] = operationRequest('type=invalid', $cookie); checkOperation($status === 404, 'Tipo inexistente sin 404.');
@@ -137,6 +172,7 @@ try {
         $db->prepare('DELETE FROM inventory_products WHERE id = ? AND name = ?')->execute([$product, $prefix]);
     }
     foreach ($contacts as $id) { $db->prepare('DELETE FROM contacts WHERE id = ? AND name LIKE ?')->execute([$id, $prefix . '%']); }
+    foreach ($externalLocations ?? [] as $externalId) { $db->prepare('DELETE FROM inventory_locations WHERE id = ? AND name LIKE ?')->execute([$externalId, $prefix . '%']); }
     if ($location) { $db->prepare('DELETE FROM inventory_locations WHERE id = ? AND name = ?')->execute([$location, $prefix]); }
     if ($destinationLocation) { $db->prepare('DELETE FROM inventory_locations WHERE id = ? AND name = ?')->execute([$destinationLocation, $prefix . ' destino']); }
     foreach ($warehouses as $id) { $db->prepare('DELETE FROM inventory_warehouses WHERE id = ? AND name LIKE ?')->execute([$id, $prefix . '%']); }

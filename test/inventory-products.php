@@ -58,11 +58,11 @@ try {
     $pages = $xpath->query('//*[@data-notebook-page]');
     expectProduct($pages->length === 6, 'Faltan páginas del notebook.');
     foreach ($pages as $page) {
-        if (! in_array($page->getAttribute('id'), ['product-page-general', 'product-page-inventory'], true)) {
+        if ($page->getAttribute('id') !== 'product-page-general') {
             expectProduct(trim($page->textContent) === '' && $page->childNodes->length === 0, 'Una pestaña pendiente no está vacía.');
         }
     }
-    expectProduct($xpath->query('//*[@id="product-page-inventory"]//table')->length === 1 && $xpath->query('//*[@data-product-stock-open and not(@disabled)]')->length === 1, 'No se muestra el detalle de existencias ni se habilita Cantidad a la mano.');
+    expectProduct($xpath->query('//*[@id="product-page-inventory"]//table')->length === 0, 'La pestaña Inventario conserva el detalle de existencias.');
     expectProduct($xpath->query('//*[@id="product-page-general"]//input[@name="sale_price"]')->length === 1
         && $xpath->query('//*[@id="product-page-general"]//select[@name="purchase_tax_id"]')->length === 1
         && $xpath->query('//*[@id="product-page-general"]//select[@name="category_id"]')->length === 1, 'Faltan campos de información general.');
@@ -74,6 +74,11 @@ try {
     $lookup->execute([$name]);
     $id = (int) $lookup->fetchColumn();
     expectProduct($id > 0, 'El producto no se guardó en MySQL.');
+    [$status, $savedForm] = productRequest($base, 'index.php?id=' . $id, $cookie);
+    $savedDom = new DOMDocument(); $savedDom->loadHTML('<?xml encoding="UTF-8">' . $savedForm); $savedXpath = new DOMXPath($savedDom);
+    expectProduct($status === 200 && $savedXpath->query('//*[@data-product-stat="movements" and contains(@href, "view=movements")]')->length === 1
+        && $savedXpath->query('//*[@data-product-stat="incoming" or @data-product-stat="outgoing"]')->length === 0
+        && $savedXpath->query('//*[@data-product-stat="purchased" and contains(@href, "view=purchased")]')->length === 1, 'Entrada/Salida no comparten el historial o Comprado no abre sus órdenes.');
     $lookup = $db->prepare('SELECT name, sale_enabled, purchase_enabled FROM inventory_products WHERE id = ?');
     $lookup->execute([$id]);
     $record = $lookup->fetch();

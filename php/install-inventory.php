@@ -9,10 +9,11 @@ if (PHP_SAPI !== 'cli') {
 
 require_once __DIR__ . '/connection.php';
 require_once __DIR__ . '/sales-delivery-schema.php';
+require_once __DIR__ . '/external-locations-schema.php';
 
 try {
     $db = createDatabaseConnection();
-    foreach (['004_inventory_categories.sql', '005_inventory_products.sql', '006_business_taxes.sql', '010_inventory_warehouses.sql', '012_inventory_operations.sql', '013_inventory_stock.sql'] as $file) {
+    foreach (['004_inventory_categories.sql', '005_inventory_products.sql', '006_business_taxes.sql', '010_inventory_warehouses.sql', '012_inventory_operations.sql', '013_inventory_stock.sql', '014_purchase_orders.sql'] as $file) {
         $migration = file_get_contents(__DIR__ . '/migrations/' . $file);
         if ($migration === false) {
             throw new RuntimeException('No se pudo leer la migración de Inventario.');
@@ -40,6 +41,7 @@ try {
         $db->exec("ALTER TABLE inventory_operations ADD status ENUM('draft', 'done') NOT NULL DEFAULT 'draft'");
     }
     installSalesDeliveryRelation($db);
+    installExternalLocations($db);
     echo "Productos, operaciones y existencias de Inventario instalados.\n";
 } catch (Throwable $exception) {
     fwrite(STDERR, 'No se pudo instalar Inventario: ' . $exception->getMessage() . "\n");

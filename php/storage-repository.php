@@ -10,7 +10,7 @@ function storageRecord(array $records, ?int $id): ?array
 function loadStorageRelations(PDO $db): array
 {
     return ['warehouses' => $db->query('SELECT id, name FROM inventory_warehouses ORDER BY name, id')->fetchAll(),
-        'locations' => $db->query('SELECT id, name, warehouse_id, parent_id FROM inventory_locations ORDER BY name, id')->fetchAll()];
+        'locations' => $db->query('SELECT id, name, warehouse_id, parent_id, location_type, system_key FROM inventory_locations ORDER BY name, id')->fetchAll()];
 }
 
 function storageLocationLabel(array $storage, ?int $warehouseId, ?int $locationId): string
@@ -30,11 +30,23 @@ function storageLocationLabel(array $storage, ?int $warehouseId, ?int $locationI
 
 function storageLabel(array $storage, ?int $warehouseId, ?int $locationId): string
 {
+    $record = storageRecord($storage['locations'] ?? [], $locationId);
+    if ($record && ($record['location_type'] ?? 'internal') !== 'internal') { return $record['name']; }
     $warehouse = storageRecord($storage['warehouses'] ?? [], $warehouseId);
     if (! $warehouse) { return ''; }
     if (! $locationId) { return $warehouse['name']; }
     $location = storageLocationLabel($storage, $warehouseId, $locationId);
     return $location !== '' ? $location . ' / ' . $warehouse['name'] : '';
+}
+
+function storagePartnerLocation(array $storage, string $location_type, ?int $preferred = null): ?array
+{
+    $record = storageRecord($storage['locations'], $preferred);
+    if ($record && ($record['location_type'] ?? '') === $location_type) { return $record; }
+    foreach ($storage['locations'] as $location) {
+        if (($location['system_key'] ?? '') === 'default_' . $location_type && $location['location_type'] === $location_type) { return $location; }
+    }
+    return null;
 }
 
 function resolveStorageDestination(mixed $value, array $storage): ?array

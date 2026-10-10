@@ -26,12 +26,18 @@ function validateInventoryOperation(array $input, string $type, array $storage, 
     $notes = is_string($input['notes'] ?? null) ? trim($input['notes']) : '';
     if (mb_strlen($notes) > 5000) { $errors[] = 'Las notas admiten hasta 5000 caracteres.'; }
     $data = ['operation_type' => $type, 'scheduled_date' => $date, 'contact_id' => $contact, 'notes' => $notes];
+    $partner = storageRecord($contacts, $contact);
     foreach (['source', 'destination'] as $side) {
         $required = $side === 'source' ? $type !== 'receipt' : $type !== 'delivery';
         $location = $required ? inventoryId($input[$side . '_location_id'] ?? null) : null;
         $locationRecord = storageRecord($storage['locations'], $location);
-        $warehouse = $locationRecord ? (int) $locationRecord['warehouse_id'] : null;
-        if ($required && (! $locationRecord || ! storageRecord($storage['warehouses'], $warehouse))) {
+        if (! $required) {
+            $locationRecord = storagePartnerLocation($storage, $type === 'receipt' ? 'supplier' : 'customer', inventoryId($partner['partner_location_id'] ?? null));
+            $location = $locationRecord ? (int) $locationRecord['id'] : null;
+            if (! $locationRecord) { $errors[] = 'Configura una ubicación externa para el contacto.'; }
+        }
+        $warehouse = $locationRecord ? inventoryId($locationRecord['warehouse_id']) : null;
+        if ($required && (! $locationRecord || ($locationRecord['location_type'] ?? 'internal') !== 'internal' || ! storageRecord($storage['warehouses'], $warehouse))) {
             $errors[] = 'Selecciona una ubicación de ' . ($side === 'source' ? 'origen' : 'destino') . ' válida.';
         }
         $data[$side . '_warehouse_id'] = $warehouse;

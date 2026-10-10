@@ -88,6 +88,14 @@ function validateContact(array $input, array $catalogs, array $salespeople = [],
     $data['salesperson_id'] = null;
     $data['warehouse_id'] = null;
     $data['location_id'] = null;
+    $data['partner_location_id'] = null;
+    $partnerUsage = match ($contactType['system_key'] ?? '') { 'client' => 'customer', 'supplier' => 'supplier', default => null };
+    if ($partnerUsage) {
+        $preferred = contactId($input['partner_location_id'] ?? null);
+        $selected = storagePartnerLocation($storage + ['locations' => []], $partnerUsage, $preferred);
+        if (($input['partner_location_id'] ?? '') !== '' && (! $preferred || ! $selected || (int) $selected['id'] !== $preferred)) { $errors[] = 'Selecciona una ubicación externa del tipo correspondiente.'; }
+        $data['partner_location_id'] = $selected ? (int) $selected['id'] : null;
+    }
     if (($contactType['system_key'] ?? null) === 'salesperson') {
         if (array_key_exists('warehouse_id', $input) || array_key_exists('location_id', $input)) {
             $warehouseId = contactId($input['warehouse_id'] ?? null);

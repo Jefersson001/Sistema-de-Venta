@@ -1,16 +1,33 @@
 const searchInput = document.querySelector('[data-module-search]');
-document.querySelector('[data-product-stock-open]')?.addEventListener('click', () => document.querySelector('#product-tab-inventory')?.click());
+for (const toggle of document.querySelectorAll('[data-report-group-toggle]')) {
+    for (const row of document.querySelectorAll('[data-report-group]')) {
+        if (row.dataset.reportGroup === toggle.dataset.reportGroupToggle) row.hidden = true;
+    }
+    toggle.setAttribute('aria-expanded', 'false');
+    toggle.addEventListener('click', () => {
+        const expanded = toggle.getAttribute('aria-expanded') === 'true';
+        for (const row of document.querySelectorAll('[data-report-group]')) {
+            if (row.dataset.reportGroup === toggle.dataset.reportGroupToggle) row.hidden = expanded;
+        }
+        toggle.setAttribute('aria-expanded', String(!expanded));
+    });
+}
 for (const warehouse of document.querySelectorAll('[data-location-warehouse]')) {
     const parent = warehouse.closest('form').querySelector('[data-location-parent]');
+    const type = warehouse.closest('form').querySelector('[data-location-type]');
     const options = [...parent.options].map(option => option.cloneNode(true));
     function updateLocationParents() {
         const selected = parent.value;
-        const matching = options.filter(option => !option.value || option.dataset.warehouse === warehouse.value);
+        const internal = !type || type.value === 'internal';
+        warehouse.disabled = !internal;
+        warehouse.required = internal;
+        const matching = options.filter(option => !option.value || (type ? option.dataset.locationType === type.value && (!internal || option.dataset.warehouse === warehouse.value) : option.dataset.warehouse === warehouse.value));
         parent.replaceChildren(...matching.map(option => option.cloneNode(true)));
         parent.value = matching.some(option => option.value === selected) ? selected : '';
-        parent.disabled = !warehouse.value;
+        parent.disabled = internal && !warehouse.value;
     }
     warehouse.addEventListener('change', updateLocationParents);
+    type?.addEventListener('change', updateLocationParents);
     updateLocationParents();
 }
 for (const filter of document.querySelectorAll('[data-auto-submit]')) {
@@ -134,12 +151,24 @@ for (const contactType of document.querySelectorAll('[data-contact-type]')) {
     const salesperson = field.querySelector('select');
     const sellerStorage = form.querySelector('[data-storage-seller-field]');
     const warehouse = sellerStorage?.querySelector('[data-related-warehouse]');
+    const partnerField = form.querySelector('[data-partner-location-field]');
+    const partnerSelect = partnerField?.querySelector('select');
+    const partnerOptions = partnerSelect ? [...partnerSelect.options].map(option => option.cloneNode(true)) : [];
     function updateSalespersonVisibility() {
         const kind = contactType.selectedOptions[0]?.dataset.contactKind;
         const isClient = kind === 'client';
         field.hidden = !isClient;
         salesperson.disabled = !isClient;
         help.hidden = isClient;
+        if (partnerField) {
+            const applicable = kind === 'client' || kind === 'supplier';
+            partnerField.hidden = !applicable;
+            const selected = partnerSelect.value;
+            const options = partnerOptions.filter(option => !option.value || option.dataset.partnerKind === kind);
+            partnerSelect.replaceChildren(...options.map(option => option.cloneNode(true)));
+            partnerSelect.value = options.some(option => option.value === selected) ? selected : '';
+            partnerSelect.disabled = !applicable;
+        }
         if (sellerStorage) {
             sellerStorage.hidden = kind !== 'salesperson';
             if (warehouse) warehouse.disabled = kind !== 'salesperson';

@@ -4,6 +4,7 @@ if (PHP_SAPI !== 'cli') { http_response_code(404); exit; }
 require_once dirname(__DIR__) . '/php/connection.php';
 require_once dirname(__DIR__) . '/php/sales-repository.php';
 require_once dirname(__DIR__) . '/php/sales-delivery-repository.php';
+require_once dirname(__DIR__) . '/php/inventory-stock-repository.php';
 
 $db = createDatabaseConnection();
 $base = $argv[1] ?? 'http://localhost/project/modules/';
@@ -106,6 +107,14 @@ try {
         expectSales($status === 200 && str_contains($stateForm, 'data-quotation-delivery') === ($target === 'sale'), 'Entrega debe aparecer únicamente en la orden de venta.');
     }
     expectSales(loadSalesQuotation($db, $id)['order_type'] === 'invoice', 'La confirmación cambió el tipo de orden.');
+    expectSales(loadInventoryProductIndicators($db, $fixtures['product_main'])['sold'] === '3.125', 'Vendido no incluye la venta confirmada.');
+    [$status, $soldReport] = salesRequest($base, 'inventario/informes.php?view=sold&product_id=' . $fixtures['product_main'], $cookie);
+    expectSales($status === 200 && str_contains($soldReport, '3.125') && str_contains($soldReport, '../ventas/index.php?id=' . $id), 'Vendido no abre el detalle filtrado del producto.');
+    expectSales(str_contains($soldReport, 'data-report-group-toggle'), 'El análisis de ventas no agrupa por fecha.');
+    foreach (['pivot', 'graph'] as $display) {
+        [$status, $analysis] = salesRequest($base, 'inventario/informes.php?view=sold&product_id=' . $fixtures['product_main'] . '&display=' . $display, $cookie);
+        expectSales($status === 200 && str_contains($analysis, '3.125') && str_contains($analysis, $display === 'pivot' ? 'Importe sin impuestos' : 'report-graph'), 'No se abrió la vista de análisis solicitada.');
+    }
     [$status, , $deliveryRedirect] = salesRequest($base, 'ventas/index.php?id=' . $id, $cookie, ['csrf' => $post['csrf'], 'action' => 'create_delivery']);
     expectSales($status === 303 && str_contains($deliveryRedirect, 'inventario/operaciones.php?type=delivery&id='), 'El botón Entrega no abrió Inventario.');
     $delivery = loadSalesDelivery($db, $id); expectSales($delivery !== null, 'No se vinculó la entrega a la orden.');

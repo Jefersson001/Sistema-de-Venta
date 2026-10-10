@@ -3,20 +3,32 @@ $record = $page['record'];
 $editing = isset($record['id']);
 $tabs = ['general' => 'Información general', 'variants' => 'Variantes', 'sales' => 'Ventas',
     'purchases' => 'Compras', 'inventory' => 'Inventario', 'accounting' => 'Contabilidad'];
+$indicatorHelp = ['on-hand' => 'Existencias actuales en todas las ubicaciones.',
+    'incoming' => 'Número de movimientos de entrada realizados en los últimos 12 meses.',
+    'outgoing' => 'Número de movimientos de salida realizados en los últimos 12 meses.',
+    'sold' => 'Unidades de órdenes de venta confirmadas en los últimos 365 días.',
+    'purchased' => 'Unidades en órdenes de compra confirmadas en los últimos 12 meses.'];
+$indicatorViews = ['on-hand' => 'stock', 'sold' => 'sold', 'purchased' => 'purchased'];
 ?>
 <section aria-labelledby="product-title">
     <div class="contact-toolbar"><div><a class="overview-link" href="index.php">← Productos</a><h1 id="product-title"><?= $editing ? 'Editar producto' : 'Nuevo producto' ?></h1></div></div>
     <form class="contact-sheet" method="post" action="index.php?<?= $editing ? 'id=' . (int) $record['id'] : 'new=1' ?>">
         <input type="hidden" name="csrf" value="<?= inventoryEscape($page['csrf']) ?>"><input type="hidden" name="action" value="save_product">
         <div class="product-stat-buttons" role="group" aria-label="Estadísticas del producto" aria-describedby="product-stats-help">
-            <?php foreach (['on-hand' => 'Cantidad a la mano', 'sold' => 'Vendido', 'purchased' => 'Comprado', 'incoming' => 'Entrada', 'outgoing' => 'Salida'] as $key => $label): ?>
-                <button class="product-stat-button" type="button" <?= $key !== 'on-hand' ? 'disabled' : 'data-product-stock-open' ?> data-product-stat="<?= $key ?>">
-                    <span class="product-stat-value" <?= $key !== 'on-hand' ? 'aria-label="Sin datos disponibles"' : '' ?>><?= $key === 'on-hand' ? inventoryEscape($page['productStock']['total']) : '—' ?></span>
+            <?php foreach (['on-hand' => 'Cantidad a la mano', 'sold' => 'Vendido', 'purchased' => 'Comprado'] as $key => $label): ?>
+                <?php $value = $key === 'on-hand' ? $page['productStock']['total'] : $page['productIndicators'][$key]; ?>
+                <?php $canOpen = $editing && $value !== null && isset($indicatorViews[$key]); ?>
+                <?php if ($canOpen): ?><a class="product-stat-button" href="informes.php?view=<?= $indicatorViews[$key] ?>&amp;product_id=<?= (int) $record['id'] ?>" data-product-stat="<?= $key ?>" title="<?= inventoryEscape($indicatorHelp[$key]) ?>"><?php else: ?><button class="product-stat-button" type="button" disabled data-product-stat="<?= $key ?>" title="<?= inventoryEscape($indicatorHelp[$key]) ?>"><?php endif; ?>
+                    <span class="product-stat-value" <?= $value === null ? 'aria-label="Sin datos disponibles"' : '' ?>><?= $value !== null ? inventoryEscape($value) : '—' ?></span>
                     <span class="product-stat-label"><?= $label ?></span>
-                </button>
+                <?php if ($canOpen): ?></a><?php else: ?></button><?php endif; ?>
             <?php endforeach; ?>
+            <?php if ($editing): ?><a class="product-stat-button product-stat-movements" href="informes.php?view=movements&amp;product_id=<?= (int) $record['id'] ?>" data-product-stat="movements" title="Historial de movimientos del producto"><?php else: ?><button class="product-stat-button product-stat-movements" type="button" disabled data-product-stat="movements"><?php endif; ?>
+                <span class="product-stat-movement-row"><span class="product-stat-label">Entrada:</span><span class="product-stat-value"><?= inventoryEscape($page['productIndicators']['incoming']) ?></span></span>
+                <span class="product-stat-movement-row"><span class="product-stat-label">Salida:</span><span class="product-stat-value"><?= inventoryEscape($page['productIndicators']['outgoing']) ?></span></span>
+            <?php if ($editing): ?></a><?php else: ?></button><?php endif; ?>
         </div>
-        <p class="product-stats-help" id="product-stats-help">Cantidad a la mano muestra las existencias de operaciones realizadas. Pulsa el indicador para verlas por ubicación. Los demás indicadores estarán disponibles próximamente.</p>
+        <p class="product-stats-help" id="product-stats-help">A la mano: existencias actuales. Vendido y Comprado: unidades de órdenes confirmadas del último año. Entrada/Salida: número de movimientos realizados del último año; su botón abre el historial completo.</p>
         <label>Nombre *<input name="name" required maxlength="160" value="<?= inventoryEscape($record['name'] ?? '') ?>" placeholder="Nombre del producto"></label>
         <div class="product-options" role="group" aria-label="Uso del producto">
             <label><input type="checkbox" name="sale_enabled" value="1" <?= ! empty($record['sale_enabled']) ? 'checked' : '' ?>> Venta</label>
@@ -42,12 +54,6 @@ $tabs = ['general' => 'Información general', 'variants' => 'Variantes', 'sales'
                             <select name="category_id"><option value="">Sin categoría</option><?php foreach ($page['categories'] as $category): ?><option value="<?= (int) $category['id'] ?>" <?= (int) ($record['category_id'] ?? 0) === (int) $category['id'] ? 'selected' : '' ?>><?= inventoryEscape(inventoryCategoryPath($page['categories'], $category)) ?></option><?php endforeach; ?></select>
                         </label>
                     </div>
-                <?php elseif ($key === 'inventory'): ?>
-                    <h2 class="notebook-page-title">Existencias por ubicación</h2>
-                    <div class="contact-table-wrap"><table class="contact-table"><thead><tr><th scope="col">Ubicación / almacén</th><th scope="col">Cantidad a la mano</th></tr></thead><tbody>
-                        <?php foreach ($page['productStock']['locations'] as $balance): ?><?php $location = storageRecord($page['storage']['locations'], (int) $balance['location_id']); ?><tr><td><?= inventoryEscape(storageLabel($page['storage'], $location ? (int) $location['warehouse_id'] : null, (int) $balance['location_id'])) ?></td><td><?= inventoryEscape($balance['quantity']) ?></td></tr><?php endforeach; ?>
-                        <?php if (! $page['productStock']['locations']): ?><tr><td colspan="2" class="contact-empty">Este producto no tiene existencias registradas. Valida una recepción para ingresar unidades.</td></tr><?php endif; ?>
-                    </tbody></table></div>
                 <?php endif; ?></section>
             <?php endforeach; ?>
         </div>
