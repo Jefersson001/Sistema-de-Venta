@@ -56,8 +56,10 @@
                     <a class="module-navigation-link <?= ! $isConfiguration ? 'module-navigation-active' : '' ?>" href="index.php" <?= ! $isConfiguration ? 'aria-current="page"' : '' ?>><?= $moduleKey === 'contactos' ? 'Contactos' : 'Vista general' ?></a>
                     <a class="module-navigation-link <?= $isConfiguration ? 'module-navigation-active' : '' ?>" href="configuracion.php" <?= $isConfiguration ? 'aria-current="page"' : '' ?>><span aria-hidden="true">⚙</span> Configuración</a>
                 </nav>
-                <?php if ($moduleKey === 'contactos' && $contactPage !== null): ?>
+                <?php if ($moduleKey === 'contactos' && $modulePageData !== null): ?>
                     <?php require __DIR__ . '/contacts/page.php'; ?>
+                <?php elseif ($moduleKey === 'inventario' && $modulePageData !== null): ?>
+                    <?php require __DIR__ . '/inventory/configuration.php'; ?>
                 <?php elseif ($isConfiguration): ?>
                     <?php require __DIR__ . '/module-configuration.php'; ?>
                 <?php else: ?>

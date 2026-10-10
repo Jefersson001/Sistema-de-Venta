@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 require_once __DIR__ . '/database-status.php';
 
-function renderModulePage(string $moduleKey, bool $isConfiguration = false, ?array $contactPage = null): void
+function renderModulePage(string $moduleKey, bool $isConfiguration = false, ?array $modulePageData = null): void
 {
     $modules = require __DIR__ . '/config/modules.php';
     if (! isset($modules[$moduleKey])) {
@@ -15,7 +15,7 @@ function renderModulePage(string $moduleKey, bool $isConfiguration = false, ?arr
     }
 
     $module = $modules[$moduleKey];
-    $databaseStatus = $contactPage['databaseStatus'] ?? getDatabaseStatus();
+    $databaseStatus = $modulePageData['databaseStatus'] ?? getDatabaseStatus();
 
     require dirname(__DIR__) . '/html/module-placeholder.php';
 }

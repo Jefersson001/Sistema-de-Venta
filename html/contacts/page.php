@@ -1,4 +1,4 @@
-<?php $page = $contactPage; ?>
+<?php $page = $modulePageData; ?>
 <?php if ($page['flash']): ?>
     <p class="notice notice-success" role="status"><?= contactEscape($page['flash']) ?></p>
 <?php endif; ?>
