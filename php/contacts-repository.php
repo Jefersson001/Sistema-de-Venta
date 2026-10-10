@@ -1,6 +1,7 @@
 <?php
 
 declare(strict_types=1);
+require_once __DIR__ . '/storage-repository.php';
 
 function contactCatalogDefinitions(): array
 {
@@ -52,7 +53,7 @@ function contactText(array $input, string $key, int $max, array &$errors, string
 
 function loadContactSalespeople(PDO $db, ?int $currentSalesperson = null, ?int $contactId = null): array
 {
-    $statement = $db->prepare("SELECT c.id, c.name, c.active FROM contacts c
+    $statement = $db->prepare("SELECT c.id, c.name, c.active, c.warehouse_id, c.location_id FROM contacts c
         JOIN contact_types t ON t.id = c.type_id
         WHERE t.system_key = 'salesperson' AND (c.active = 1 OR c.id = :assigned)
         AND (:contact_id IS NULL OR c.id <> :exclude_id) ORDER BY c.name, c.id");
@@ -60,7 +61,7 @@ function loadContactSalespeople(PDO $db, ?int $currentSalesperson = null, ?int $
     return $statement->fetchAll();
 }
 
-function validateContact(array $input, array $catalogs, array $salespeople = [], ?int $currentId = null): array
+function validateContact(array $input, array $catalogs, array $salespeople = [], ?int $currentId = null, array $storage = []): array
 {
     $errors = [];
     $data = [];
@@ -85,6 +86,23 @@ function validateContact(array $input, array $catalogs, array $salespeople = [],
         $errors[] = 'Selecciona un tipo de contacto válido.';
     }
     $data['salesperson_id'] = null;
+    $data['warehouse_id'] = null;
+    $data['location_id'] = null;
+    if (($contactType['system_key'] ?? null) === 'salesperson') {
+        if (array_key_exists('warehouse_id', $input) || array_key_exists('location_id', $input)) {
+            $warehouseId = contactId($input['warehouse_id'] ?? null);
+            $locationId = contactId($input['location_id'] ?? null);
+            $warehouse = storageRecord($storage['warehouses'] ?? [], $warehouseId);
+            $location = storageRecord($storage['locations'] ?? [], $locationId);
+            $invalidWarehouse = ($input['warehouse_id'] ?? '') !== '' && ! $warehouse;
+            $invalidLocation = ($input['location_id'] ?? '') !== '' && (! $location || (int) $location['warehouse_id'] !== $warehouseId);
+            $destination = $invalidWarehouse || $invalidLocation ? null : ['warehouse_id' => $warehouseId, 'location_id' => $locationId];
+        } else {
+            $destination = resolveStorageDestination($input['storage_destination'] ?? '', $storage);
+        }
+        if ($destination === null) { $errors[] = 'Selecciona un almacén o una ubicación válidos.'; }
+        else { $data['warehouse_id'] = $destination['warehouse_id']; $data['location_id'] = $destination['location_id']; }
+    }
     if (($contactType['system_key'] ?? null) === 'client') {
         $data['salesperson_id'] = contactId($input['salesperson_id'] ?? null);
         if (($input['salesperson_id'] ?? '') !== '' && (! contactCatalogRecord($salespeople, $data['salesperson_id'])

@@ -1,0 +1,13 @@
+<form class="contact-filters" method="get" action="configuracion.php"><input type="hidden" name="section" value="<?= $section ?>">
+    <label>Buscar<input name="q" type="search" maxlength="160" value="<?= inventoryEscape($page['search']) ?>" placeholder="<?= $section === 'warehouses' ? 'Nombre del almacén' : 'Nombre, ubicación superior o almacén' ?>"></label>
+    <button class="contact-button" type="submit">Buscar</button><a class="contact-button" href="configuracion.php?section=<?= $section ?>">Limpiar</a>
+</form>
+<div class="contact-table-wrap" role="region" aria-label="Listado de <?= inventoryEscape(mb_strtolower($definition['short'], 'UTF-8')) ?>" tabindex="0"><table class="contact-table"><thead><tr><th scope="col">Nombre</th><?php if ($section === 'locations'): ?><th scope="col">Almacén</th><th scope="col">Ubicación superior</th><?php endif; ?><th scope="col">Acción</th></tr></thead><tbody>
+    <?php foreach ($page['rows'] as $record): ?>
+        <tr><td><a class="contact-name" href="configuracion.php?section=<?= $section ?>&amp;id=<?= (int) $record['id'] ?>"><?= inventoryEscape($section === 'locations' ? inventoryCategoryPath($page['locations'], $record) : $record['name']) ?></a></td>
+        <?php if ($section === 'locations'): ?><?php $parent = inventoryCategoryRecord($page['locations'], inventoryId($record['parent_id'])); ?><td><?= inventoryEscape(inventoryCategoryRecord($page['warehouses'], (int) $record['warehouse_id'])['name'] ?? '') ?></td><td><?= inventoryEscape($parent ? inventoryCategoryPath($page['locations'], $parent) : '—') ?></td><?php endif; ?>
+        <td><a class="inline-link" href="configuracion.php?section=<?= $section ?>&amp;id=<?= (int) $record['id'] ?>">Editar<span class="visually-hidden"> <?= inventoryEscape($record['name']) ?></span></a></td></tr>
+    <?php endforeach; ?>
+    <?php if (! $page['rows']): ?><tr><td colspan="<?= $section === 'locations' ? 4 : 2 ?>" class="contact-empty">No hay registros que coincidan con esta búsqueda. Pulsa «<?= $definition['new'] ?>» para crear uno.</td></tr><?php endif; ?>
+</tbody></table></div>
+<nav class="contact-pagination" aria-label="Páginas de <?= inventoryEscape(mb_strtolower($definition['short'], 'UTF-8')) ?>"><span>Página <?= $page['currentPage'] ?> de <?= $page['pages'] ?></span><?php foreach (['Anterior' => $page['currentPage'] - 1, 'Siguiente' => $page['currentPage'] + 1] as $label => $number): ?><?php if ($number >= 1 && $number <= $page['pages']): ?><a class="contact-button" href="configuracion.php?<?= inventoryEscape(http_build_query(['section' => $section, 'q' => $page['search'], 'page' => $number])) ?>"><?= $label ?></a><?php endif; ?><?php endforeach; ?></nav>

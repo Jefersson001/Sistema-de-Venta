@@ -6,6 +6,8 @@ Información general incluye precio de venta, impuesto de venta, impuesto de com
 
 Configuración → Productos → Categorías abre el listado de categorías. «Nueva categoría» o «Editar» abre un formulario independiente con nombre y categoría superior opcional. Guardar vuelve al listado. Los datos se almacenan en MySQL y el catálogo empieza vacío.
 
+Configuración → Gestión de almacenes incluye Almacenes y Ubicaciones, cada uno con vistas de listado y formulario separadas, búsqueda y paginación. Los almacenes tienen nombre. Las ubicaciones tienen nombre, almacén obligatorio y ubicación superior opcional para organizar sububicaciones dentro del mismo almacén. Se impiden ciclos y duplicados dentro de la misma ubicación superior; una ubicación con sububicaciones no puede cambiar de almacén. Los catálogos comienzan vacíos.
+
 Las categorías pueden organizarse en subcategorías. El sistema impide relaciones circulares y nombres duplicados dentro de la misma categoría superior. El listado admite búsqueda por nombre o ruta y paginación de 20 registros.
 
 La migración ya se ejecutó en la base local. Para instalar esta sección en otro entorno, ejecuta desde la raíz del proyecto:
@@ -20,6 +22,7 @@ Para verificar creación, edición y jerarquía:
 & C:\xampp\php\php.exe test/inventory-categories.php
 & C:\xampp\php\php.exe test/inventory-products.php
 & C:\xampp\php\php.exe test/product-taxes.php
+& C:\xampp\php\php.exe test/inventory-storage.php
 ```
 
 La prueba utiliza registros identificados y los elimina al terminar. Requiere Apache y MySQL en ejecución.

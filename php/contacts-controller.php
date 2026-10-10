@@ -73,6 +73,7 @@ function renderContactsPage(bool $isConfiguration = false): void
             $page['record'] = ['entity_kind' => 'person', 'type_id' => $clientType[0]['id'] ?? '', 'active' => 1];
         }
         if (! $isConfiguration && $page['view'] === 'form' && $page['available']) {
+            $page['storage'] = loadStorageRelations($db);
             $page['salespeople'] = loadContactSalespeople($db, contactId($page['record']['salesperson_id'] ?? null), $id);
         }
         if ($_SERVER['REQUEST_METHOD'] === 'POST' && $page['available']) {
@@ -96,7 +97,7 @@ function renderContactsPage(bool $isConfiguration = false): void
                     }
                 }
             } elseif (! $isConfiguration && ($_POST['action'] ?? '') === 'save_contact' && $page['view'] === 'form') {
-                [$data, $page['errors']] = validateContact($_POST, $page['catalogs'], $page['salespeople'], $id);
+                [$data, $page['errors']] = validateContact($_POST, $page['catalogs'], $page['salespeople'], $id, $page['storage']);
                 $page['record'] = $data + ($id ? ['id' => $id] : []) + ['active' => $page['record']['active'] ?? 1];
                 if (! $page['errors']) {
                     try {

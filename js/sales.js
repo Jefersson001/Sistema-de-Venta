@@ -79,6 +79,14 @@ if (quotationForm) {
     function updateRelatedSalesperson() {
         const sellerId = customer.selectedOptions[0]?.dataset.salesperson ?? '';
         salesperson.value = [...salesperson.options].some(option => option.value === sellerId) ? sellerId : '';
+        updateRelatedStorage();
+    }
+
+    function updateRelatedStorage() {
+        const storage = quotationForm.querySelector('[data-quotation-storage]');
+        if (storage && storage.dataset.preserveStorage !== 'true') {
+            storage.value = salesperson.selectedOptions[0]?.dataset?.storageLabel ?? '';
+        }
     }
 
     customer.addEventListener('change', () => {
@@ -89,6 +97,8 @@ if (quotationForm) {
         updateRelatedSalesperson();
     });
     if (!salesperson.value && customer.value) updateRelatedSalesperson();
+    salesperson.addEventListener('change', updateRelatedStorage);
+    updateRelatedStorage();
     lines.querySelectorAll('[data-quotation-line]').forEach(wireLine);
     if (addLine && template) {
         addLine.hidden = false;

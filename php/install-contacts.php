@@ -8,6 +8,7 @@ if (PHP_SAPI !== 'cli') {
 }
 
 require_once __DIR__ . '/connection.php';
+require_once __DIR__ . '/storage-schema.php';
 
 try {
     $database = createDatabaseConnection();
@@ -47,7 +48,17 @@ try {
             $database->exec('ALTER TABLE contacts ADD salesperson_id INT UNSIGNED NULL,
                 ADD CONSTRAINT contact_salesperson FOREIGN KEY (salesperson_id) REFERENCES contacts(id)');
         }
+        $supplierMigration = file_get_contents(__DIR__ . '/migrations/009_contact_supplier.sql');
+        if ($supplierMigration === false) {
+            throw new RuntimeException('No se pudo leer la migración de proveedores.');
+        }
+        foreach (explode(';', $supplierMigration) as $statement) {
+            if (trim($statement) !== '') {
+                $database->exec($statement);
+            }
+        }
     }
+    if (! $documentsOnly) { installContactStorageRelations($database); }
     echo "Módulo de Contactos instalado.\n";
 } catch (Throwable $exception) {
     fwrite(STDERR, "No se pudo instalar Contactos: " . $exception->getMessage() . "\n");

@@ -276,6 +276,7 @@ a:focus-visible, button:focus-visible { outline: 3px solid #5d4fc4; outline-offs
 .notebook-page-title { margin-bottom: 16px; font-size: 18px; }
 .notebook-page .section-subtitle { margin-top: 12px; }
 .notebook-page[hidden], [data-salesperson-field][hidden], [data-salesperson-help][hidden] { display: none; }
+[data-storage-seller-field][hidden] { display: none; }
 @media (max-width: 720px) { .notebook-tabs a { padding: 12px; } }
 @media (max-width: 1100px) { .contact-config-layout { grid-template-columns: 1fr; }.contact-config-nav { flex-direction: row; flex-wrap: wrap; } }
 @media (max-width: 720px) { .contact-toolbar { align-items: flex-start; flex-direction: column; }.contact-form-grid { grid-template-columns: 1fr; }.contact-sheet { padding: 20px; }.contact-filters label { width: 100%; }.contact-filters label:first-child { min-width: 0; }.contact-table { min-width: 650px; }.contact-config-content .contact-table { min-width: 420px; } }

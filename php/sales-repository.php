@@ -1,9 +1,15 @@
 <?php
 declare(strict_types=1);
+require_once __DIR__ . '/storage-repository.php';
 
 function salesStatuses(): array
 {
     return ['draft' => 'Cotización', 'sent' => 'Cotización enviada', 'sale' => 'Orden de venta'];
+}
+
+function salesOrderTypes(): array
+{
+    return ['delivery' => 'Orden de entrega', 'invoice' => 'Factura'];
 }
 
 function salesId(mixed $value): ?int
@@ -44,18 +50,24 @@ function loadSalesCatalogs(PDO $db, ?array $existing): array
         WHERE (t.system_key = 'client' AND c.active = 1) OR c.id = :current ORDER BY c.name, c.id");
     $customers->execute(['current' => $existing['customer_id'] ?? null]);
     $customerRecords = $customers->fetchAll();
-    $sellers = $db->prepare("SELECT c.id, c.name, c.active FROM contacts c JOIN contact_types t ON t.id = c.type_id
+    $sellers = $db->prepare("SELECT c.id, c.name, c.active, c.warehouse_id, c.location_id FROM contacts c JOIN contact_types t ON t.id = c.type_id
         WHERE (t.system_key = 'salesperson' AND (c.active = 1 OR c.id IN (
             SELECT assigned.salesperson_id FROM contacts assigned JOIN contact_types assigned_type ON assigned_type.id = assigned.type_id
             WHERE assigned_type.system_key = 'client' AND assigned.salesperson_id IS NOT NULL
         ))) OR c.id = :current ORDER BY c.name, c.id");
     $sellers->execute(['current' => $existing['salesperson_id'] ?? null]);
+    $sellerRecords = $sellers->fetchAll();
+    $storage = loadStorageRelations($db);
+    foreach ($sellerRecords as &$seller) {
+        $seller['storage_label'] = storageLabel($storage, salesId($seller['warehouse_id']), salesId($seller['location_id']));
+    }
+    unset($seller);
     $assignedProducts = array_map(static fn ($line) => (int) $line['product_id'], $existing['lines'] ?? []);
     $products = $db->query('SELECT id, name, sale_price, sale_tax_id, sale_enabled FROM inventory_products ORDER BY name, id')->fetchAll();
     $products = array_values(array_filter($products, static fn ($product) => $product['sale_enabled'] || in_array((int) $product['id'], $assignedProducts, true)));
     $taxes = $db->query("SELECT id, name FROM business_taxes WHERE module_key = 'ventas' ORDER BY name, id")->fetchAll();
     $terms = $db->query('SELECT id, name FROM accounting_payment_terms ORDER BY name, id')->fetchAll();
-    return ['customers' => $customerRecords, 'salespeople' => $sellers->fetchAll(),
+    return ['customers' => $customerRecords, 'salespeople' => $sellerRecords,
         'products' => $products, 'taxes' => $taxes, 'terms' => $terms];
 }
 
@@ -71,6 +83,11 @@ function salesDecimal(mixed $value, int $integerDigits, int $scale): ?string
 function validateSalesQuotation(array $input, array $catalogs, ?array $existing = null): array
 {
     $errors = [];
+    $orderType = $input['order_type'] ?? ($existing['order_type'] ?? 'delivery');
+    if (! is_string($orderType) || ! array_key_exists($orderType, salesOrderTypes())) {
+        $errors[] = 'Selecciona un tipo de orden válido.';
+        $orderType = 'delivery';
+    }
     $customerId = salesId($input['customer_id'] ?? null);
     $customer = salesRecord($catalogs['customers'], $customerId);
     if (! $customer) { $errors[] = 'Selecciona un cliente válido.'; }
@@ -86,10 +103,13 @@ function validateSalesQuotation(array $input, array $catalogs, ?array $existing 
     if ($sellerId && ! salesRecord($catalogs['salespeople'], $sellerId)) { $errors[] = 'Selecciona un vendedor válido.'; }
     if (($input['salesperson_id'] ?? '') !== '' && ! $sellerId) { $errors[] = 'Selecciona un vendedor válido.'; }
     $sameCustomer = $existing && (int) $existing['customer_id'] === $customerId;
+    $seller = salesRecord($catalogs['salespeople'], $sellerId);
     $address = $customer ? salesAddress($customer) : '';
-    $data = ['customer_id' => $customerId, 'order_date' => $date, 'payment_term_id' => $termId,
+    $data = ['customer_id' => $customerId, 'order_date' => $date, 'order_type' => $orderType, 'payment_term_id' => $termId,
         'salesperson_id' => $sellerId, 'invoice_address' => $sameCustomer ? $existing['invoice_address'] : $address,
-        'delivery_address' => $sameCustomer ? $existing['delivery_address'] : $address];
+        'delivery_address' => $sameCustomer ? $existing['delivery_address'] : $address,
+        'warehouse_id' => salesId($seller['warehouse_id'] ?? null), 'location_id' => salesId($seller['location_id'] ?? null),
+        'storage_label' => $seller['storage_label'] ?? ''];
     $rawLines = $input['lines'] ?? [];
     $lines = [];
     $total = '0.00';

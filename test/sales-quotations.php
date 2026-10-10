@@ -32,7 +32,9 @@ try {
     $db->prepare('INSERT INTO contact_countries (name) VALUES (?)')->execute([$prefix]); $fixtures['country'] = (int) $db->lastInsertId();
     $db->prepare('INSERT INTO contact_states (name, country_id) VALUES (?, ?)')->execute([$prefix, $fixtures['country']]); $fixtures['state'] = (int) $db->lastInsertId();
     $db->prepare('INSERT INTO contact_cities (name, state_id) VALUES (?, ?)')->execute([$prefix, $fixtures['state']]); $fixtures['city'] = (int) $db->lastInsertId();
-    $db->prepare('INSERT INTO contacts (name, type_id) VALUES (?, ?)')->execute([$prefix . ' vendedor', $roles['salesperson']]); $fixtures['seller'] = (int) $db->lastInsertId();
+    $db->prepare('INSERT INTO inventory_warehouses (name) VALUES (?)')->execute([$prefix . ' almacén']); $fixtures['warehouse'] = (int) $db->lastInsertId();
+    $db->prepare('INSERT INTO inventory_locations (name, warehouse_id) VALUES (?, ?)')->execute([$prefix . ' ubicación', $fixtures['warehouse']]); $fixtures['location'] = (int) $db->lastInsertId();
+    $db->prepare('INSERT INTO contacts (name, type_id, warehouse_id, location_id) VALUES (?, ?, ?, ?)')->execute([$prefix . ' vendedor', $roles['salesperson'], $fixtures['warehouse'], $fixtures['location']]); $fixtures['seller'] = (int) $db->lastInsertId();
     $db->prepare('INSERT INTO contacts (name, type_id, address, postal_code, country_id, state_id, city_id, salesperson_id) VALUES (?, ?, ?, ?, ?, ?, ?, ?)')
         ->execute([$prefix . ' cliente', $roles['client'], 'Calle de prueba', '12345', $fixtures['country'], $fixtures['state'], $fixtures['city'], $fixtures['seller']]);
     $fixtures['customer'] = (int) $db->lastInsertId();
@@ -60,6 +62,7 @@ try {
     [$status, $form] = salesRequest($base, 'ventas/index.php?new=1', $cookie);
     expectSales($status === 200 && ! str_contains($form, 'aria-label="Listado de cotizaciones"') && preg_match('/name="csrf" value="([a-f0-9]+)"/', $form, $matches) === 1, 'No se abrió el formulario de cotizaciones.');
     expectSales(str_contains($form, 'data-address="Calle de prueba, ' . $prefix . ', ' . $prefix . ', 12345, ' . $prefix . '"'), 'No se concatenaron todas las partes de la dirección.');
+    expectSales(str_contains($form, 'name="order_type"') && str_contains($form, 'value="delivery" selected') && ! str_contains($form, 'data-quotation-delivery'), 'La cotización nueva no tiene el tipo por defecto o muestra Entrega antes de confirmar.');
     $post = ['csrf' => $matches[1], 'action' => 'save_quotation', 'customer_id' => $fixtures['customer'], 'order_date' => '2026-10-10',
         'payment_term_id' => $fixtures['term'], 'salesperson_id' => '', 'name' => 'CORRELATIVO-FALSO', 'status' => 'sale',
         'invoice_address' => 'Dirección falsa', 'base_amount' => '999999', 'total_amount' => '999999',
@@ -67,7 +70,7 @@ try {
             ['product_id' => $fixtures['product_main'], 'quantity' => '3.125', 'unit_price' => '19.99', 'tax_id' => $fixtures['tax_ventas']],
             ['product_id' => $fixtures['product_small'], 'quantity' => '0.050', 'unit_price' => '0.10', 'tax_id' => ''],
         ]];
-    foreach ([['customer_id' => $fixtures['seller']], ['order_date' => '2026-02-31'], ['payment_term_id' => 999999999],
+    foreach ([['order_type' => 'invalid'], ['order_type' => ['invoice']], ['customer_id' => $fixtures['seller']], ['order_date' => '2026-02-31'], ['payment_term_id' => 999999999],
         ['salesperson_id' => $fixtures['customer']], ['lines' => [['product_id' => $fixtures['product_disabled'], 'quantity' => '1', 'unit_price' => '1']]],
         ['lines' => [['product_id' => $fixtures['product_main'], 'quantity' => '0', 'unit_price' => '1']]],
         ['lines' => [['product_id' => $fixtures['product_main'], 'quantity' => '1', 'unit_price' => '1', 'tax_id' => $fixtures['tax_compras']]]] ] as $invalid) {
@@ -77,13 +80,17 @@ try {
     [$status, $body, $redirect] = salesRequest($base, 'ventas/index.php?new=1', $cookie, $post);
     expectSales($status === 303 && preg_match('/id=(\d+)/', $redirect, $matches) === 1, 'No se guardó la cotización.');
     $id = (int) $matches[1]; $quotation = loadSalesQuotation($db, $id);
+    expectSales($quotation['order_type'] === 'delivery', 'No se guardó Orden de entrega por defecto.');
     expectSales($quotation['name'] === 'S' . str_pad((string) $id, 5, '0', STR_PAD_LEFT) && $quotation['status'] === 'draft', 'El correlativo o estado no se asignó automáticamente.');
     expectSales($quotation['base_amount'] === '62.48' && $quotation['total_amount'] === '62.48' && count($quotation['lines']) === 2, 'El cálculo decimal o las líneas son incorrectos.');
     expectSales($quotation['invoice_address'] === $quotation['delivery_address'] && str_starts_with($quotation['invoice_address'], 'Calle de prueba'), 'Se aceptaron direcciones falsas.');
     expectSales((int) $quotation['payment_term_id'] === $fixtures['term'] && (int) $quotation['salesperson_id'] === $fixtures['seller'], 'No se guardaron las relaciones.');
-    $post['version'] = (string) $quotation['version']; $post['lines'][0]['unit_price'] = '20.00';
+    expectSales((int) $quotation['warehouse_id'] === $fixtures['warehouse'] && (int) $quotation['location_id'] === $fixtures['location']
+        && $quotation['storage_label'] === $prefix . ' ubicación / ' . $prefix . ' almacén', 'No se trajo el almacén del vendedor relacionado al cliente.');
+    $post['version'] = (string) $quotation['version']; $post['lines'][0]['unit_price'] = '20.00'; $post['order_type'] = 'invoice';
     [$status] = salesRequest($base, 'ventas/index.php?id=' . $id, $cookie, $post); expectSales($status === 303, 'No se editó la cotización.');
     $edited = loadSalesQuotation($db, $id);
+    expectSales($edited['order_type'] === 'invoice', 'No se guardó el tipo Factura.');
     expectSales($edited['name'] === $quotation['name'] && $edited['total_amount'] === '62.51' && count($edited['lines']) === 2, 'La edición duplicó líneas o alteró el correlativo.');
     [$status, $body] = salesRequest($base, 'ventas/index.php?id=' . $id, $cookie, $post);
     expectSales($status === 200 && str_contains($body, 'otra ventana'), 'Se permitió sobrescribir una versión más reciente.');
@@ -92,7 +99,10 @@ try {
         [$status] = salesRequest($base, 'ventas/index.php?id=' . $id, $cookie,
             ['csrf' => $post['csrf'], 'version' => (string) $current['version'], 'action' => $action]);
         expectSales($status === 303 && loadSalesQuotation($db, $id)['status'] === $target, 'La transición de estado falló.');
+        [$status, $stateForm] = salesRequest($base, 'ventas/index.php?id=' . $id, $cookie);
+        expectSales($status === 200 && str_contains($stateForm, 'data-quotation-delivery') === ($target === 'sale'), 'Entrega debe aparecer únicamente en la orden de venta.');
     }
+    expectSales(loadSalesQuotation($db, $id)['order_type'] === 'invoice', 'La confirmación cambió el tipo de orden.');
     $post['version'] = (string) loadSalesQuotation($db, $id)['version'];
     [$status, $body] = salesRequest($base, 'ventas/index.php?id=' . $id, $cookie, $post);
     expectSales($status === 200 && str_contains($body, 'ya está confirmada'), 'Se editó una orden confirmada.');
@@ -118,7 +128,8 @@ try {
     }
     foreach (['product_main' => 'inventory_products', 'product_small' => 'inventory_products', 'product_disabled' => 'inventory_products',
         'tax_ventas' => 'business_taxes', 'tax_compras' => 'business_taxes', 'customer' => 'contacts', 'seller' => 'contacts',
-        'city' => 'contact_cities', 'state' => 'contact_states', 'country' => 'contact_countries', 'term' => 'accounting_payment_terms'] as $key => $table) {
+        'city' => 'contact_cities', 'state' => 'contact_states', 'country' => 'contact_countries', 'term' => 'accounting_payment_terms',
+        'location' => 'inventory_locations', 'warehouse' => 'inventory_warehouses'] as $key => $table) {
         if (isset($fixtures[$key])) { $db->prepare('DELETE FROM ' . $table . ' WHERE id = ? AND name LIKE ?')->execute([$fixtures[$key], $prefix . '%']); }
     }
     if ($cookie !== false && is_file($cookie)) { unlink($cookie); }

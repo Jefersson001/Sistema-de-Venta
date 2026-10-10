@@ -107,10 +107,14 @@ function renderInventoryConfiguration(): void
         $db = createDatabaseConnection();
         $page['databaseStatus']['connected'] = true;
         $page['categories'] = loadInventoryCategories($db);
+        $page['warehouses'] = loadInventoryWarehouses($db);
+        $page['locations'] = loadInventoryLocations($db);
         $page['available'] = true;
         $section = $_GET['section'] ?? null;
+        $definitions = inventoryConfigurationDefinitions();
+        $page['section'] = is_string($section) && isset($definitions[$section]) ? $section : null;
         $id = inventoryId($_GET['id'] ?? null);
-        if (($section !== null && $section !== 'categories')
+        if (($section !== null && $page['section'] === null)
             || ($section === null && (isset($_GET['id']) || isset($_GET['new'])))
             || (isset($_GET['id']) && ! $id)) {
             http_response_code(404);
@@ -119,11 +123,11 @@ function renderInventoryConfiguration(): void
         }
         $page['view'] = $section === null ? 'home' : ($id || isset($_GET['new']) ? 'form' : 'list');
         if ($id && $page['available']) {
-            $page['record'] = inventoryCategoryRecord($page['categories'], $id) ?? [];
+            $page['record'] = inventoryCategoryRecord($page[$page['section']], $id) ?? [];
             if (! $page['record']) {
                 http_response_code(404);
                 $page['available'] = false;
-                $page['errors'][] = 'La categoría solicitada no existe.';
+                $page['errors'][] = 'El registro solicitado no existe.';
             }
         }
         if ($_SERVER['REQUEST_METHOD'] === 'POST' && $page['available']) {
@@ -131,32 +135,45 @@ function renderInventoryConfiguration(): void
             if (! is_string($token) || ! hash_equals($page['csrf'], $token)) {
                 http_response_code(403);
                 $page['errors'][] = 'La sesión del formulario no es válida. Recarga la página.';
-            } elseif ($page['view'] !== 'form' || ($_POST['action'] ?? '') !== 'save_category') {
+            } elseif ($page['view'] !== 'form' || ($_POST['action'] ?? '') !== $definitions[$page['section']]['action']) {
                 http_response_code(400);
                 $page['errors'][] = 'La operación solicitada no es válida.';
             } else {
-                [$data, $page['errors']] = validateInventoryCategory($_POST, $page['categories'], $id);
+                [$data, $page['errors']] = $section === 'categories'
+                    ? validateInventoryCategory($_POST, $page['categories'], $id)
+                    : validateInventoryStorage($section, $_POST, $page['warehouses'], $page['locations'], $id);
                 $page['record'] = $data + ($id ? ['id' => $id] : []);
                 if (! $page['errors']) {
                     try {
-                        saveInventoryCategory($db, $data, $id);
-                        $_SESSION['inventory_flash'] = 'Categoría guardada correctamente.';
-                        header('Location: configuracion.php?section=categories', true, 303);
+                        if ($section === 'categories') { saveInventoryCategory($db, $data, $id); }
+                        else { saveInventoryStorage($db, $section, $data, $id); }
+                        $_SESSION['inventory_flash'] = 'Registro guardado correctamente.';
+                        header('Location: configuracion.php?section=' . $section, true, 303);
                         exit;
+                    } catch (InvalidArgumentException $exception) {
+                        $page['errors'][] = $exception->getMessage();
                     } catch (PDOException $exception) {
                         if (($exception->errorInfo[1] ?? null) !== 1062) {
                             throw $exception;
                         }
-                        $page['errors'][] = 'Ya existe una categoría con ese nombre dentro de la misma categoría superior.';
+                        $page['errors'][] = match ($section) {
+                            'categories' => 'Ya existe una categoría con ese nombre dentro de la misma categoría superior.',
+                            'warehouses' => 'Ya existe un almacén con ese nombre.',
+                            'locations' => 'Ya existe una ubicación con ese nombre dentro del mismo almacén y ubicación superior.',
+                        };
                     }
                 }
             }
         }
-        $page['excludedParents'] = $id ? inventoryCategoryDescendants($page['categories'], $id) : [];
+        $records = $page[$page['section'] ?? 'categories'];
+        $page['excludedParents'] = $id && $section !== 'warehouses' ? inventoryCategoryDescendants($records, $id) : [];
         $page['search'] = is_string($_GET['q'] ?? null) ? mb_substr(trim($_GET['q']), 0, 160, 'UTF-8') : '';
         $term = mb_strtolower($page['search'], 'UTF-8');
-        $filtered = array_values(array_filter($page['categories'], static fn ($category) => $term === ''
-            || str_contains(mb_strtolower(inventoryCategoryPath($page['categories'], $category), 'UTF-8'), $term)));
+        $filtered = array_values(array_filter($records, static function ($record) use ($term, $section, $records, $page): bool {
+            $name = $section === 'warehouses' ? $record['name'] : inventoryCategoryPath($records, $record);
+            if ($section === 'locations') { $name .= ' ' . (inventoryCategoryRecord($page['warehouses'], (int) $record['warehouse_id'])['name'] ?? ''); }
+            return $term === '' || str_contains(mb_strtolower($name, 'UTF-8'), $term);
+        }));
         $page['total'] = count($filtered);
         $page['pages'] = max(1, (int) ceil($page['total'] / 20));
         $page['currentPage'] = min(inventoryId($_GET['page'] ?? null) ?? 1, $page['pages']);
@@ -165,7 +182,7 @@ function renderInventoryConfiguration(): void
         error_log('Inventario: ' . $exception->getMessage());
         http_response_code(503);
         $page['available'] = false;
-        $page['errors'][] = 'No se pudieron cargar las categorías. Verifica la conexión y la instalación de Inventario.';
+        $page['errors'][] = 'No se pudo cargar la configuración. Verifica la conexión y la instalación de Inventario.';
     }
     renderModulePage('inventario', true, $page);
 }

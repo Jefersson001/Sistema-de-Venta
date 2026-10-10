@@ -34,7 +34,8 @@ const lines = { querySelectorAll: () => rows, append(fragment) { rows.push(fragm
 const add = node();
 const template = { content: { cloneNode() { const newRow = row('__INDEX__'); return { row: newRow, querySelector: () => newRow }; } } };
 const customer = select([{ value: '', dataset: {} }, { value: '8', dataset: { address: 'Calle, Ciudad, Estado, 12345, País', salesperson: '9' } }, { value: '10', dataset: { address: 'Otra dirección', salesperson: '' } }], '8');
-const seller = select([{ value: '' }, { value: '9' }]);
+const seller = select([{ value: '', dataset: {} }, { value: '9', dataset: { storageLabel: 'Estante / Almacén Principal' } }, { value: '11', dataset: { storageLabel: 'Almacén Secundario' } }]);
+const storage = { ...node(), dataset: { preserveStorage: 'false' } };
 const invoice = node();
 const delivery = node();
 const baseTotal = node();
@@ -42,7 +43,7 @@ const grandTotal = node();
 const fields = { '[data-quotation-customer]': customer, '[data-quotation-salesperson]': seller,
     '[data-quotation-lines]': lines, '[data-add-line]': add, '[data-quotation-line-template]': template,
     '[data-invoice-address]': invoice, '[data-delivery-address]': delivery,
-    '[data-quotation-base]': baseTotal, '[data-quotation-total]': grandTotal };
+    '[data-quotation-base]': baseTotal, '[data-quotation-total]': grandTotal, '[data-quotation-storage]': storage };
 const form = { ...node(), querySelector: selector => fields[selector] };
 const actionButtons = [node(), node()];
 const dirtyHelp = node();
@@ -51,6 +52,7 @@ const document = { querySelector: selector => selector === '[data-quotation-form
 
 vm.runInNewContext(fs.readFileSync(path.join(__dirname, '../js/sales.js'), 'utf8'), { document });
 assert.equal(seller.value, '9');
+assert.equal(storage.value, 'Estante / Almacén Principal');
 assert.equal(baseTotal.textContent, '62.48');
 assert.equal(grandTotal.textContent, '62.48');
 assert.equal(rows[1].fields['[data-line-base]'].textContent, '0.01');
@@ -61,8 +63,15 @@ assert.equal(delivery.value, invoice.value);
 assert.equal(seller.value, '9');
 customer.value = '10'; customer.events.change();
 assert.equal(seller.value, '');
+assert.equal(storage.value, '');
 customer.value = '8'; customer.events.change();
 assert.equal(seller.value, '9');
+seller.value = '11'; seller.events.change();
+assert.equal(storage.value, 'Almacén Secundario');
+storage.dataset.preserveStorage = 'true';
+seller.value = '9'; seller.events.change();
+assert.equal(storage.value, 'Almacén Secundario');
+storage.dataset.preserveStorage = 'false';
 add.events.click();
 assert.equal(rows.length, 3);
 assert.ok(rows[2].fields['[data-line-product]'].name.includes('lines[2]'));

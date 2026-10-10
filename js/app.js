@@ -1,4 +1,20 @@
 const searchInput = document.querySelector('[data-module-search]');
+for (const warehouse of document.querySelectorAll('[data-location-warehouse]')) {
+    const parent = warehouse.closest('form').querySelector('[data-location-parent]');
+    const options = [...parent.options].map(option => option.cloneNode(true));
+    function updateLocationParents() {
+        const selected = parent.value;
+        const matching = options.filter(option => !option.value || option.dataset.warehouse === warehouse.value);
+        parent.replaceChildren(...matching.map(option => option.cloneNode(true)));
+        parent.value = matching.some(option => option.value === selected) ? selected : '';
+        parent.disabled = !warehouse.value;
+    }
+    warehouse.addEventListener('change', updateLocationParents);
+    updateLocationParents();
+}
+for (const filter of document.querySelectorAll('[data-auto-submit]')) {
+    filter.addEventListener('change', () => filter.closest('form')?.requestSubmit());
+}
 const moduleCards = [...document.querySelectorAll('[data-module-card]')];
 const emptySearch = document.querySelector('[data-empty-search]');
 
@@ -115,11 +131,18 @@ for (const contactType of document.querySelectorAll('[data-contact-type]')) {
     const field = form.querySelector('[data-salesperson-field]');
     const help = form.querySelector('[data-salesperson-help]');
     const salesperson = field.querySelector('select');
+    const sellerStorage = form.querySelector('[data-storage-seller-field]');
+    const warehouse = sellerStorage?.querySelector('[data-related-warehouse]');
     function updateSalespersonVisibility() {
-        const isClient = contactType.selectedOptions[0]?.dataset.contactKind === 'client';
+        const kind = contactType.selectedOptions[0]?.dataset.contactKind;
+        const isClient = kind === 'client';
         field.hidden = !isClient;
         salesperson.disabled = !isClient;
         help.hidden = isClient;
+        if (sellerStorage) {
+            sellerStorage.hidden = kind !== 'salesperson';
+            if (warehouse) warehouse.disabled = kind !== 'salesperson';
+        }
     }
     contactType.addEventListener('change', updateSalespersonVisibility);
     updateSalespersonVisibility();

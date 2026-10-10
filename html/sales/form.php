@@ -2,11 +2,19 @@
 $record = $page['record']; $editing = isset($record['id']); $confirmed = $record['status'] === 'sale';
 $selectedCustomer = salesRecord($page['catalogs']['customers'], salesId($record['customer_id'] ?? null));
 $relatedSellerId = salesId($record['salesperson_id'] ?? null) ?? salesId($selectedCustomer['salesperson_id'] ?? null);
+$selectedSeller = salesRecord($page['catalogs']['salespeople'], $relatedSellerId);
+$storageDisplay = $confirmed ? ($record['storage_label'] ?? '') : ($selectedSeller['storage_label'] ?? '');
 ?>
 <section aria-labelledby="quotation-title">
     <div class="contact-toolbar"><div><a class="overview-link" href="index.php">← Cotizaciones</a><h1 id="quotation-title"><?= $editing ? salesEscape($record['name']) : 'Nueva cotización' ?></h1></div>
         <ol class="quotation-status" aria-label="Estado de la cotización"><?php foreach (salesStatuses() as $key => $label): ?><li <?= $record['status'] === $key ? 'aria-current="step"' : '' ?>><?= $label ?></li><?php endforeach; ?></ol>
     </div>
+    <?php if ($confirmed): ?>
+        <div class="quotation-state-actions">
+            <button class="contact-button" type="button" data-quotation-delivery disabled title="Las entregas estarán disponibles próximamente" aria-describedby="quotation-delivery-help">Entrega</button>
+            <span class="section-subtitle" id="quotation-delivery-help">Las entregas estarán disponibles próximamente.</span>
+        </div>
+    <?php endif; ?>
     <?php if ($editing && ! $confirmed): ?>
         <form class="quotation-state-actions" method="post" action="index.php?id=<?= (int) $record['id'] ?>" data-quotation-status-form>
             <input type="hidden" name="csrf" value="<?= salesEscape($page['csrf']) ?>"><input type="hidden" name="version" value="<?= (int) $record['version'] ?>">
@@ -21,6 +29,7 @@ $relatedSellerId = salesId($record['salesperson_id'] ?? null) ?? salesId($select
         <fieldset <?= $confirmed ? 'disabled' : '' ?> class="quotation-fields">
             <div class="contact-form-grid">
                 <label>Correlativo<input name="name" value="<?= salesEscape($record['name']) ?>" readonly><small>Se asigna automáticamente al guardar.</small></label>
+                <label>Tipo de orden<select name="order_type"><?php foreach (salesOrderTypes() as $value => $label): ?><option value="<?= salesEscape($value) ?>" <?= ($record['order_type'] ?? 'delivery') === $value ? 'selected' : '' ?>><?= salesEscape($label) ?></option><?php endforeach; ?></select></label>
                 <label>Cliente *<select name="customer_id" required data-quotation-customer><option value="">Selecciona un cliente</option><?php foreach ($page['catalogs']['customers'] as $customer): ?><option value="<?= (int) $customer['id'] ?>" data-address="<?= salesEscape(salesAddress($customer)) ?>" data-salesperson="<?= (int) ($customer['salesperson_id'] ?? 0) ?>" <?= (int) ($record['customer_id'] ?? 0) === (int) $customer['id'] ? 'selected' : '' ?>><?= salesEscape($customer['name']) ?><?= ! $customer['active'] ? ' (archivado)' : '' ?></option><?php endforeach; ?></select></label>
                 <label>Dirección de factura<textarea rows="3" readonly data-invoice-address><?= salesEscape($record['invoice_address'] ?? '') ?></textarea></label>
                 <label>Dirección de entrega<textarea rows="3" readonly data-delivery-address><?= salesEscape($record['delivery_address'] ?? '') ?></textarea></label>
@@ -42,8 +51,8 @@ $relatedSellerId = salesId($record['salesperson_id'] ?? null) ?? salesId($select
                 </section>
                 <section class="notebook-page" id="quotation-page-other" data-notebook-page aria-labelledby="quotation-tab-other">
                     <div class="contact-form-grid">
-                        <div><h2 class="notebook-page-title">Ventas</h2><label>Vendedor relacionado<select name="salesperson_id" data-quotation-salesperson><option value="">Sin vendedor asignado</option><?php foreach ($page['catalogs']['salespeople'] as $seller): ?><option value="<?= (int) $seller['id'] ?>" <?= $relatedSellerId === (int) $seller['id'] ? 'selected' : '' ?>><?= salesEscape($seller['name']) ?><?= ! $seller['active'] ? ' (archivado)' : '' ?></option><?php endforeach; ?></select><small>Se trae del vendedor asignado en la ficha del cliente. Puedes asignar otro vendedor.</small></label></div>
-                        <div><h2 class="notebook-page-title">Entrega</h2><label>Almacén<select disabled><option>Próximamente</option></select><small>Estará disponible cuando se habiliten los almacenes y la consulta de existencias.</small></label></div>
+                        <div><h2 class="notebook-page-title">Ventas</h2><label>Vendedor relacionado<select name="salesperson_id" data-quotation-salesperson><option value="">Sin vendedor asignado</option><?php foreach ($page['catalogs']['salespeople'] as $seller): ?><option value="<?= (int) $seller['id'] ?>" data-storage-label="<?= salesEscape($seller['storage_label']) ?>" <?= $relatedSellerId === (int) $seller['id'] ? 'selected' : '' ?>><?= salesEscape($seller['name']) ?><?= ! $seller['active'] ? ' (archivado)' : '' ?></option><?php endforeach; ?></select><small>Se trae del vendedor asignado en la ficha del cliente. Puedes asignar otro vendedor.</small></label></div>
+                        <div><h2 class="notebook-page-title">Entrega</h2><label>Ubicación<input readonly data-quotation-storage data-preserve-storage="<?= $confirmed ? 'true' : 'false' ?>" value="<?= salesEscape($storageDisplay) ?>" placeholder="Sin almacén relacionado"><small>Se trae del almacén relacionado al vendedor.</small></label></div>
                     </div>
                 </section>
             </div>

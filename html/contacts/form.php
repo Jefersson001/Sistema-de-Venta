@@ -3,6 +3,7 @@ $record = $page['record'];
 $editing = isset($record['id']);
 $selectedType = contactCatalogRecord($page['catalogs']['types'], contactId($record['type_id'] ?? null));
 $isClient = ($selectedType['system_key'] ?? null) === 'client';
+$isSeller = ($selectedType['system_key'] ?? null) === 'salesperson';
 ?>
 <section aria-labelledby="contact-title">
     <div class="contact-toolbar">
@@ -82,7 +83,14 @@ $isClient = ($selectedType['system_key'] ?? null) === 'client';
             </section>
             <section class="notebook-page" id="page-inventory" data-notebook-page aria-labelledby="tab-inventory">
                 <h2 class="notebook-page-title">Inventario</h2>
-                <p class="section-subtitle">Las opciones de inventario del contacto estarán disponibles próximamente.</p>
+                <div class="contact-form-grid" data-storage-seller-field <?= ! $isSeller ? 'hidden' : '' ?>>
+                    <label>Almacén relacionado
+                        <select name="warehouse_id" data-related-warehouse <?= ! $isSeller ? 'disabled' : '' ?>>
+                            <option value="">Sin almacén relacionado</option>
+                            <?php foreach ($page['storage']['warehouses'] as $warehouse): ?><option value="<?= (int) $warehouse['id'] ?>" <?= (int) ($record['warehouse_id'] ?? 0) === (int) $warehouse['id'] ? 'selected' : '' ?>><?= contactEscape($warehouse['name']) ?></option><?php endforeach; ?>
+                        </select>
+                    </label>
+                </div>
             </section>
             <section class="notebook-page" id="page-notes" data-notebook-page aria-labelledby="tab-notes">
                 <h2 class="notebook-page-title">Notas internas</h2>

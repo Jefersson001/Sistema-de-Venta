@@ -25,7 +25,7 @@ function renderSalesQuotations(): void
         if (isset($_GET['id']) && ! $id) { http_response_code(404); $page['available'] = false; $page['errors'][] = 'La cotización solicitada no existe.'; }
         $existing = $id ? loadSalesQuotation($db, $id) : null;
         if ($id && ! $existing) { http_response_code(404); $page['available'] = false; $page['errors'][] = 'La cotización solicitada no existe.'; }
-        $page['record'] = $existing ?? ['name' => 'Nuevo', 'status' => 'draft', 'lines' => [], 'base_amount' => '0.00', 'total_amount' => '0.00',
+        $page['record'] = $existing ?? ['name' => 'Nuevo', 'status' => 'draft', 'order_type' => 'delivery', 'lines' => [], 'base_amount' => '0.00', 'total_amount' => '0.00',
             'order_date' => (new DateTimeImmutable('now', new DateTimeZone('America/Caracas')))->format('Y-m-d')];
         if ($page['view'] === 'form' && $page['available']) { $page['catalogs'] = loadSalesCatalogs($db, $existing); }
         if ($_SERVER['REQUEST_METHOD'] === 'POST' && $page['available']) {
@@ -55,8 +55,8 @@ function renderSalesQuotations(): void
         }
         if ($page['view'] === 'list' && $page['available']) {
             $page['search'] = is_string($_GET['q'] ?? null) ? mb_substr(trim($_GET['q']), 0, 160, 'UTF-8') : '';
-            $status = $_GET['status'] ?? 'quotations';
-            $page['statusFilter'] = is_string($status) && in_array($status, ['quotations', 'all', 'draft', 'sent', 'sale'], true) ? $status : 'quotations';
+            $status = $_GET['status'] ?? 'all';
+            $page['statusFilter'] = is_string($status) && in_array($status, ['quotations', 'all', 'draft', 'sent', 'sale'], true) ? $status : 'all';
             $where = []; $params = [];
             if ($page['statusFilter'] === 'quotations') { $where[] = "q.status IN ('draft', 'sent')"; }
             elseif ($page['statusFilter'] !== 'all') { $where[] = 'q.status = :status'; $params['status'] = $page['statusFilter']; }
