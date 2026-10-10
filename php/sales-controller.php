@@ -2,6 +2,7 @@
 declare(strict_types=1);
 require_once __DIR__ . '/connection.php';
 require_once __DIR__ . '/sales-repository.php';
+require_once __DIR__ . '/sales-delivery-repository.php';
 require_once __DIR__ . '/module-page.php';
 
 function salesEscape(mixed $value): string
@@ -27,7 +28,10 @@ function renderSalesQuotations(): void
         if ($id && ! $existing) { http_response_code(404); $page['available'] = false; $page['errors'][] = 'La cotización solicitada no existe.'; }
         $page['record'] = $existing ?? ['name' => 'Nuevo', 'status' => 'draft', 'order_type' => 'delivery', 'lines' => [], 'base_amount' => '0.00', 'total_amount' => '0.00',
             'order_date' => (new DateTimeImmutable('now', new DateTimeZone('America/Caracas')))->format('Y-m-d')];
-        if ($page['view'] === 'form' && $page['available']) { $page['catalogs'] = loadSalesCatalogs($db, $existing); }
+        if ($page['view'] === 'form' && $page['available']) {
+            $page['catalogs'] = loadSalesCatalogs($db, $existing);
+            $page['delivery'] = $id ? loadSalesDelivery($db, $id) : null;
+        }
         if ($_SERVER['REQUEST_METHOD'] === 'POST' && $page['available']) {
             $token = $_POST['csrf'] ?? null;
             $action = $_POST['action'] ?? '';
@@ -35,6 +39,11 @@ function renderSalesQuotations(): void
                 http_response_code(403); $page['errors'][] = 'La sesión del formulario no es válida. Recarga la página.';
             } elseif ($page['view'] !== 'form') {
                 http_response_code(400); $page['errors'][] = 'La operación solicitada no es válida.';
+            } elseif ($action === 'create_delivery' && $id) {
+                try {
+                    $deliveryId = createSalesDelivery($db, $id);
+                    header('Location: ../inventario/operaciones.php?type=delivery&id=' . $deliveryId, true, 303); exit;
+                } catch (InvalidArgumentException $exception) { $page['errors'][] = $exception->getMessage(); }
             } elseif ($action === 'save_quotation') {
                 [$data, $lines, $page['errors']] = validateSalesQuotation($_POST, $page['catalogs'], $existing);
                 $page['record'] = $data + ['lines' => $lines] + $page['record'];

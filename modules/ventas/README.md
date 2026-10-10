@@ -12,7 +12,11 @@ Los cálculos utilizan cantidades de hasta tres decimales y precios de hasta dos
 
 Los estados son Cotización, Cotización enviada y Orden de venta. «Marcar como enviada» cambia el estado local y no envía correos. Marcar o confirmar requiere al menos una línea guardada. Confirmar bloquea la edición y no genera movimientos de inventario, cobros ni registros contables. Los cambios de estado y guardados son transaccionales y comprueban la versión del registro para evitar sobrescribir otra edición.
 
-Tipo de orden permite elegir Orden de entrega (por defecto) o Factura y se conserva al confirmar. Los registros anteriores reciben Orden de entrega al instalar la migración. Las órdenes de venta muestran arriba el botón Entrega, deshabilitado hasta implementar las entregas; todavía no genera documentos ni movimientos.
+Tipo de orden permite elegir Orden de entrega (por defecto) o Factura y se conserva al confirmar. Los registros anteriores reciben Orden de entrega al instalar la migración. El botón Entrega de una orden confirmada crea un borrador en Inventario con el cliente, fecha, almacén/ubicación guardados y productos. La cantidad de cada línea de venta pasa a Demanda; la cantidad real a mover comienza en cero. La entrega muestra su documento de origen, cliente relacionado bajo la etiqueta Dirección de entrega y tipo de orden. Vendedor relacionado aparece en la pestaña Otra información; términos de pago no aparece en la entrega. Crear la entrega no modifica existencias; estas cambian al validar desde Inventario.
+
+Solo se crea una entrega por orden. El botón pasa a Entrega · 1 y abre el registro existente; repetir el POST tampoco crea duplicados. Si la venta tiene almacén pero no ubicación, se propone la ubicación cuando es única. Si hay varias o ninguna, la entrega se crea como borrador y requiere seleccionar una ubicación antes de validar. La relación se instala desde el instalador de Ventas o Inventario una vez instalados ambos módulos.
+
+Cuando la entrega relacionada está Realizada, la orden de venta muestra el botón Factura junto a Entrega. Por ahora está deshabilitado hasta implementar la facturación. Una entrega en borrador no muestra este botón en Ventas.
 
 Instalación en otro entorno, después de instalar Contactos, Inventario e impuestos:
 

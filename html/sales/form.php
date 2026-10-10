@@ -11,8 +11,15 @@ $storageDisplay = $confirmed ? ($record['storage_label'] ?? '') : ($selectedSell
     </div>
     <?php if ($confirmed): ?>
         <div class="quotation-state-actions">
-            <button class="contact-button" type="button" data-quotation-delivery disabled title="Las entregas estarán disponibles próximamente" aria-describedby="quotation-delivery-help">Entrega</button>
-            <span class="section-subtitle" id="quotation-delivery-help">Las entregas estarán disponibles próximamente.</span>
+            <?php if ($page['delivery']): ?>
+                <a class="contact-button" data-quotation-delivery href="../inventario/operaciones.php?type=delivery&amp;id=<?= (int) $page['delivery']['id'] ?>">Entrega · 1</a>
+            <?php else: ?>
+                <form method="post" action="index.php?id=<?= (int) $record['id'] ?>"><input type="hidden" name="csrf" value="<?= salesEscape($page['csrf']) ?>"><input type="hidden" name="action" value="create_delivery"><button class="contact-button" type="submit" data-quotation-delivery>Entrega</button></form>
+            <?php endif; ?>
+            <?php if (($page['delivery']['status'] ?? null) === 'done'): ?>
+                <button class="contact-button" type="button" data-quotation-invoice disabled title="La facturación estará disponible próximamente" aria-describedby="quotation-invoice-help">Factura</button>
+                <span class="section-subtitle" id="quotation-invoice-help">La facturación estará disponible próximamente.</span>
+            <?php endif; ?>
         </div>
     <?php endif; ?>
     <?php if ($editing && ! $confirmed): ?>

@@ -4,6 +4,7 @@ if (PHP_SAPI !== 'cli') { http_response_code(404); exit; }
 require_once __DIR__ . '/connection.php';
 require_once __DIR__ . '/storage-schema.php';
 require_once __DIR__ . '/sales-schema.php';
+require_once __DIR__ . '/sales-delivery-schema.php';
 try {
     $db = createDatabaseConnection();
     installContactStorageRelations($db);
@@ -16,6 +17,7 @@ try {
     }
     installQuotationStorageRelations($db);
     installSalesOrderType($db);
+    installSalesDeliveryRelation($db);
     echo "Cotizaciones y términos de pago instalados.\n";
 } catch (Throwable $exception) {
     fwrite(STDERR, $exception->getMessage() . "\n"); exit(1);

@@ -3,6 +3,7 @@ declare(strict_types=1);
 if (PHP_SAPI !== 'cli') { http_response_code(404); exit; }
 require_once dirname(__DIR__) . '/php/connection.php';
 require_once dirname(__DIR__) . '/php/sales-repository.php';
+require_once dirname(__DIR__) . '/php/sales-delivery-repository.php';
 
 $db = createDatabaseConnection();
 $base = $argv[1] ?? 'http://localhost/project/modules/';
@@ -80,6 +81,8 @@ try {
     [$status, $body, $redirect] = salesRequest($base, 'ventas/index.php?new=1', $cookie, $post);
     expectSales($status === 303 && preg_match('/id=(\d+)/', $redirect, $matches) === 1, 'No se guardó la cotización.');
     $id = (int) $matches[1]; $quotation = loadSalesQuotation($db, $id);
+    [$status, $body] = salesRequest($base, 'ventas/index.php?id=' . $id, $cookie, ['csrf' => $post['csrf'], 'action' => 'create_delivery']);
+    expectSales($status === 200 && str_contains($body, 'Confirma la orden') && loadSalesDelivery($db, $id) === null, 'Se generó una entrega sin confirmar la venta.');
     expectSales($quotation['order_type'] === 'delivery', 'No se guardó Orden de entrega por defecto.');
     expectSales($quotation['name'] === 'S' . str_pad((string) $id, 5, '0', STR_PAD_LEFT) && $quotation['status'] === 'draft', 'El correlativo o estado no se asignó automáticamente.');
     expectSales($quotation['base_amount'] === '62.48' && $quotation['total_amount'] === '62.48' && count($quotation['lines']) === 2, 'El cálculo decimal o las líneas son incorrectos.');
@@ -103,6 +106,40 @@ try {
         expectSales($status === 200 && str_contains($stateForm, 'data-quotation-delivery') === ($target === 'sale'), 'Entrega debe aparecer únicamente en la orden de venta.');
     }
     expectSales(loadSalesQuotation($db, $id)['order_type'] === 'invoice', 'La confirmación cambió el tipo de orden.');
+    [$status, , $deliveryRedirect] = salesRequest($base, 'ventas/index.php?id=' . $id, $cookie, ['csrf' => $post['csrf'], 'action' => 'create_delivery']);
+    expectSales($status === 303 && str_contains($deliveryRedirect, 'inventario/operaciones.php?type=delivery&id='), 'El botón Entrega no abrió Inventario.');
+    $delivery = loadSalesDelivery($db, $id); expectSales($delivery !== null, 'No se vinculó la entrega a la orden.');
+    $lookupDelivery = $db->prepare('SELECT * FROM inventory_operations WHERE id = ?'); $lookupDelivery->execute([$delivery['id']]); $deliveryRecord = $lookupDelivery->fetch();
+    expectSales((int) $deliveryRecord['contact_id'] === $fixtures['customer'] && (int) $deliveryRecord['source_location_id'] === $fixtures['location']
+        && $deliveryRecord['scheduled_date'] === '2026-10-10' && $deliveryRecord['status'] === 'draft', 'No se copiaron cliente, origen o fecha.');
+    $deliveryLines = $db->prepare('SELECT product_id, demand, quantity FROM inventory_operation_lines WHERE operation_id = ? ORDER BY position'); $deliveryLines->execute([$delivery['id']]); $copiedLines = $deliveryLines->fetchAll();
+    expectSales(count($copiedLines) === 2 && (int) $copiedLines[0]['product_id'] === $fixtures['product_main'] && $copiedLines[0]['demand'] === '3.125'
+        && $copiedLines[1]['demand'] === '0.050' && $copiedLines[0]['quantity'] === '0.000', 'No se copiaron las líneas y sus demandas.');
+    [$status, , $repeatRedirect] = salesRequest($base, 'ventas/index.php?id=' . $id, $cookie, ['csrf' => $post['csrf'], 'action' => 'create_delivery']);
+    expectSales($status === 303 && $repeatRedirect === $deliveryRedirect && (int) createSalesDelivery($db, $id) === (int) $delivery['id'], 'Se duplicó la entrega al pulsar otra vez.');
+    [$status, $body] = salesRequest($base, 'ventas/index.php?id=' . $id, $cookie);
+    expectSales($status === 200 && str_contains($body, 'Entrega · 1') && ! str_contains($body, 'value="create_delivery"'), 'No aparece el contador y enlace a la entrega existente.');
+    expectSales(! str_contains($body, 'data-quotation-invoice'), 'Factura aparece antes de validar la entrega.');
+    [$status, $body] = salesRequest($base, 'inventario/operaciones.php?type=delivery&id=' . $delivery['id'], $cookie);
+    expectSales($status === 200 && str_contains($body, $quotation['name']) && str_contains($body, $prefix . ' cliente') && ! str_contains($body, 'Calle de prueba') && str_contains($body, $prefix . ' main'), 'La entrega no muestra el documento de origen, cliente o productos.');
+    $deliveryDom = new DOMDocument(); libxml_use_internal_errors(true); $deliveryDom->loadHTML('<?xml encoding="UTF-8">' . $body);
+    $deliveryXpath = new DOMXPath($deliveryDom);
+    expectSales($deliveryXpath->query('//*[@id="operation-other"]//label[contains(., "Vendedor relacionado")]/input')->length === 1
+        && $deliveryXpath->query('//label[contains(., "Términos de pago")]')->length === 0
+        && str_contains($body, 'Otra información'), 'El vendedor no está en Otra información o la entrega conserva términos de pago.');
+    // Validate a fixture delivery through the actual form and check the linked sales order.
+    $validatePost = [];
+    foreach ($deliveryXpath->query('//form[@data-operation-validate]//input[@type="hidden"]') as $input) {
+        $validatePost[$input->getAttribute('name')] = $input->getAttribute('value');
+    }
+    foreach ($copiedLines as $line) {
+        $db->prepare('INSERT INTO inventory_stock (product_id, location_id, quantity) VALUES (?, ?, ?)')->execute([$line['product_id'], $fixtures['location'], $line['demand']]);
+    }
+    $db->prepare('UPDATE inventory_operation_lines SET quantity = demand WHERE operation_id = ?')->execute([$delivery['id']]);
+    [$status] = salesRequest($base, 'inventario/operaciones.php?type=delivery&id=' . $delivery['id'], $cookie, $validatePost);
+    expectSales($status === 303 && loadSalesDelivery($db, $id)['status'] === 'done', 'No se validó la entrega relacionada.');
+    [$status, $body] = salesRequest($base, 'ventas/index.php?id=' . $id, $cookie);
+    expectSales($status === 200 && str_contains($body, 'data-quotation-invoice') && str_contains($body, '>Factura</button>'), 'Factura no aparece en la orden después de validar su entrega.');
     $post['version'] = (string) loadSalesQuotation($db, $id)['version'];
     [$status, $body] = salesRequest($base, 'ventas/index.php?id=' . $id, $cookie, $post);
     expectSales($status === 200 && str_contains($body, 'ya está confirmada'), 'Se editó una orden confirmada.');
@@ -122,9 +159,18 @@ try {
     if (isset($fixtures['customer'])) {
         $headers = $db->prepare('SELECT id FROM sales_quotations WHERE customer_id = ?'); $headers->execute([$fixtures['customer']]);
         foreach ($headers->fetchAll(PDO::FETCH_COLUMN) as $id) {
+            $linked = $db->prepare('SELECT id FROM inventory_operations WHERE quotation_id = ?'); $linked->execute([$id]);
+            foreach ($linked->fetchAll(PDO::FETCH_COLUMN) as $deliveryId) {
+                $db->prepare('DELETE FROM inventory_stock_moves WHERE operation_id = ?')->execute([$deliveryId]);
+                $db->prepare('DELETE FROM inventory_operation_lines WHERE operation_id = ?')->execute([$deliveryId]);
+                $db->prepare('DELETE FROM inventory_operations WHERE id = ? AND quotation_id = ?')->execute([$deliveryId, $id]);
+            }
             $db->prepare('DELETE FROM sales_quotation_lines WHERE quotation_id = ?')->execute([$id]);
             $db->prepare('DELETE FROM sales_quotations WHERE id = ? AND customer_id = ?')->execute([$id, $fixtures['customer']]);
         }
+    }
+    foreach (['product_main', 'product_small', 'product_disabled'] as $productKey) {
+        if (isset($fixtures[$productKey])) { $db->prepare('DELETE FROM inventory_stock WHERE product_id = ?')->execute([$fixtures[$productKey]]); }
     }
     foreach (['product_main' => 'inventory_products', 'product_small' => 'inventory_products', 'product_disabled' => 'inventory_products',
         'tax_ventas' => 'business_taxes', 'tax_compras' => 'business_taxes', 'customer' => 'contacts', 'seller' => 'contacts',

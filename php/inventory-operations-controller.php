@@ -34,11 +34,13 @@ function renderInventoryOperations(): void
         $page['record'] = $existing ?? ['name' => 'Nuevo', 'version' => 0, 'status' => 'draft', 'lines' => [], 'scheduled_date' => (new DateTimeImmutable('now', new DateTimeZone('America/Caracas')))->format('Y-m-d')];
         $page['storage'] = loadStorageRelations($db);
         if ($page['view'] === 'form' && $page['available']) {
-            $query = $db->prepare('SELECT c.id, c.name, c.active, c.address, c.postal_code, city.name AS city_name, state.name AS state_name, country.name AS country_name
-                FROM contacts c JOIN contact_types t ON t.id = c.type_id
-                LEFT JOIN contact_cities city ON city.id = c.city_id
-                LEFT JOIN contact_states state ON state.id = c.state_id
-                LEFT JOIN contact_countries country ON country.id = c.country_id
+            $page['sourceOrder'] = null;
+            if (! empty($existing['quotation_id'])) {
+                $source = $db->prepare('SELECT q.*, seller.name AS seller_name FROM sales_quotations q
+                    LEFT JOIN contacts seller ON seller.id = q.salesperson_id WHERE q.id = ?');
+                $source->execute([$existing['quotation_id']]); $page['sourceOrder'] = $source->fetch() ?: null;
+            }
+            $query = $db->prepare('SELECT c.id, c.name, c.active FROM contacts c JOIN contact_types t ON t.id = c.type_id
                 WHERE t.system_key = ? AND (c.active = 1 OR c.id = ?) ORDER BY c.name, c.id');
             $query->execute([$page['definition']['role'], $existing['contact_id'] ?? null]); $page['contacts'] = $query->fetchAll();
             $page['products'] = $db->query('SELECT id, name FROM inventory_products ORDER BY name, id')->fetchAll();
@@ -63,6 +65,9 @@ function renderInventoryOperations(): void
                 }
             } else {
                 [$data, $page['errors']] = validateInventoryOperation($_POST, $type, $page['storage'], $page['contacts']);
+                if ($page['sourceOrder'] && $data['contact_id'] !== (int) $page['sourceOrder']['customer_id']) {
+                    $page['errors'][] = 'La dirección de entrega debe corresponder al cliente de la orden de venta.';
+                }
                 [$lines, $lineErrors] = validateInventoryOperationLines($_POST['lines'] ?? [], $page['products']);
                 $page['errors'] = array_merge($page['errors'], $lineErrors);
                 $page['record'] = $data + ['lines' => $lines] + $page['record'];

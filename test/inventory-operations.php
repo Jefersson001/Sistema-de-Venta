@@ -35,7 +35,7 @@ try {
             && ! str_contains($form, 'name="source_warehouse_id"') && ! str_contains($form, 'name="destination_warehouse_id"'), 'El formulario conserva bloques o selectores separados de almacén.');
         if ($type === 'delivery') {
             checkOperation(! str_contains($form, 'data-operation-available') && ! str_contains($form, 'A la mano en'), 'La entrega conserva la columna de existencias.');
-            checkOperation(str_contains($form, 'Dirección de entrega') && str_contains($form, 'Calle de prueba, 1234')
+            checkOperation(str_contains($form, 'Dirección de entrega') && str_contains($form, $prefix . 'client') && ! str_contains($form, 'Calle de prueba, 1234')
                 && str_contains($form, 'Ubicación de origen') && ! str_contains($form, 'name="source_warehouse_id"')
                 && str_contains($form, $prefix . ' / ' . $prefix . 'A'), 'La entrega no muestra dirección y ubicación/almacén en un solo selector.');
         }

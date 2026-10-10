@@ -45,16 +45,6 @@ function validateInventoryOperation(array $input, string $type, array $storage, 
     return [$data, $errors];
 }
 
-function inventoryDeliveryAddress(array $contact): string
-{
-    $parts = [];
-    foreach (['address', 'city_name', 'state_name', 'postal_code', 'country_name'] as $field) {
-        $value = trim((string) ($contact[$field] ?? ''));
-        if ($value !== '') { $parts[] = $value; }
-    }
-    return implode(', ', $parts);
-}
-
 function saveInventoryOperation(PDO $db, array $data, ?int $id, ?int $version, array $lines = []): int
 {
     $db->beginTransaction();
