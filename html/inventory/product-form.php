@@ -29,6 +29,7 @@ $indicatorViews = ['on-hand' => 'stock', 'sold' => 'sold', 'purchased' => 'purch
             <?php if ($editing): ?></a><?php else: ?></button><?php endif; ?>
         </div>
         <p class="product-stats-help" id="product-stats-help">A la mano: existencias actuales. Vendido y Comprado: unidades de órdenes confirmadas del último año. Entrada/Salida: número de movimientos realizados del último año; su botón abre el historial completo.</p>
+        <?php if($editing): ?><p class="product-stats-help">Reservado: <?= inventoryEscape($page['productStock']['reserved']) ?> · Disponible: <?= inventoryEscape($page['productStock']['available']) ?></p><?php endif; ?>
         <label>Nombre *<input name="name" required maxlength="160" value="<?= inventoryEscape($record['name'] ?? '') ?>" placeholder="Nombre del producto"></label>
         <div class="product-options" role="group" aria-label="Uso del producto">
             <label><input type="checkbox" name="sale_enabled" value="1" <?= ! empty($record['sale_enabled']) ? 'checked' : '' ?>> Venta</label>
@@ -41,6 +42,9 @@ $indicatorViews = ['on-hand' => 'stock', 'sold' => 'sold', 'purchased' => 'purch
             <?php foreach ($tabs as $key => $label): ?>
                 <section class="notebook-page" id="product-page-<?= $key ?>" data-notebook-page aria-labelledby="product-tab-<?= $key ?>"><?php if ($key === 'general'): ?>
                     <div class="contact-form-grid">
+                        <label>Tipo de producto<select name="product_type"><option value="goods" <?= ($record['product_type']??'goods')==='goods'?'selected':'' ?>>Mercancía</option><option value="service" <?= ($record['product_type']??'goods')==='service'?'selected':'' ?>>Servicio</option></select></label>
+                        <label>Facturar cantidades<select name="invoice_policy"><option value="delivered" <?= ($record['invoice_policy']??'delivered')==='delivered'?'selected':'' ?>>Entregadas / recibidas</option><option value="ordered" <?= ($record['invoice_policy']??'delivered')==='ordered'?'selected':'' ?>>Ordenadas</option></select></label>
+                        <label>Costo unitario<input name="cost_price" inputmode="decimal" value="<?= inventoryEscape($record['cost_price']??'0.00') ?>"></label>
                         <label>Precio de venta<input name="sale_price" inputmode="decimal" maxlength="13" value="<?= inventoryEscape($record['sale_price'] ?? '0.00') ?>" placeholder="0.00"></label>
                         <label>Impuesto de venta
                             <select name="sale_tax_id"><option value="">Sin impuesto</option><?php foreach ($page['saleTaxes'] as $tax): ?><option value="<?= (int) $tax['id'] ?>" <?= (int) ($record['sale_tax_id'] ?? 0) === (int) $tax['id'] ? 'selected' : '' ?>><?= inventoryEscape($tax['name']) ?></option><?php endforeach; ?></select>
@@ -54,6 +58,11 @@ $indicatorViews = ['on-hand' => 'stock', 'sold' => 'sold', 'purchased' => 'purch
                             <select name="category_id"><option value="">Sin categoría</option><?php foreach ($page['categories'] as $category): ?><option value="<?= (int) $category['id'] ?>" <?= (int) ($record['category_id'] ?? 0) === (int) $category['id'] ? 'selected' : '' ?>><?= inventoryEscape(inventoryCategoryPath($page['categories'], $category)) ?></option><?php endforeach; ?></select>
                         </label>
                     </div>
+                <?php elseif ($key==='purchases'): ?>
+                    <h2 class="notebook-page-title">Precios por proveedor</h2>
+                    <div class="contact-table-wrap"><table class="contact-table"><thead><tr><th>Proveedor</th><th>Precio de compra</th></tr></thead><tbody>
+                    <?php foreach(array_merge($page['supplierPrices'],[[],[],[]]) as $i=>$supplierPrice): ?><tr><td><select name="supplier_prices[<?= $i ?>][supplier_id]"><option value="">Sin proveedor</option><?php foreach($page['suppliers'] as $supplier): ?><option value="<?= (int)$supplier['id'] ?>" <?= (int)($supplierPrice['supplier_id']??0)===(int)$supplier['id']?'selected':'' ?>><?= inventoryEscape($supplier['name']) ?></option><?php endforeach; ?></select></td><td><input name="supplier_prices[<?= $i ?>][price]" inputmode="decimal" value="<?= inventoryEscape($supplierPrice['price']??'0.00') ?>"></td></tr><?php endforeach; ?>
+                    </tbody></table></div>
                 <?php endif; ?></section>
             <?php endforeach; ?>
         </div>

@@ -10,7 +10,7 @@ $storageDisplay = $locked ? ($record['storage_label'] ?? '') : ($selectedSeller[
         <ol class="quotation-status" aria-label="Estado de la cotización"><?php foreach (salesStatuses() as $key => $label): ?><li <?= $record['status'] === $key ? 'aria-current="step"' : '' ?>><?= $label ?></li><?php endforeach; ?></ol>
     </div>
     <?php if ($confirmed): ?>
-        <?php $documentView = 'order'; require dirname(__DIR__) . '/commerce/links.php'; ?>
+        <?php $documentView = 'order'; require dirname(__DIR__) . '/commerce/links.php'; require dirname(__DIR__) . '/commerce/progress.php'; ?>
     <?php endif; ?>
     <?php if ($editing && ! $locked): ?>
         <form class="quotation-state-actions" method="post" action="index.php?id=<?= (int) $record['id'] ?>" data-quotation-status-form>
@@ -44,8 +44,8 @@ $storageDisplay = $locked ? ($record['storage_label'] ?? '') : ($selectedSeller[
                         <button class="contact-button" type="button" data-add-line hidden>+ Agregar línea</button>
                         <template data-quotation-line-template><?php $lineKey = '__INDEX__'; $line = []; require __DIR__ . '/line.php'; ?></template>
                     <?php endif; ?>
-                    <p class="section-subtitle quotation-tax-note">Los impuestos tienen solo nombre. La base y el total se calculan con cantidad × precio unitario; el total todavía no incluye impuestos.</p>
-                    <dl class="quotation-totals" aria-live="polite"><div><dt>Base imponible</dt><dd data-quotation-base><?= salesEscape($record['base_amount']) ?></dd></div><div><dt>Total sin impuestos</dt><dd data-quotation-total><?= salesEscape($record['total_amount']) ?></dd></div></dl>
+                    <p class="section-subtitle quotation-tax-note">Base imponible: cantidad × precio. El total incluye los impuestos de las líneas.</p>
+                    <dl class="quotation-totals" aria-live="polite"><div><dt>Base imponible</dt><dd data-quotation-base><?= salesEscape($record['base_amount']) ?></dd></div><div><dt>Total</dt><dd data-quotation-total><?= salesEscape($record['total_amount']) ?></dd></div></dl>
                 </section>
                 <section class="notebook-page" id="quotation-page-other" data-notebook-page aria-labelledby="quotation-tab-other">
                     <div class="contact-form-grid">

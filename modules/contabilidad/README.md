@@ -1,25 +1,15 @@
 # Contabilidad
 
-Clientes → Facturas y Proveedores → Facturas tienen listas y formularios independientes, búsqueda, filtros y paginación. Las facturas se generan desde las órdenes de venta/compra; las órdenes de tipo Factura permiten facturar tras confirmar y las de inventario requieren validar la entrega/recepción. Visitar una página por GET no crea documentos.
+Clientes → Facturas y Proveedores → Facturas conservan vistas de lista y formulario independientes. Se incluyen las notas de crédito identificadas como NC00001, con enlace a su factura original. La factura de cliente muestra Venta; la factura de proveedor muestra sus recepciones o la compra si todavía no hay recepción.
 
-La factura copia contacto, dirección guardada, términos de pago, vendedor (en clientes), productos, cantidades, precios, nombres de impuestos, bases e importes. Se copia la cantidad de la orden, incluso si el movimiento de inventario fue parcial, conforme al flujo solicitado. Tiene correlativo FC00001/FP00002, fecha y vencimiento opcional. El vencimiento se indica manualmente porque los términos todavía solo tienen nombre. Los campos copiados se consultan sin editar; en borrador se pueden guardar fechas y registrar el documento. Existe una única factura por orden, con protección contra doble creación y cambios de versión. La factura de cliente muestra el botón Venta, que abre su orden de venta; la factura de proveedor muestra Orden de recepción o, si es directa y no existe recepción, Orden de compra.
+Las facturas copian únicamente lo pendiente de facturar por cada línea de la orden, según la política de cantidades ordenadas o entregadas/recibidas. Productos, precios, costos de referencia y porcentajes de impuestos son snapshots: editar un catálogo después no cambia un documento ya guardado. Un borrador activo se reutiliza para evitar duplicados; después de registrarlo se puede crear otra factura por cantidades posteriores. Cancelar libera las cantidades y permite sustituir el documento conservando el anterior.
 
-Todos los estados aparecen en una única barra en la ficha de la factura, resaltando los que aplican al registro. La barra permite desplazamiento horizontal en pantallas estrechas. El estado del documento es Borrador, Registrado o Cancelado. Enviado es una marca separada: «Marcar como enviada» registra la fecha localmente, sin enviar correos. El estado de pago se calcula por separado: Sin pagar, En proceso de pago, Parcialmente pagado, Pagado o Revertido. Los filtros permiten consultar cada uno de estos estados.
+La barra única contiene Borrador, Registrado, Enviado, Sin pagar, En proceso de pago, Parcialmente pagado, Pagado, Revertido y Cancelado. Enviado es una marca local y no envía correos. Los estados de pago se calculan a partir de pagos, notas de crédito registradas y reembolsos. Se rechazan importes superiores al saldo y acciones sobre versiones anteriores.
 
-En Pagos y reversión, registrar un pago lo deja pendiente; confirmarlo lo suma al importe pagado. Los pagos admiten importe, fecha y referencia, y se pueden cancelar conservando su historial. Se rechazan sobrepagos, fechas inválidas, pagos de otras facturas y acciones duplicadas. Una factura con pagos activos no puede cancelarse ni revertirse. Revertir exige un motivo y crea un registro vinculado con correlativo REV00001, fecha e importe completo; la factura original conserva su estado Registrado y muestra Revertido. Una factura cancelada o revertida no admite nuevos pagos.
+Crear nota de crédito requiere una factura registrada y un motivo. Se propone lo que todavía no se ha revertido, conservando precios e impuestos; en borrador se ajustan las cantidades para una reversión parcial o completa. Registrarla reduce cantidades facturadas y deuda. La factura original solo muestra Revertido cuando las notas registradas cubren todo su importe. Una nota sobre deuda sin cobro se aplica a esa deuda; solo el dinero efectivamente cobrado o pagado que corresponde devolver habilita un reembolso manual. La devolución física se valida por separado desde la entrega o recepción y mantiene su relación con la orden.
 
-Esta etapa registra documentos, pagos manuales y registros de reversión. No genera asientos de partida doble, conciliación bancaria, impuestos porcentuales, PDF ni documentos completos de nota de crédito. Los impuestos actuales son etiquetas y los totales excluyen impuestos. Crear, registrar, pagar, cancelar o revertir una factura no modifica existencias.
+Términos de pago tiene Nombre y Días hasta el vencimiento (0 indica la misma fecha). Al generar una factura se calcula el vencimiento desde su fecha; las fechas permanecen editables durante el borrador. Los impuestos de Ventas y Compras incluyen porcentajes configurables sin cargar tasas legales predeterminadas.
 
-Instalación del recorrido completo después de los demás módulos: `php/install-commerce.php`. Para actualizar un entorno que ya tiene el circuito instalado, ejecutar `php/install-statuses.php`; conserva documentos y estados anteriores. Pruebas por HTTP: `test/commerce-workflows.php` y `test/document-statuses.php`, que crean datos identificados y los limpian al terminar.
+Esta etapa registra documentos y pagos manuales. Todavía no genera asientos de partida doble, conciliación bancaria, documentos fiscales impresos ni PDF. Las operaciones financieras no alteran existencias. El costo del producto es una referencia de la última recepción de compra; el margen de venta es estimado según el costo guardado al cotizar, no una valoración contable del inventario.
 
-Configuración → Términos de pago permite crear y editar términos con un único campo: Nombre. Tiene un listado con búsqueda y paginación y una vista de formulario independiente. Los registros se pueden seleccionar desde las cotizaciones de Ventas y las órdenes de Compras.
-
-El catálogo comienza vacío. Esta etapa no incluye plazos, cuotas ni cálculos de vencimientos.
-
-Para instalar únicamente el catálogo en otro entorno:
-
-```powershell
-& C:\xampp\php\php.exe php/install-accounting.php
-```
-
-La instalación de Ventas también crea la tabla de términos de pago.
+Instalación completa: php/install-commerce.php. Actualización: php/install-workflow.php, después del circuito y sus estados. Pruebas por HTTP y repositorios: test/commerce-workflows.php, test/document-statuses.php y test/commerce-partials.php. Requieren Apache, MySQL, PDO MySQL y BCMath.

@@ -1,5 +1,6 @@
 <?php
 declare(strict_types=1);
+require_once __DIR__ . '/workflow-repository.php';
 require_once __DIR__ . '/storage-repository.php';
 
 function salesEscape(mixed $value): string
@@ -14,7 +15,7 @@ function salesStatuses(): array
 
 function salesOrderTypes(): array
 {
-    return ['delivery' => 'Orden de entrega', 'invoice' => 'Factura'];
+    return ['delivery' => 'Orden de venta', 'invoice' => 'Factura'];
 }
 
 function salesId(mixed $value): ?int
@@ -68,9 +69,9 @@ function loadSalesCatalogs(PDO $db, ?array $existing): array
     }
     unset($seller);
     $assignedProducts = array_map(static fn ($line) => (int) $line['product_id'], $existing['lines'] ?? []);
-    $products = $db->query('SELECT id, name, sale_price, sale_tax_id, sale_enabled FROM inventory_products ORDER BY name, id')->fetchAll();
+    $products = $db->query('SELECT id, name, sale_price, sale_tax_id, sale_enabled, product_type, invoice_policy, cost_price FROM inventory_products ORDER BY name, id')->fetchAll();
     $products = array_values(array_filter($products, static fn ($product) => $product['sale_enabled'] || in_array((int) $product['id'], $assignedProducts, true)));
-    $taxes = $db->query("SELECT id, name FROM business_taxes WHERE module_key = 'ventas' ORDER BY name, id")->fetchAll();
+    $taxes = $db->query("SELECT id, name, rate FROM business_taxes WHERE module_key = 'ventas' ORDER BY name, id")->fetchAll();
     $terms = $db->query('SELECT id, name FROM accounting_payment_terms ORDER BY name, id')->fetchAll();
     return ['customers' => $customerRecords, 'salespeople' => $sellerRecords,
         'products' => $products, 'taxes' => $taxes, 'terms' => $terms];
@@ -117,7 +118,7 @@ function validateSalesQuotation(array $input, array $catalogs, ?array $existing 
         'storage_label' => $seller['storage_label'] ?? ''];
     $rawLines = $input['lines'] ?? [];
     $lines = [];
-    $total = '0.00';
+    $total = '0.00'; $taxTotal = '0.00'; $baseTotal = '0.00';
     if (! is_array($rawLines) || count($rawLines) > 100) { $errors[] = 'La cotización admite hasta 100 líneas.'; $rawLines = []; }
     foreach (array_values($rawLines) as $position => $raw) {
         $number = $position + 1;
@@ -133,15 +134,23 @@ function validateSalesQuotation(array $input, array $catalogs, ?array $existing 
         $taxId = salesId($raw['tax_id'] ?? null);
         $tax = salesRecord($catalogs['taxes'], $taxId);
         if (($raw['tax_id'] ?? '') !== '' && ! $tax) { $errors[] = 'Línea ' . $number . ': selecciona un impuesto de Ventas.'; }
-        $base = $quantity !== null && $price !== null ? bcdiv(bcadd(bcmul($quantity, $price, 5), '0.005', 5), '1', 2) : '0.00';
-        $total = bcadd($total, $base, 2);
+        $oldLine = $existing['lines'][$position] ?? null;
+        $sameProduct = $oldLine && (int)$oldLine['product_id'] === $productId;
+        $rate = $oldLine && (int)($oldLine['tax_id'] ?? 0) === (int)$taxId ? ($oldLine['tax_rate'] ?? '0') : ($tax['rate'] ?? '0');
+        $amounts = commerceAmounts($quantity ?? '0', $price ?? '0', $rate);
+        $base = $amounts['base_amount'];
+        $total = bcadd($total, $amounts['total_amount'], 2); $baseTotal = bcadd($baseTotal, $base, 2); $taxTotal = bcadd($taxTotal, $amounts['tax_amount'], 2);
         $lines[] = ['product_id' => $productId, 'product_name' => $product['name'] ?? '',
             'quantity' => $quantity ?? (is_string($raw['quantity'] ?? null) ? $raw['quantity'] : ''),
             'unit_price' => $price ?? (is_string($raw['unit_price'] ?? null) ? $raw['unit_price'] : ''),
-            'tax_id' => $taxId, 'tax_name' => $tax['name'] ?? null, 'base_amount' => $base, 'total_amount' => $base];
+            'tax_id' => $taxId, 'tax_name' => $tax['name'] ?? null, 'tax_rate' => $rate,
+            'tax_amount' => $amounts['tax_amount'], 'base_amount' => $base, 'total_amount' => $amounts['total_amount'],
+            'product_type' => $sameProduct ? ($oldLine['product_type'] ?? 'goods') : ($product['product_type'] ?? 'goods'),
+            'invoice_policy' => $orderType === 'invoice' ? 'ordered' : ($sameProduct ? ($oldLine['invoice_policy'] ?? 'delivered') : ($product['invoice_policy'] ?? 'delivered')),
+            'unit_cost' => $sameProduct ? ($oldLine['unit_cost'] ?? '0') : ($product['cost_price'] ?? '0')];
     }
     if (bccomp($total, '9999999999999999.99', 2) > 0) { $errors[] = 'El importe de la cotización excede el máximo permitido.'; }
-    $data['base_amount'] = $total;
+    $data['base_amount'] = $baseTotal; $data['tax_amount'] = $taxTotal;
     $data['total_amount'] = $total;
     return [$data, $lines, $errors];
 }
@@ -166,8 +175,8 @@ function saveSalesQuotation(PDO $db, array $data, array $lines, ?int $id, ?int $
             $id = (int) $db->lastInsertId();
             $db->prepare('UPDATE sales_quotations SET name = ? WHERE id = ?')->execute(['S' . str_pad((string) $id, 5, '0', STR_PAD_LEFT), $id]);
         }
-        $insert = $db->prepare('INSERT INTO sales_quotation_lines (quotation_id, position, product_id, product_name, quantity, unit_price, tax_id, tax_name, base_amount, total_amount)
-            VALUES (:quotation_id, :position, :product_id, :product_name, :quantity, :unit_price, :tax_id, :tax_name, :base_amount, :total_amount)');
+        $insert = $db->prepare('INSERT INTO sales_quotation_lines (quotation_id, position, product_id, product_name, quantity, unit_price, tax_id, tax_name, tax_rate, tax_amount, product_type, invoice_policy, unit_cost, base_amount, total_amount)
+            VALUES (:quotation_id, :position, :product_id, :product_name, :quantity, :unit_price, :tax_id, :tax_name, :tax_rate, :tax_amount, :product_type, :invoice_policy, :unit_cost, :base_amount, :total_amount)');
         foreach ($lines as $position => $line) { $insert->execute($line + ['quotation_id' => $id, 'position' => $position]); }
         $db->commit(); return $id;
     } catch (Throwable $exception) { $db->rollBack(); throw $exception; }

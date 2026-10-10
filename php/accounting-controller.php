@@ -37,7 +37,7 @@ function renderAccountingConfiguration(): void
         }
         $page['view'] = $section === null ? 'home' : ($id || isset($_GET['new']) ? 'form' : 'list');
         if ($id && $page['available']) {
-            $statement = $db->prepare('SELECT id, name FROM accounting_payment_terms WHERE id = ?');
+            $statement = $db->prepare('SELECT id, name, days FROM accounting_payment_terms WHERE id = ?');
             $statement->execute([$id]); $page['record'] = $statement->fetch() ?: [];
             if (! $page['record']) { http_response_code(404); $page['available'] = false; $page['errors'][] = 'El término de pago no existe.'; }
         }
@@ -49,14 +49,15 @@ function renderAccountingConfiguration(): void
                 http_response_code(400); $page['errors'][] = 'La operación solicitada no es válida.';
             } else {
                 $name = is_string($_POST['name'] ?? null) ? trim($_POST['name']) : '';
-                $page['record'] = ['name' => $name] + ($id ? ['id' => $id] : []);
-                if ($name === '' || mb_strlen($name, 'UTF-8') > 120) {
+                $days=filter_var($_POST['days']??0,FILTER_VALIDATE_INT,['options'=>['min_range'=>0,'max_range'=>36500]]);
+                $page['record'] = ['name' => $name, 'days' => $days===false?0:$days] + ($id ? ['id' => $id] : []);
+                if ($days===false || $name === '' || mb_strlen($name, 'UTF-8') > 120) {
                     $page['errors'][] = 'Escribe un nombre de entre 1 y 120 caracteres.';
                 } else {
                     try {
-                        $sql = $id ? 'UPDATE accounting_payment_terms SET name = :name WHERE id = :id'
-                            : 'INSERT INTO accounting_payment_terms (name) VALUES (:name)';
-                        $db->prepare($sql)->execute(['name' => $name] + ($id ? ['id' => $id] : []));
+                        $sql = $id ? 'UPDATE accounting_payment_terms SET name = :name, days = :days WHERE id = :id'
+                            : 'INSERT INTO accounting_payment_terms (name,days) VALUES (:name,:days)';
+                        $db->prepare($sql)->execute(['name' => $name, 'days' => $days] + ($id ? ['id' => $id] : []));
                         $_SESSION['accounting_flash'] = 'Término de pago guardado correctamente.';
                         header('Location: configuracion.php?section=payment_terms', true, 303); exit;
                     } catch (PDOException $exception) {

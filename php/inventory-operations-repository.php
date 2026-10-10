@@ -53,16 +53,23 @@ function validateInventoryOperation(array $input, string $type, array $storage, 
 
 function saveInventoryOperation(PDO $db, array $data, ?int $id, ?int $version, array $lines = []): int
 {
-    $db->beginTransaction();
+    $before=null;
+    if($id){$query=$db->prepare('SELECT * FROM inventory_operations WHERE id=?');$query->execute([$id]);$before=$query->fetch();if(!$before)throw new InvalidArgumentException('La operación no existe.');}
+    workflowBegin($db);
     try {
         $fields = array_keys($data);
         if ($id) {
-            $lock = $db->prepare('SELECT version, operation_type, status FROM inventory_operations WHERE id = ? FOR UPDATE');
+            workflowLockOrder($db,$before);
+            $lock = $db->prepare('SELECT * FROM inventory_operations WHERE id = ? FOR UPDATE');
             $lock->execute([$id]); $current = $lock->fetch();
             if (! $current || (int) $current['version'] !== $version || $current['operation_type'] !== $data['operation_type']) {
                 throw new InvalidArgumentException('La operación cambió en otra ventana. Recarga antes de guardar.');
             }
-            if ($current['status'] === 'done') { throw new InvalidArgumentException('La operación realizada no admite cambios.'); }
+            if (in_array($current['status'], ['done','cancel'], true)) { throw new InvalidArgumentException('La operación realizada no admite cambios.'); }
+            $lines = validateLinkedOperationLines($db,$current,$lines);
+            if ($current['return_of_id'] && ($data['source_location_id'] !== (int)$current['source_location_id'] || $data['destination_location_id'] !== (int)$current['destination_location_id'])) throw new InvalidArgumentException('La devolución conserva las ubicaciones inversas de la operación original.');
+            if ($current['return_of_id'] && $data['contact_id'] !== (int)$current['contact_id']) throw new InvalidArgumentException('La devolución conserva el contacto de la operación original.');
+            $db->prepare('DELETE FROM inventory_reservations WHERE operation_id=?')->execute([$id]);
             $db->prepare('UPDATE inventory_operations SET ' . implode(', ', array_map(static fn ($field) => $field . ' = :' . $field, $fields))
                 . ", status = CASE WHEN status = 'ready' THEN 'waiting' ELSE status END, version = version + 1 WHERE id = :id")->execute($data + ['id' => $id]);
         } else {
@@ -71,9 +78,14 @@ function saveInventoryOperation(PDO $db, array $data, ?int $id, ?int $version, a
             $name = inventoryOperationTypes()[$data['operation_type']]['prefix'] . '/' . str_pad((string) $id, 5, '0', STR_PAD_LEFT);
             $db->prepare('UPDATE inventory_operations SET name = ? WHERE id = ?')->execute([$name, $id]);
         }
-        $db->prepare('DELETE FROM inventory_operation_lines WHERE operation_id = ?')->execute([$id]);
-        $insert = $db->prepare('INSERT INTO inventory_operation_lines (operation_id, position, product_id, demand, quantity) VALUES (:operation_id, :position, :product_id, :demand, :quantity)');
-        foreach ($lines as $position => $line) { $insert->execute($line + ['operation_id' => $id, 'position' => $position]); }
+        if (!empty($current['quotation_id']) || !empty($current['purchase_order_id']) || !empty($current['return_of_id'])) {
+            $update=$db->prepare('UPDATE inventory_operation_lines SET quantity=? WHERE id=? AND operation_id=?');
+            foreach($lines as $line) $update->execute([$line['quantity'],$line['id'],$id]);
+        } else {
+            $db->prepare('DELETE FROM inventory_operation_lines WHERE operation_id = ?')->execute([$id]);
+            $insert = $db->prepare('INSERT INTO inventory_operation_lines (operation_id, position, product_id, demand, quantity) VALUES (?, ?, ?, ?, ?)');
+            foreach ($lines as $position => $line) $insert->execute([$id,$position,$line['product_id'],$line['demand'],$line['quantity']]);
+        }
         $db->commit(); return $id;
     } catch (Throwable $exception) { $db->rollBack(); throw $exception; }
 }

@@ -31,8 +31,10 @@ function renderInventoryReports(): void
                 JOIN inventory_products p ON p.id = l.product_id LEFT JOIN contacts c ON c.id = o.contact_id';
             $from .= ' JOIN (SELECT line_id, MIN(created_at) AS moved_at FROM inventory_stock_moves GROUP BY line_id) m ON m.line_id = l.id';
             if ($view !== 'movements') {
-                $where[] = "o.status = 'done' AND o.operation_type = :operation_type AND m.moved_at >= DATE_SUB(CURRENT_TIMESTAMP, INTERVAL 1 YEAR)";
-                $params['operation_type'] = $view === 'incoming' ? 'receipt' : 'delivery';
+                $direction = $view==='incoming'
+                    ? "((o.operation_type='receipt' AND o.return_of_id IS NULL) OR (o.operation_type='delivery' AND o.return_of_id IS NOT NULL))"
+                    : "((o.operation_type='delivery' AND o.return_of_id IS NULL) OR (o.operation_type='receipt' AND o.return_of_id IS NOT NULL))";
+                $where[] = "o.status='done' AND ".$direction." AND m.moved_at >= DATE_SUB(CURRENT_TIMESTAMP, INTERVAL 1 YEAR)";
             }
             if ($page['productId']) { $where[] = 'l.product_id = :product'; $params['product'] = $page['productId']; }
             if ($page['locationId']) {
@@ -63,7 +65,7 @@ function renderInventoryReports(): void
             if ($page['productId']) { $where[] = 's.product_id = :product'; $params['product'] = $page['productId']; }
             if ($page['locationId']) { $where[] = 's.location_id = :location'; $params['location'] = $page['locationId']; }
             if ($page['search'] !== '') { $where[] = 'p.name LIKE :search'; $params['search'] = '%' . $page['search'] . '%'; }
-            $select = 'SELECT s.*, p.name AS product_name'; $order = ' ORDER BY p.name, s.product_id, s.location_id';
+            $select = 'SELECT s.*, p.name AS product_name, COALESCE((SELECT SUM(r.quantity) FROM inventory_reservations r WHERE r.product_id=s.product_id AND r.location_id=s.location_id),0) AS reserved'; $order = ' ORDER BY p.name, s.product_id, s.location_id';
         }
         $filter = $where ? ' WHERE ' . implode(' AND ', $where) : '';
         $count = $db->prepare('SELECT COUNT(*)' . $from . $filter); $count->execute($params); $page['total'] = (int) $count->fetchColumn();

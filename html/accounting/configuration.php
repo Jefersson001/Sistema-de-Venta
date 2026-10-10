@@ -15,6 +15,7 @@
             <input type="hidden" name="csrf" value="<?= accountingEscape($page['csrf']) ?>"><input type="hidden" name="action" value="save_payment_term">
             <h2><?= isset($page['record']['id']) ? 'Editar término de pago' : 'Nuevo término de pago' ?></h2>
             <label>Nombre *<input name="name" required maxlength="120" value="<?= accountingEscape($page['record']['name'] ?? '') ?>"></label>
+            <label>Días hasta el vencimiento<input type="number" name="days" min="0" max="36500" required value="<?= (int)($page['record']['days']??0) ?>"></label>
             <div class="contact-form-actions"><button class="contact-button contact-button-primary" type="submit">Guardar</button><a class="contact-button" href="configuracion.php?section=payment_terms">Volver al listado</a></div>
         </form>
     <?php else: ?>

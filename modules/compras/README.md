@@ -1,23 +1,15 @@
 # Compras
 
-Órdenes → Solicitudes de cotización ofrece lista y formulario separados, búsqueda, filtro de estado y paginación. La solicitud tiene correlativo automático P00001, proveedor, fecha, términos de pago, tipo de orden y líneas de productos habilitados para Compra, cantidad, precio, impuesto de Compras e importes sin impuestos. Los estados son Solicitud de cotización, Solicitud enviada y Orden de compra. Marcar como enviada solo cambia el estado local. Confirmar requiere productos y bloquea la edición.
+Órdenes → Solicitudes de cotización mantiene lista y formulario independientes, filtros y correlativo P00001. Tipo de orden muestra Orden de compra y Factura. La primera opción usa la política del producto; Factura permite facturar lo ordenado antes de recibir, conservando la recepción física de mercancías. Los servicios no generan movimientos. Toda compra de mercancía nueva exige ubicación interna de destino.
 
-Orden de recepción requiere una ubicación interna de destino. Desde la orden confirmada, Recepción genera un único borrador con el proveedor, su ubicación externa, el destino y las líneas; las cantidades compradas pasan a Demanda y Cantidad comienza en cero. Validar la recepción modifica existencias y habilita Factura en la orden de compra. El tipo Factura omite la recepción y permite facturar directamente tras confirmar.
+Cada línea conserva producto, cantidad, precio, impuesto y porcentaje, tipo de producto y política de facturación. El precio se propone desde Producto → Compras → Precios por proveedor, o desde el costo de referencia del producto. Se puede ajustar antes de confirmar. Los importes se calculan con BCMath, redondeo por línea y dos decimales.
 
-Factura crea un único borrador de proveedor en Contabilidad y conserva los datos y líneas de la orden. Los botones muestran Recepción · 1 y Factura · 1 cuando existen. La orden muestra Recepción y Factura; la recepción muestra solo Orden de compra; la factura muestra solo Orden de recepción, o la orden de origen cuando es una factura directa. Los guardados verifican versión y las creaciones bloquean la orden para evitar duplicados concurrentes.
+Recepción copia líneas y demandas con una relación directa a cada línea de compra. Producto y demanda quedan protegidos en operaciones relacionadas; Cantidad es la cantidad real. Validar una recepción parcial crea automáticamente una operación pendiente por el resto. La orden muestra cantidades ordenadas, recibidas netas de devoluciones, facturadas, pendientes y por facturar. Puede tener varias recepciones y facturas; los botones muestran el contador real y abren el listado filtrado cuando hay más de una.
 
-El indicador Comprado consulta líneas de órdenes de compra confirmadas (`purchase_orders` y `purchase_order_lines`), suma unidades confirmadas en los últimos 12 meses y abre el historial completo de compras confirmadas. El historial tiene lista, agrupaciones, tabla dinámica y gráfico; `orden.php` conserva el acceso al formulario. Las recepciones manuales no se consideran compras.
+Facturar toma solo las cantidades disponibles según la política: recibidas o, si corresponde, ordenadas. Un borrador existente se reutiliza; las facturas canceladas liberan sus cantidades para crear un nuevo documento sin borrar el anterior. Devolver productos crea un movimiento inverso relacionado. Las notas de crédito y los reembolsos se administran desde la factura de proveedor.
 
-Después de instalar Contactos, Inventario, impuestos, términos de pago y Ventas, ejecuta `php/install-commerce.php` con el ejecutable de PHP. Verifica el recorrido con `test/commerce-workflows.php`.
+La recepción muestra Orden de compra. La factura de proveedor muestra Orden de recepción y abre las recepciones relacionadas. Una factura sin recepción permite volver a la compra. Crear documentos no modifica existencias; estas cambian solo al validar movimientos.
 
-Configuración → Impuestos permite crear y editar impuestos de compra con un único campo visible: Nombre. El listado con búsqueda y paginación y el formulario son vistas separadas. Los impuestos de compra se pueden seleccionar en Información general de los productos de Inventario.
+Los impuestos de Compras tienen Nombre y Porcentaje (0–100). Los términos de pago pertenecen a Contabilidad y calculan el vencimiento mediante sus días. Comprado sigue consultando cantidades de órdenes confirmadas; una recepción manual no genera una compra.
 
-Los impuestos de Compras y Ventas utilizan registros diferenciados por módulo. No se pueden seleccionar impuestos de Ventas como impuestos de compra. Los catálogos comienzan vacíos y esta etapa no incluye tasas ni cálculos.
-
-Para instalar únicamente los catálogos de impuestos en otra base:
-
-```powershell
-& C:\xampp\php\php.exe php/install-taxes.php
-```
-
-La instalación de Inventario también crea los catálogos y las relaciones de productos necesarias.
+Instalación completa: php/install-commerce.php después de los módulos base. Actualización de un circuito existente: php/install-workflow.php. Pruebas: test/commerce-workflows.php y test/commerce-partials.php, con datos identificados y limpieza al terminar.

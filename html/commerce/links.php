@@ -1,15 +1,18 @@
 <?php
-$links = $page['links']; $kind = $page['documentKind']; $sourceId = (int) $links['source']['id'];
-$invoiceType = $kind === 'sale' ? 'customer' : 'supplier';
-$showOrigin = $documentView === 'operation' || ($documentView === 'invoice' && ($kind === 'sale' || ! $links['operation']));
-$showOperation = $documentView === 'order' || ($documentView === 'invoice' && $kind === 'purchase');
+$links=$page['links'];$kind=$page['documentKind'];$sourceId=(int)$links['source']['id'];
+$sale=$kind==='sale';$invoiceType=$sale?'customer':'supplier';$operationType=$sale?'delivery':'receipt';
+$filter=($sale?'sale_id=':'purchase_id=').$sourceId;$operations=$links['operations'];$invoices=$links['invoices'];
+$showOrigin=$documentView==='operation'||($documentView==='invoice'&&($sale||!$operations));
+$showOperation=$documentView==='order'||($documentView==='invoice'&&!$sale);
+$stockPending=array_filter($operations,static fn($o)=>!$o['return_of_id']&&in_array($o['status'],['draft','waiting','ready'],true));
+$invoiceDraft=array_filter($invoices,static fn($i)=>$i['document_type']==='invoice'&&$i['status']==='draft');
 ?>
 <div class="quotation-state-actions" aria-label="Documentos relacionados">
-    <?php if ($showOrigin): ?><a class="contact-button" data-related-source href="../<?= $kind === 'sale' ? 'ventas' : 'compras' ?>/index.php?id=<?= $sourceId ?>"><?= $kind === 'sale' ? 'Venta' : 'Orden de compra' ?> · <?= salesEscape($links['source']['name']) ?></a><?php endif; ?>
-    <?php if ($showOperation && $links['operation']): ?><a class="contact-button" data-related-operation data-quotation-delivery href="../inventario/operaciones.php?type=<?= $kind === 'sale' ? 'delivery' : 'receipt' ?>&amp;id=<?= (int) $links['operation']['id'] ?>"><?= $documentView === 'invoice' ? 'Orden de recepción' : ($kind === 'sale' ? 'Entrega' : 'Recepción') ?> · 1</a>
-    <?php elseif ($documentView === 'order' && $links['source']['order_type'] !== 'invoice'): ?><form method="post" action="index.php?id=<?= $sourceId ?>"><input type="hidden" name="csrf" value="<?= salesEscape($page['csrf']) ?>"><input type="hidden" name="action" value="<?= $kind === 'sale' ? 'create_delivery' : 'create_receipt' ?>"><button class="contact-button" type="submit" data-quotation-delivery><?= $kind === 'sale' ? 'Entrega' : 'Recepción' ?></button></form><?php endif; ?>
-    <?php if ($documentView === 'order'): ?>
-        <?php if ($links['invoice']): ?><a class="contact-button" data-related-invoice href="../contabilidad/index.php?type=<?= $invoiceType ?>&amp;id=<?= (int) $links['invoice']['id'] ?>">Factura · 1</a>
-        <?php elseif ($links['can_invoice']): ?><form method="post" action="index.php?id=<?= $sourceId ?>"><input type="hidden" name="csrf" value="<?= salesEscape($page['csrf']) ?>"><input type="hidden" name="action" value="create_invoice"><button class="contact-button contact-button-primary" type="submit" data-quotation-invoice>Factura</button></form><?php endif; ?>
-    <?php endif; ?>
+<?php if($showOrigin): ?><a class="contact-button" data-related-source href="../<?= $sale?'ventas':'compras' ?>/index.php?id=<?= $sourceId ?>"><?= $sale?'Venta':'Orden de compra' ?> · <?= salesEscape($links['source']['name']) ?></a><?php endif; ?>
+<?php if($showOperation&&$operations): ?><a class="contact-button" data-related-operation data-quotation-delivery href="../inventario/operaciones.php?type=<?= $operationType ?>&amp;<?= count($operations)===1?'id='.(int)$operations[0]['id']:$filter ?>"><?= $documentView==='invoice'?'Orden de recepción':($sale?'Entrega':'Recepción') ?> · <?= count($operations) ?></a><?php endif; ?>
+<?php if($documentView==='order'&&$links['can_stock']&&!$stockPending): ?><form method="post" action="index.php?id=<?= $sourceId ?>"><input type="hidden" name="csrf" value="<?= salesEscape($page['csrf']) ?>"><input type="hidden" name="action" value="<?= $sale?'create_delivery':'create_receipt' ?>"><button class="contact-button" data-quotation-delivery><?= $sale?'Crear entrega':'Crear recepción' ?></button></form><?php endif; ?>
+<?php if($documentView==='order'): ?>
+<?php if($invoices): ?><a class="contact-button" data-related-invoice href="../contabilidad/index.php?type=<?= $invoiceType ?>&amp;<?= count($invoices)===1?'id='.(int)$invoices[0]['id']:$filter ?>">Factura · <?= count($invoices) ?></a><?php endif; ?>
+<?php if($links['can_invoice']&&!$invoiceDraft): ?><form method="post" action="index.php?id=<?= $sourceId ?>"><input type="hidden" name="csrf" value="<?= salesEscape($page['csrf']) ?>"><input type="hidden" name="action" value="create_invoice"><button class="contact-button contact-button-primary" data-quotation-invoice>Crear factura</button></form><?php endif; ?>
+<?php endif; ?>
 </div>

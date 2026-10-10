@@ -23,7 +23,7 @@ try {
     foreach (['client', 'supplier'] as $role) {
         $db->prepare('INSERT INTO contacts (name, type_id) VALUES (?, ?)')->execute([$prefix . $role, $roles[$role]]); $fixtures[$role] = (int) $db->lastInsertId();
     }
-    $db->prepare('INSERT INTO inventory_products (name, sale_enabled, purchase_enabled, sale_price) VALUES (?, 1, 1, 100.00)')->execute([$prefix]); $fixtures['product'] = (int) $db->lastInsertId();
+    $db->prepare("INSERT INTO inventory_products (name, sale_enabled, purchase_enabled, sale_price,product_type) VALUES (?, 1, 1, 100.00,'service')")->execute([$prefix]); $fixtures['product'] = (int) $db->lastInsertId();
     foreach (['sale', 'purchase'] as $kind) {
         $module = $kind === 'sale' ? 'ventas' : 'compras'; $type = $kind === 'sale' ? 'customer' : 'supplier';
         [, $form] = statusRequest($module . '/index.php?new=1', $cookie); $orderToken = statusToken($form);
@@ -58,15 +58,17 @@ try {
         assertStatus($stale[0] === 200 && count(invoicePaymentDetails($db, $id)['payments']) === 1, 'Un reenvío duplicó el pago.');
         $act('settle_payment', ['payment_id' => $first]); $act('settle_payment', ['payment_id' => $first], false);
         assertStatus($current()['payment_state'] === 'partial', 'Pago parcial no actualizó el estado.'); $filter('partial');
-        $act('cancel_invoice', [], false); $act('reverse_invoice', ['reason' => $prefix], false);
+        $act('cancel_invoice', [], false);
         $act('register_payment', ['amount' => '60.01', 'payment_date' => commerceToday()], false);
         $act('register_payment', ['amount' => '60.00', 'payment_date' => commerceToday()]);
         $second = invoicePaymentDetails($db, $id)['payments'][1]['id']; $act('settle_payment', ['payment_id' => $second]);
         assertStatus($current()['payment_state'] === 'paid' && invoicePaymentDetails($db, $id)['settled'] === '100.00', 'Pago completo no dejó Pagado.'); $filter('paid');
         $act('cancel_payment', ['payment_id' => $first]); $act('cancel_payment', ['payment_id' => $second]);
         assertStatus($current()['payment_state'] === 'not_paid', 'Anular pagos no recalculó el saldo.');
-        $act('reverse_invoice', ['reason' => ''], false); $act('reverse_invoice', ['reason' => $prefix]);
-        assertStatus($current()['payment_state'] === 'reversed' && invoicePaymentDetails($db, $id)['reversal']['amount'] === '100.00', 'Reversión incompleta.'); $filter('reversed');
+        $act('reverse_invoice', ['reason' => ''], false); $creditId=statusCreated($act('reverse_invoice', ['reason' => $prefix])); $invoiceIds[]=$creditId;
+        $creditPath='contabilidad/index.php?type='.$type.'&id='.$creditId;
+        statusCreated(statusRequest($creditPath,$cookie,['csrf'=>$token,'action'=>'confirm_invoice','version'=>'1','invoice_date'=>commerceToday()]));
+        assertStatus($current()['payment_state'] === 'reversed' && invoicePaymentDetails($db, $id)['credited'] === '100.00', 'Reversión incompleta.'); $filter('reversed');
         $act('reverse_invoice', ['reason' => $prefix], false); $act('cancel_invoice', [], false);
         [, $body] = statusRequest($path, $cookie); $dom = new DOMDocument(); $dom->loadHTML('<?xml encoding="UTF-8">' . $body); $xpath = new DOMXPath($dom);
         assertStatus($xpath->query('//form//form')->length === 0 && $xpath->query('//*[@id="invoice-payments"]')->length === 1 && str_contains($body, 'Revertido'), 'Formulario de pagos inválido.');
@@ -106,7 +108,7 @@ try {
     assertStatus((int) $q->fetchColumn() === 0, 'Un cambio de factura modificó inventario.');
     echo "PASS: estados de facturas de clientes y proveedores, envío local, pagos parciales/completos, filtros, reversión, cancelación, duplicados y cotizaciones canceladas.\n";
 } finally {
-    foreach ($invoiceIds as $id) {
+    rsort($invoiceIds,SORT_NUMERIC); foreach ($invoiceIds as $id) {
         foreach (['accounting_invoice_payments', 'accounting_invoice_reversals', 'accounting_invoice_lines'] as $table) $db->prepare('DELETE FROM ' . $table . ' WHERE invoice_id = ?')->execute([$id]);
         $db->prepare('DELETE FROM accounting_invoices WHERE id = ?')->execute([$id]);
     }

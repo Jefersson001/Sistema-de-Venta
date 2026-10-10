@@ -20,7 +20,7 @@ if (quotationForm) {
     }
 
     function updateTotals() {
-        let total = 0n;
+        let total = 0n; let baseTotal = 0n;
         let valid = true;
         const rows = [...lines.querySelectorAll('[data-quotation-line]')];
         for (const row of rows) {
@@ -36,13 +36,17 @@ if (quotationForm) {
                 } else {
                     amount = (quantity * price + 500n) / 1000n;
                     display = money(amount);
+                    baseTotal += amount;
+                    const rawRate=row.querySelector('[data-line-tax]').selectedOptions[0]?.dataset?.rate || '0';
+                    const rate=decimalUnits(rawRate,4) || 0n;
+                    amount += (amount * rate + 500000n) / 1000000n;
                     total += amount;
                 }
             }
             row.querySelector('[data-line-base]').textContent = display;
-            row.querySelector('[data-line-total]').textContent = display;
+            row.querySelector('[data-line-total]').textContent = display==='—' ? display : money(amount);
         }
-        quotationForm.querySelector('[data-quotation-base]').textContent = valid ? money(total) : '—';
+        quotationForm.querySelector('[data-quotation-base]').textContent = valid ? money(baseTotal) : '—';
         quotationForm.querySelector('[data-quotation-total]').textContent = valid ? money(total) : '—';
         if (addLine) addLine.disabled = rows.length >= 100;
     }

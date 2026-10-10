@@ -64,14 +64,14 @@ function renderInventoryOperations(): void
                     if ($externalLocation) { $page['externalLocationLabel'] = $externalLocation['name']; }
                 }
             }
-            $page['products'] = $db->query('SELECT id, name FROM inventory_products ORDER BY name, id')->fetchAll();
+            $page['products'] = $db->query("SELECT id, name FROM inventory_products WHERE product_type='goods' ORDER BY name, id")->fetchAll();
             $page['stock'] = $db->query('SELECT product_id, location_id, quantity FROM inventory_stock')->fetchAll();
         }
         if ($_SERVER['REQUEST_METHOD'] === 'POST' && $page['available']) {
             $token = $_POST['csrf'] ?? null;
             if (! is_string($token) || ! hash_equals($page['csrf'], $token)) {
                 http_response_code(403); $page['errors'][] = 'La sesión del formulario no es válida. Recarga la página.';
-            } elseif ($page['view'] !== 'form' || ! in_array($_POST['action'] ?? '', ['save_operation', 'validate_operation', 'create_invoice', 'confirm_operation', 'check_ready'], true)) {
+            } elseif ($page['view'] !== 'form' || ! in_array($_POST['action'] ?? '', ['save_operation', 'validate_operation', 'create_invoice', 'confirm_operation', 'check_ready', 'create_return', 'cancel_operation'], true)) {
                 http_response_code(400); $page['errors'][] = 'La operación solicitada no es válida.';
             } elseif (($_POST['action'] ?? '') === 'create_invoice') {
                 if (! $page['sourceOrder']) { http_response_code(400); $page['errors'][] = 'Esta operación no tiene una orden relacionada para facturar.'; }
@@ -81,7 +81,13 @@ function renderInventoryOperations(): void
                         header('Location: ../contabilidad/index.php?type=' . ($page['documentKind'] === 'sale' ? 'customer' : 'supplier') . '&id=' . $invoiceId, true, 303); exit;
                     } catch (InvalidArgumentException $exception) { $page['errors'][] = $exception->getMessage(); }
                 }
-            } elseif (($existing['status'] ?? '') === 'done') {
+            } elseif ($id && in_array($_POST['action'] ?? '', ['create_return','cancel_operation'], true)) {
+                try {
+                    if ($_POST['action'] === 'create_return') $id = createStockReturn($db, $id, inventoryId($_POST['version'] ?? null));
+                    else cancelStockOperation($db, $id, inventoryId($_POST['version'] ?? null));
+                    header('Location: operaciones.php?type=' . $type . '&id=' . $id, true, 303); exit;
+                } catch (InvalidArgumentException $exception) { $page['errors'][] = $exception->getMessage(); }
+            } elseif (in_array($existing['status'] ?? '', ['done','cancel'], true)) {
                 $page['errors'][] = 'La operación realizada no admite cambios.';
             } elseif (in_array($_POST['action'] ?? '', ['confirm_operation', 'check_ready'], true)) {
                 if (! $id) $page['errors'][] = 'Guarda la operación antes de continuar.';
@@ -103,8 +109,13 @@ function renderInventoryOperations(): void
                 }
             } else {
                 [$data, $page['errors']] = validateInventoryOperation($_POST, $type, $page['storage'], $page['contacts']);
+                if (!empty($existing['return_of_id'])) {
+                    $data['source_location_id'] = (int)$existing['source_location_id']; $data['destination_location_id'] = (int)$existing['destination_location_id'];
+                    $data['source_warehouse_id'] = inventoryId($existing['source_warehouse_id']); $data['destination_warehouse_id'] = inventoryId($existing['destination_warehouse_id']);
+                    $page['errors'] = array_values(array_filter($page['errors'], static fn($error) => !str_starts_with($error,'Selecciona una ubicación de ')));
+                }
                 if ($page['sourceOrder'] && $data['contact_id'] !== (int) $page['sourceOrder'][$page['documentKind'] === 'sale' ? 'customer_id' : 'supplier_id']) {
-                    $page['errors'][] = 'La dirección de entrega debe corresponder al cliente de la orden de venta.';
+                    $page['errors'][] = $page['documentKind']==='sale'?'La dirección de entrega debe corresponder al cliente de la orden de venta.':'El proveedor debe corresponder a la orden de compra.';
                 }
                 [$lines, $lineErrors] = validateInventoryOperationLines($_POST['lines'] ?? [], $page['products']);
                 $page['errors'] = array_merge($page['errors'], $lineErrors);
@@ -112,7 +123,7 @@ function renderInventoryOperations(): void
                 if (! $page['errors']) {
                     try {
                         $saved = saveInventoryOperation($db, $data, $id, inventoryId($_POST['version'] ?? null), $lines);
-                        $_SESSION['inventory_flash'] = 'Operación guardada como borrador.';
+                        $_SESSION['inventory_flash'] = 'Operación guardada. Si estaba lista, comprueba de nuevo la disponibilidad.';
                         header('Location: operaciones.php?type=' . $type . '&id=' . $saved, true, 303); exit;
                     } catch (InvalidArgumentException $exception) { $page['errors'][] = $exception->getMessage(); }
                 }
@@ -121,6 +132,7 @@ function renderInventoryOperations(): void
         if ($page['view'] === 'list' && $page['available']) {
             $page['search'] = is_string($_GET['q'] ?? null) ? mb_substr(trim($_GET['q']), 0, 160) : '';
             $params = ['type' => $type]; $where = ' WHERE o.operation_type = :type';
+            foreach(['sale_id'=>'quotation_id','purchase_id'=>'purchase_order_id'] as $key=>$column) if($filterId=inventoryId($_GET[$key]??null)) { $where.=' AND o.'.$column.' = :'.$key; $params[$key]=$filterId; }
             if ($page['search'] !== '') { $where .= ' AND (o.name LIKE :reference OR c.name LIKE :contact)'; $params['reference'] = $params['contact'] = '%' . $page['search'] . '%'; }
             $from = ' FROM inventory_operations o LEFT JOIN contacts c ON c.id = o.contact_id';
             $count = $db->prepare('SELECT COUNT(*)' . $from . $where); $count->execute($params); $page['total'] = (int) $count->fetchColumn();

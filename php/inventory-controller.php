@@ -37,7 +37,7 @@ function renderInventoryProducts(): void
             $page['errors'][] = 'El producto solicitado no existe.';
         }
         if ($id) {
-            $statement = $db->prepare('SELECT id, name, sale_enabled, purchase_enabled, sale_price, category_id, purchase_tax_id, sale_tax_id FROM inventory_products WHERE id = ?');
+            $statement = $db->prepare('SELECT id, name, sale_enabled, purchase_enabled, sale_price, category_id, purchase_tax_id, sale_tax_id, product_type, invoice_policy, cost_price FROM inventory_products WHERE id = ?');
             $statement->execute([$id]);
             $page['record'] = $statement->fetch() ?: [];
             if (! $page['record']) {
@@ -53,6 +53,8 @@ function renderInventoryProducts(): void
             $page['productStock'] = $id ? loadInventoryProductStock($db, $id) : ['total' => '0.000', 'locations' => []];
             $page['productIndicators'] = $id ? loadInventoryProductIndicators($db, $id) : ['incoming' => '0', 'outgoing' => '0', 'sold' => '0.000', 'purchased' => '0.000'];
             $page['storage'] = loadStorageRelations($db);
+            $page['suppliers']=$db->query("SELECT c.id,c.name FROM contacts c JOIN contact_types t ON t.id=c.type_id WHERE t.system_key='supplier' AND c.active=1 ORDER BY c.name")->fetchAll();
+            $prices=$db->prepare('SELECT * FROM product_supplier_prices WHERE product_id=? ORDER BY id');$prices->execute([$id]);$page['supplierPrices']=$prices->fetchAll();
         }
         if ($_SERVER['REQUEST_METHOD'] === 'POST' && $page['available']) {
             $token = $_POST['csrf'] ?? null;
@@ -66,10 +68,25 @@ function renderInventoryProducts(): void
                 [$data, $page['errors']] = validateInventoryProduct($_POST, $page['categories'], $page['purchaseTaxes'], $page['saleTaxes']);
                 $page['record'] = $data + ($id ? ['id' => $id] : []);
                 if (! $page['errors']) {
-                    saveInventoryProduct($db, $data, $id);
+                    try {
+                        $supplierRows=[]; $seen=[];
+                        foreach(is_array($_POST['supplier_prices']??null)?$_POST['supplier_prices']:[] as $row) {
+                            if(!is_array($row))throw new InvalidArgumentException('Precios de proveedor inválidos.');
+                            if(empty($row['supplier_id']))continue;
+                            $supplier=inventoryId($row['supplier_id']);$price=is_string($row['price']??null)?str_replace(',','.',trim($row['price'])):'';
+                            if(!inventoryCategoryRecord($page['suppliers'],$supplier) || isset($seen[$supplier]) || !preg_match('/^[0-9]{1,10}(\.[0-9]{1,2})?$/',$price))throw new InvalidArgumentException('Selecciona proveedores sin repetir e importes válidos.');
+                            $supplierRows[]=[$supplier,$price];$seen[$supplier]=true;
+                        }
+                        $db->beginTransaction(); $saved=saveInventoryProduct($db,$data,$id);
+                        $db->prepare('DELETE FROM product_supplier_prices WHERE product_id=?')->execute([$saved]);
+                        foreach($supplierRows as [$supplier,$price])$db->prepare('INSERT INTO product_supplier_prices (product_id,supplier_id,price) VALUES (?,?,?)')->execute([$saved,$supplier,$price]);
+                        $db->commit();
+                    } catch (InvalidArgumentException $e) { if($db->inTransaction())$db->rollBack();$page['errors'][]=$e->getMessage(); }
+                    catch (Throwable $e) { if($db->inTransaction())$db->rollBack();throw $e; }
+                    if(!$page['errors']) {
                     $_SESSION['inventory_flash'] = 'Producto guardado correctamente.';
                     header('Location: index.php', true, 303);
-                    exit;
+                    exit; }
                 }
             }
         }

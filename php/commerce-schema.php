@@ -1,6 +1,7 @@
 <?php
 declare(strict_types=1);
 require_once __DIR__ . '/status-schema.php';
+require_once __DIR__ . '/workflow-schema.php';
 
 function installCommerceDocuments(PDO $db): void
 {
@@ -37,4 +38,5 @@ function installCommerceDocuments(PDO $db): void
     if ($migration === false) { throw new RuntimeException('No se pudo leer la migración de facturas.'); }
     foreach (explode(';', $migration) as $statement) { if (trim($statement) !== '') { $db->exec($statement); } }
     installDocumentStatuses($db);
+    installCommerceWorkflow($db);
 }

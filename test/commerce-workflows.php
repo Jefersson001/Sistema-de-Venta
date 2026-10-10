@@ -101,7 +101,7 @@ try {
         [$status, $invoiceList] = commerceRequest('contabilidad/index.php?type=' . $invoiceType . '&status=posted&q=' . rawurlencode($invoice['name']), $cookie);
         expectCommerce($status === 200 && str_contains($invoiceList, $invoice['name']) && ! str_contains($invoiceList, 'value="confirm_invoice"'), 'La lista de facturas no está separada del formulario.');
         // Direct invoice mode skips inventory, preserving the same source lines.
-        $post['order_type'] = 'invoice'; $post['lines'][0]['quantity'] = '1.000'; unset($post['destination_location_id']);
+        $post['order_type'] = 'invoice'; $post['lines'][0]['quantity'] = '1.000'; // Invoice-first goods keep their inventory destination.
         $directId = commerceCreated(commerceRequest($module . '/index.php?new=1', $cookie, $post));
         if ($kind === 'purchase') $purchases[] = $directId; else $sales[] = $directId;
         commerceCreated(commerceRequest($module . '/index.php?id=' . $directId, $cookie, ['csrf' => $token, 'version' => '1', 'action' => $kind === 'purchase' ? 'confirm_purchase' : 'confirm_sale']));
@@ -109,7 +109,7 @@ try {
         expectCommerce(commerceLinks($db, $kind, $directId)['operation'] === null && $directInvoice !== $invoiceId, 'Factura directa generó movimientos o reutilizó otro documento.');
         [$status, $directInvoiceForm] = commerceRequest('contabilidad/index.php?type=' . $invoiceType . '&id=' . $directInvoice, $cookie);
         expectCommerce($status === 200 && str_contains($directInvoiceForm, 'data-related-source') && ! str_contains($directInvoiceForm, 'data-related-invoice'), 'La factura directa debe volver a su orden cuando no existe operación.');
-        $blocked = commerceRequest($module . '/index.php?id=' . $directId, $cookie, ['csrf' => $token, 'action' => $operationAction]); expectCommerce($blocked[0] === 200 && str_contains($blocked[1], 'tipo Factura'), 'Se generó inventario desde una orden de tipo Factura.');
+        $physical = commerceRequest($module . '/index.php?id=' . $directId, $cookie, ['csrf' => $token, 'action' => $operationAction]); expectCommerce($physical[0] === 303, 'Facturar primero impidió generar el movimiento físico de mercancía.');
     }
     expectCommerce(loadInventoryProductStock($db, $fixtures['product'])['total'] === '0.000', 'Facturar alteró existencias o el circuito de inventario es incorrecto.');
     foreach (['compras/index.php?new=1', 'contabilidad/index.php?type=customer'] as $path) { [$status] = commerceRequest($path, $cookie, ['action' => 'create_invoice']); expectCommerce($status === 403, 'Se aceptó un POST sin CSRF.'); }

@@ -27,7 +27,13 @@ function renderAccountingInvoices(): void
         }
         if ($_SERVER['REQUEST_METHOD'] === 'POST' && $page['available']) {
             if (! is_string($_POST['csrf'] ?? null) || ! hash_equals($page['csrf'], $_POST['csrf'])) { http_response_code(403); $page['errors'][] = 'La sesión del formulario no es válida.'; }
-            elseif (! $id || ! in_array($_POST['action'] ?? '', ['save_invoice', 'confirm_invoice', 'cancel_invoice', 'mark_invoice_sent', 'register_payment', 'settle_payment', 'cancel_payment', 'reverse_invoice'], true)) { http_response_code(400); $page['errors'][] = 'La operación no es válida.'; }
+            elseif (! $id || ! in_array($_POST['action'] ?? '', ['save_invoice', 'confirm_invoice', 'cancel_invoice', 'mark_invoice_sent', 'register_payment', 'settle_payment', 'cancel_payment', 'reverse_invoice', 'create_credit'], true)) { http_response_code(400); $page['errors'][] = 'La operación no es válida.'; }
+            elseif (in_array($_POST['action'], ['reverse_invoice','create_credit'], true)) {
+                try {
+                    $credit = createCreditNote($db,$id,salesId($_POST['version']??null),is_string($_POST['reason']??null)?$_POST['reason']:'');
+                    header('Location: index.php?type='.$type.'&id='.$credit,true,303); exit;
+                } catch (InvalidArgumentException $exception) { $page['errors'][]=$exception->getMessage(); }
+            }
             elseif (! in_array($_POST['action'], ['save_invoice', 'confirm_invoice'], true)) {
                 try {
                     transitionInvoiceStatus($db, $id, salesId($_POST['version'] ?? null), $_POST['action'], $_POST);
@@ -46,14 +52,26 @@ function renderAccountingInvoices(): void
                 }
                 if ($data['due_date'] && $data['due_date'] < $data['invoice_date']) $page['errors'][] = 'El vencimiento no puede ser anterior a la fecha de factura.';
                 if (! $page['errors']) {
-                    $db->beginTransaction();
+                    workflowBegin($db);
                     try {
-                        $lock = $db->prepare('SELECT version, status FROM accounting_invoices WHERE id = ? FOR UPDATE'); $lock->execute([$id]); $current = $lock->fetch();
+                        workflowLockOrder($db,['quotation_id'=>$page['record']['sale_id'],'purchase_order_id'=>$page['record']['purchase_id']]);
+                        if ($page['record']['reversal_of_id']) { $original=$db->prepare('SELECT id FROM accounting_invoices WHERE id=? FOR UPDATE'); $original->execute([$page['record']['reversal_of_id']]); }
+                        $lock = $db->prepare('SELECT * FROM accounting_invoices WHERE id = ? FOR UPDATE'); $lock->execute([$id]); $current = $lock->fetch();
                         if ((int) $current['version'] !== salesId($_POST['version'] ?? null)) throw new InvalidArgumentException('La factura cambió en otra ventana. Recarga antes de continuar.');
                         if ($current['status'] !== 'draft') throw new InvalidArgumentException('La factura confirmada no admite cambios.');
+                        if ($current['document_type']==='credit') {
+                            $original=$db->prepare('SELECT status FROM accounting_invoices WHERE id=?');$original->execute([$current['reversal_of_id']]);
+                            if($original->fetchColumn()!=='posted')throw new InvalidArgumentException('La factura original debe permanecer registrada.');
+                            $pending=$db->prepare("SELECT COUNT(*) FROM accounting_invoice_payments WHERE invoice_id=? AND status='pending'");$pending->execute([$current['reversal_of_id']]);
+                            if($pending->fetchColumn())throw new InvalidArgumentException('Confirma o cancela los pagos en proceso de la factura original antes de registrar la nota de crédito.');
+                        }
+                        if ($current['document_type']==='credit') saveCreditNoteQuantities($db,$current,is_array($_POST['credit_quantities']??null)?$_POST['credit_quantities']:[]);
                         $status = $_POST['action'] === 'confirm_invoice' ? 'posted' : 'draft';
                         $db->prepare('UPDATE accounting_invoices SET invoice_date = ?, due_date = ?, status = ?, version = version + 1 WHERE id = ?')->execute([$data['invoice_date'], $data['due_date'], $status, $id]);
-                        if ($status === 'posted') invoiceRecomputePaymentState($db, $page['record']);
+                        if ($status === 'posted') {
+                            $fresh=$db->prepare('SELECT * FROM accounting_invoices WHERE id=?');$fresh->execute([$id]);invoiceRecomputePaymentState($db,$fresh->fetch());
+                            if ($current['reversal_of_id']) { $fresh->execute([$current['reversal_of_id']]);invoiceRecomputePaymentState($db,$fresh->fetch()); }
+                        }
                         $db->commit(); $_SESSION['invoice_flash'] = $status === 'posted' ? 'Factura registrada.' : 'Factura guardada.';
                         header('Location: index.php?type=' . $type . '&id=' . $id, true, 303); exit;
                     } catch (InvalidArgumentException $exception) { $db->rollBack(); $page['errors'][] = $exception->getMessage(); }
@@ -66,10 +84,12 @@ function renderAccountingInvoices(): void
             $page['documentKind'] = $type === 'customer' ? 'sale' : 'purchase';
             $page['links'] = commerceLinks($db, $page['documentKind'], (int) $page['record'][$type === 'customer' ? 'sale_id' : 'purchase_id']);
             $page['paymentDetails'] = invoicePaymentDetails($db, $id);
+            $page['paymentDetails']['effective_amount']=$page['record']['document_type']==='credit'?creditRefundAmount($db,$page['record']):bcsub($page['record']['total_amount'],$page['paymentDetails']['credited'],2);
         } elseif ($page['available']) {
             $page['search'] = is_string($_GET['q'] ?? null) ? mb_substr(trim($_GET['q']), 0, 160) : '';
             $page['statusFilter'] = is_string($_GET['status'] ?? null) && isset(invoiceFilterStates()[$_GET['status']]) ? $_GET['status'] : 'all';
             $params = ['type' => $type]; $where = ' WHERE i.invoice_type = :type';
+            foreach(['sale_id','purchase_id'] as $key) if($filterId=salesId($_GET[$key]??null)) { $where.=' AND i.'.$key.' = :'.$key; $params[$key]=$filterId; }
             if ($page['search'] !== '') { $where .= ' AND (i.name LIKE :reference OR c.name LIKE :contact)'; $params['reference'] = $params['contact'] = '%' . $page['search'] . '%'; }
             if (isset(invoiceStatuses()[$page['statusFilter']])) { $where .= ' AND i.status = :status'; $params['status'] = $page['statusFilter']; }
             elseif ($page['statusFilter'] === 'sent') { $where .= " AND i.status = 'posted' AND i.sent_at IS NOT NULL"; }

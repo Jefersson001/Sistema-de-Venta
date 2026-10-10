@@ -155,7 +155,7 @@ try {
     [$status] = salesRequest($base, 'inventario/operaciones.php?type=delivery&id=' . $delivery['id'], $cookie, $validatePost);
     expectSales($status === 303 && loadSalesDelivery($db, $id)['status'] === 'done', 'No se validó la entrega relacionada.');
     [$status, $body] = salesRequest($base, 'ventas/index.php?id=' . $id, $cookie);
-    expectSales($status === 200 && str_contains($body, 'data-quotation-invoice') && str_contains($body, '>Factura</button>'), 'Factura no aparece en la orden después de validar su entrega.');
+    expectSales($status === 200 && str_contains($body, 'data-quotation-invoice') && str_contains($body, '>Crear factura</button>'), 'Factura no aparece en la orden después de validar su entrega.');
     $post['version'] = (string) loadSalesQuotation($db, $id)['version'];
     [$status, $body] = salesRequest($base, 'ventas/index.php?id=' . $id, $cookie, $post);
     expectSales($status === 200 && str_contains($body, 'ya está confirmada'), 'Se editó una orden confirmada.');

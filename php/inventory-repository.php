@@ -130,18 +130,28 @@ function validateInventoryProduct(array $input, array $categories = [], array $p
             };
         }
     }
+    $data['product_type']=$input['product_type']??'goods'; $data['invoice_policy']=$input['invoice_policy']??'delivered';
+    if(!in_array($data['product_type'],['goods','service'],true))$errors[]='Selecciona Mercancía o Servicio.';
+    if(!in_array($data['invoice_policy'],['ordered','delivered'],true))$errors[]='Selecciona una política de facturación válida.';
+    $cost=is_string($input['cost_price']??null)?str_replace(',','.',trim($input['cost_price'])):'0';
+    if(!preg_match('/^[0-9]{1,10}(\.[0-9]{1,2})?$/',$cost)) { $errors[]='Indica un costo válido con hasta dos decimales.'; $cost='0'; }
+    $data['cost_price']=$cost;
     return [$data, $errors];
 }
 
 function saveInventoryProduct(PDO $db, array $data, ?int $id): int
 {
+    if ($id && $data['product_type']==='service') {
+        $q=$db->prepare('SELECT COUNT(*) FROM inventory_operation_lines WHERE product_id=?');$q->execute([$id]);
+        if($q->fetchColumn())throw new InvalidArgumentException('Un producto con movimientos de inventario debe conservar el tipo Mercancía.');
+    }
     if ($id) {
         $data['id'] = $id;
         $sql = 'UPDATE inventory_products SET name = :name, sale_enabled = :sale_enabled, purchase_enabled = :purchase_enabled,
-            sale_price = :sale_price, category_id = :category_id, purchase_tax_id = :purchase_tax_id, sale_tax_id = :sale_tax_id WHERE id = :id';
+            sale_price = :sale_price, category_id = :category_id, purchase_tax_id = :purchase_tax_id, sale_tax_id = :sale_tax_id, product_type=:product_type, invoice_policy=:invoice_policy, cost_price=:cost_price WHERE id = :id';
     } else {
-        $sql = 'INSERT INTO inventory_products (name, sale_enabled, purchase_enabled, sale_price, category_id, purchase_tax_id, sale_tax_id)
-            VALUES (:name, :sale_enabled, :purchase_enabled, :sale_price, :category_id, :purchase_tax_id, :sale_tax_id)';
+        $sql = 'INSERT INTO inventory_products (name, sale_enabled, purchase_enabled, sale_price, category_id, purchase_tax_id, sale_tax_id, product_type, invoice_policy, cost_price)
+            VALUES (:name, :sale_enabled, :purchase_enabled, :sale_price, :category_id, :purchase_tax_id, :sale_tax_id, :product_type, :invoice_policy, :cost_price)';
     }
     $db->prepare($sql)->execute($data);
     return $id ?? (int) $db->lastInsertId();

@@ -8,15 +8,17 @@ El formulario relaciona un cliente de Contactos, su dirección concatenada (call
 
 Líneas de orden permite agregar y quitar productos habilitados para Venta. Elegir un producto trae su precio de venta y su impuesto de venta; cantidad, precio unitario e impuesto son editables. Los nombres de productos e impuestos y los importes se guardan con la cotización. La otra pestaña contiene las secciones Ventas y Entrega. Ubicación / almacén se trae del vendedor relacionado al cliente, muestra solo el almacén si no tiene ubicación y se guarda con la cotización. Cambiar el vendedor actualiza la relación; las órdenes confirmadas conservan el destino guardado. Esta relación no consulta existencias todavía.
 
-Los cálculos utilizan cantidades de hasta tres decimales y precios de hasta dos decimales, con redondeo por línea a dos decimales. Se calculan con BCMath en PHP y BigInt en JavaScript. Como el catálogo de impuestos tiene únicamente nombre, el total es la suma de las bases y todavía no incluye impuestos; esto aparece indicado en el formulario y el listado.
+Los cálculos utilizan cantidades de hasta tres decimales y precios de hasta dos, con redondeo por línea a dos decimales. BCMath y BigInt calculan bases e impuestos con el porcentaje guardado en cada línea. Los importes totales incluyen impuestos.
 
 Los estados son Cotización, Cotización enviada, Orden de venta y Cancelado. «Marcar como enviada» cambia el estado local y no envía correos. Marcar o confirmar requiere al menos una línea guardada. Cancelar también permite cotizaciones vacías, bloquea su edición e impide confirmar después; se rechaza la cancelación si existen entregas o facturas relacionadas. Confirmar bloquea la edición y no genera movimientos de inventario, cobros ni registros contables. Los cambios de estado y guardados son transaccionales y comprueban la versión del registro para evitar sobrescribir otra edición. Los estados nuevos se instalan con `php/install-statuses.php` o con el instalador completo `php/install-commerce.php`.
 
-Tipo de orden permite elegir Orden de entrega (por defecto) o Factura y se conserva al confirmar. Los registros anteriores reciben Orden de entrega al instalar la migración. El botón Entrega de una orden confirmada crea un borrador en Inventario con el cliente, fecha, almacén/ubicación guardados y productos. La cantidad de cada línea de venta pasa a Demanda; la cantidad real a mover comienza en cero. La entrega muestra su documento de origen, cliente relacionado bajo la etiqueta Dirección de entrega y tipo de orden. Vendedor relacionado aparece en la pestaña Otra información; términos de pago no aparece en la entrega. Crear la entrega no modifica existencias; estas cambian al validar desde Inventario.
+Tipo de orden muestra Orden de venta y Factura. Factura permite facturar las cantidades ordenadas antes de entregar; la mercancía conserva su movimiento físico. La política del producto permite facturar cantidades ordenadas o entregadas; los servicios se facturan sin movimientos de inventario.
 
-Solo se crea una entrega por orden. El botón pasa a Entrega · 1 y abre el registro existente; repetir el POST tampoco crea duplicados. Si la venta tiene almacén pero no ubicación, se propone la ubicación cuando es única. Si hay varias o ninguna, la entrega se crea como borrador y requiere seleccionar una ubicación antes de validar. La relación se instala desde el instalador de Ventas o Inventario una vez instalados ambos módulos.
+La entrega conserva el cliente, ubicaciones y relación directa a cada línea de venta. Producto y demanda no se cambian en una operación relacionada; se indica la cantidad real. Una entrega parcial genera automáticamente otra por el resto. La orden puede relacionar varias entregas, devoluciones, facturas y notas de crédito. Los contadores abren el documento único o su lista filtrada. Factura y entrega muestran Venta para volver a la orden.
 
-Para el tipo Orden de entrega, validar la entrega habilita Factura en la orden de venta. El botón crea un único borrador de cliente en Contabilidad con los datos y líneas guardados de la orden. Cuando existe, Factura · 1 abre el mismo registro desde la orden de venta. La factura y la entrega muestran solo el botón Venta, que abre la orden de venta relacionada. Para el tipo Factura, la orden confirmada permite generar la factura directamente y no crea entrega. Las creaciones verifican el estado y bloquean la orden para evitar duplicados. Crear o confirmar una factura no modifica inventario. Instalación del circuito completo: `php/install-commerce.php` después de instalar todos los módulos base.
+La orden muestra cantidades ordenadas, entregadas netas de devoluciones, facturadas, pendientes y por facturar, junto con un margen estimado por línea calculado con el costo de referencia guardado al cotizar. La facturación copia solo cantidades disponibles según la política. Una factura cancelada conserva su registro y permite crear una sustituta. Crear documentos no mueve existencias.
+
+Actualizar un circuito existente con php/install-workflow.php. Pruebas del recorrido completo y parciales: test/commerce-workflows.php y test/commerce-partials.php.
 
 Instalación en otro entorno, después de instalar Contactos, Inventario e impuestos:
 
@@ -35,9 +37,9 @@ Las pruebas crean registros identificados y los eliminan al terminar. PHP debe t
 
 ## Impuestos
 
-Configuración → Impuestos permite crear y editar impuestos de venta con un único campo visible: Nombre. El listado con búsqueda y paginación y el formulario son vistas separadas. Estos registros se conservan separados de los impuestos de Compras.
+Configuración → Impuestos permite crear y editar impuestos de venta con Nombre y Porcentaje. El listado con búsqueda y paginación y el formulario son vistas separadas. Estos registros se conservan separados de los impuestos de Compras.
 
-El catálogo comienza vacío y esta etapa no incluye tasas ni cálculos. Los impuestos de venta pueden seleccionarse en Información general de los productos de Inventario mediante su campo Impuesto de venta.
+El catálogo comienza vacío; el porcentaje se configura manualmente entre 0 y 100. Los impuestos de venta pueden seleccionarse en Información general de los productos de Inventario mediante su campo Impuesto de venta.
 
 Para instalar únicamente los catálogos de impuestos en otra base:
 

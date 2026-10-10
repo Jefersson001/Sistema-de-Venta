@@ -1,0 +1,5 @@
+<?php if (!empty($page['links']['progress'])): ?>
+<div class="contact-table-wrap"><table class="contact-table"><caption>Seguimiento de cantidades</caption><thead><tr><th>Producto</th><th>Ordenado</th><th><?= $page['documentKind']==='sale'?'Entregado':'Recibido' ?></th><th>Facturado</th><th>Pendiente de movimiento</th><th>Por facturar</th><?php if ($page['documentKind']==='sale'): ?><th>Margen estimado</th><?php endif; ?></tr></thead><tbody>
+<?php foreach($page['links']['progress'] as $progress): ?><tr><td><?= salesEscape($progress['product_name']) ?></td><td><?= salesEscape($progress['quantity']) ?></td><td><?= salesEscape($progress['moved']) ?></td><td><?= salesEscape($progress['invoiced']) ?></td><td><?= $progress['product_type']==='service'?'—':salesEscape($progress['pending']) ?></td><td><?= salesEscape($progress['to_invoice']) ?></td><?php if($page['documentKind']==='sale'): ?><td><?= salesEscape(bcsub($progress['base_amount'],bcmul($progress['quantity'],$progress['unit_cost'],2),2)) ?></td><?php endif; ?></tr><?php endforeach; ?>
+</tbody></table></div>
+<?php endif; ?>

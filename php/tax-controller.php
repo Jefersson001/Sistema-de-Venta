@@ -42,7 +42,7 @@ function renderTaxConfiguration(string $moduleKey): void
         }
         $page['view'] = $section === null ? 'home' : ($id || isset($_GET['new']) ? 'form' : 'list');
         if ($id && $page['available']) {
-            $statement = $db->prepare('SELECT id, name FROM business_taxes WHERE id = ? AND module_key = ?');
+            $statement = $db->prepare('SELECT id, name, rate FROM business_taxes WHERE id = ? AND module_key = ?');
             $statement->execute([$id, $moduleKey]);
             $page['record'] = $statement->fetch() ?: [];
             if (! $page['record']) {

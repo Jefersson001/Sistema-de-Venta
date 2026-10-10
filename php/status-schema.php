@@ -4,7 +4,7 @@ declare(strict_types=1);
 function installDocumentStatuses(PDO $db): void
 {
     $db->exec("ALTER TABLE sales_quotations MODIFY status ENUM('draft', 'sent', 'sale', 'cancel') NOT NULL DEFAULT 'draft'");
-    $db->exec("ALTER TABLE inventory_operations MODIFY status ENUM('draft', 'waiting', 'ready', 'done') NOT NULL DEFAULT 'draft'");
+    $db->exec("ALTER TABLE inventory_operations MODIFY status ENUM('draft', 'waiting', 'ready', 'done', 'cancel') NOT NULL DEFAULT 'draft'");
     $db->exec("ALTER TABLE accounting_invoices MODIFY status ENUM('draft', 'posted', 'cancel') NOT NULL DEFAULT 'draft'");
     foreach (['payment_state' => "ENUM('not_paid', 'in_payment', 'partial', 'paid', 'reversed') NOT NULL DEFAULT 'not_paid'", 'sent_at' => 'DATETIME NULL'] as $name => $definition) {
         if (! $db->query("SHOW COLUMNS FROM accounting_invoices LIKE '$name'")->fetch()) $db->exec('ALTER TABLE accounting_invoices ADD ' . $name . ' ' . $definition);

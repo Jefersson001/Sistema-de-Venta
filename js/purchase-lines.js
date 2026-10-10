@@ -18,23 +18,28 @@ if (purchaseForm) {
     }
     function money(cents) { return String(cents / 100n) + '.' + String(cents % 100n).padStart(2, '0'); }
     function updateTotals() {
-        let total = 0n;
+        let total = 0n; let baseTotal = 0n;
         for (const row of body.querySelectorAll('[data-order-line]')) {
             const selected = row.querySelector('[data-order-product]').value;
             const quantity = scaled(row.querySelector('[data-order-quantity]').value, 3);
             const price = scaled(row.querySelector('[data-order-price]').value, 2);
             const base = selected && quantity !== null && price !== null ? (quantity * price + 500n) / 1000n : 0n;
             row.querySelector('[data-order-line-base]').textContent = money(base);
-            row.querySelector('[data-order-line-total]').textContent = money(base);
-            total += base;
+            const rate = scaled(row.querySelector('[data-order-tax]').selectedOptions[0]?.dataset.rate || '0',4) || 0n;
+            const tax = (base * rate + 500000n) / 1000000n;
+            row.querySelector('[data-order-line-total]').textContent = money(base+tax);
+            baseTotal += base; total += base+tax;
         }
-        purchaseForm.querySelector('[data-order-base]').textContent = money(total);
+        purchaseForm.querySelector('[data-order-base]').textContent = money(baseTotal);
         purchaseForm.querySelector('[data-order-total]').textContent = money(total);
     }
     function setupRow(row) {
         row.querySelector('[data-order-product]').addEventListener('change', event => {
             const option = event.target.selectedOptions[0];
-            row.querySelector('[data-order-price]').value = option?.dataset.price || '0.00';
+            const supplier = purchaseForm.querySelector('[data-purchase-supplier]').value;
+            const prices = JSON.parse(document.querySelector('[data-supplier-prices]')?.textContent || '[]');
+            const vendorPrice=prices.find(p=>String(p.product_id)===event.target.value && String(p.supplier_id)===supplier);
+            row.querySelector('[data-order-price]').value = vendorPrice?.price || option?.dataset.price || '0.00';
             row.querySelector('[data-order-tax]').value = option?.dataset.tax === '0' ? '' : (option?.dataset.tax || '');
             updateTotals();
         });
@@ -54,10 +59,14 @@ if (purchaseForm) {
     const mode = purchaseForm.querySelector('[data-purchase-mode]');
     const destination = purchaseForm.querySelector('[data-purchase-destination]');
     function updateDestination() {
-        destination.disabled = mode.value === 'invoice' || Boolean(purchaseForm.querySelector('fieldset[disabled]'));
-        destination.required = !destination.disabled;
+        destination.disabled = Boolean(purchaseForm.querySelector('fieldset[disabled]'));
+        destination.required = !destination.disabled && mode.value !== 'invoice';
     }
     mode.addEventListener('change', updateDestination); updateDestination();
+    purchaseForm.querySelector('[data-purchase-supplier]').addEventListener('change',()=>{
+        for(const row of body.querySelectorAll('[data-order-line]')) row.querySelector('[data-order-product]').dispatchEvent(new Event('change'));
+        markDirty();
+    });
     purchaseForm.addEventListener('input', () => { updateTotals(); markDirty(); });
     purchaseForm.addEventListener('change', () => { updateTotals(); markDirty(); });
     updateTotals();

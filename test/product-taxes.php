@@ -55,7 +55,7 @@ try {
         $dom->loadHTML($form);
         $xpath = new DOMXPath($dom);
         $visibleFields = $xpath->query('//form[contains(@class,"contact-sheet")]//input[not(@type="hidden")]');
-        expectTaxTest($visibleFields->length === 1 && $visibleFields->item(0)->getAttribute('name') === 'name', 'El impuesto tiene campos adicionales al nombre.');
+        expectTaxTest($visibleFields->length === 2 && $visibleFields->item(0)->getAttribute('name') === 'name', 'El impuesto debe tener nombre y porcentaje.');
         $post = ['csrf' => $token, 'action' => 'save_tax', 'name' => $prefix];
         [$status] = taxTestRequest($base, $module . '/configuracion.php?section=taxes&new=1', $cookie, $post);
         expectTaxTest($status === 303, 'No se creó el impuesto de ' . $module);
@@ -114,7 +114,7 @@ try {
     [$status] = taxTestRequest($base, 'inventario/index.php?id=' . $productId, $cookie, $post);
     $lookup->execute([$prefix]);
     expectTaxTest($status === 303 && $lookup->fetch()['sale_price'] === '9999999999.99', 'El importe perdió precisión decimal.');
-    echo "PASS: impuestos con solo nombre, tree/form, separación entre módulos, precio decimal y relaciones de producto.\n";
+    echo "PASS: impuestos con nombre y porcentaje, tree/form, separación entre módulos, precio decimal y relaciones de producto.\n";
 } finally {
     if ($productId) {
         $db->prepare('DELETE FROM inventory_products WHERE id = ? AND name LIKE ?')->execute([$productId, $prefix . '%']);

@@ -13,7 +13,7 @@ function businessTaxId(mixed $value): ?int
 
 function loadBusinessTaxes(PDO $db, string $moduleKey): array
 {
-    $statement = $db->prepare('SELECT id, name FROM business_taxes WHERE module_key = ? ORDER BY name, id');
+    $statement = $db->prepare('SELECT id, name, rate FROM business_taxes WHERE module_key = ? ORDER BY name, id');
     $statement->execute([$moduleKey]);
     return $statement->fetchAll();
 }
@@ -25,7 +25,9 @@ function validateBusinessTax(array $input): array
     if ($name === '' || mb_strlen($name, 'UTF-8') > 120) {
         $errors[] = 'Escribe un nombre de impuesto de entre 1 y 120 caracteres.';
     }
-    return [['name' => $name], $errors];
+    $rate = is_string($input['rate']??null) ? str_replace(',', '.', trim($input['rate'])) : '0';
+    if (!preg_match('/^[0-9]{1,3}(\.[0-9]{1,4})?$/',$rate) || bccomp($rate,'100',4)>0) { $errors[]='El porcentaje debe estar entre 0 y 100, con hasta cuatro decimales.'; $rate='0'; }
+    return [['name' => $name, 'rate' => $rate], $errors];
 }
 
 function saveBusinessTax(PDO $db, string $moduleKey, array $data, ?int $id): int
@@ -36,9 +38,9 @@ function saveBusinessTax(PDO $db, string $moduleKey, array $data, ?int $id): int
     $data['module_key'] = $moduleKey;
     if ($id) {
         $data['id'] = $id;
-        $sql = 'UPDATE business_taxes SET name = :name WHERE id = :id AND module_key = :module_key';
+        $sql = 'UPDATE business_taxes SET name = :name, rate = :rate WHERE id = :id AND module_key = :module_key';
     } else {
-        $sql = 'INSERT INTO business_taxes (name, module_key) VALUES (:name, :module_key)';
+        $sql = 'INSERT INTO business_taxes (name, module_key, rate) VALUES (:name, :module_key, :rate)';
     }
     $db->prepare($sql)->execute($data);
     return $id ?? (int) $db->lastInsertId();
