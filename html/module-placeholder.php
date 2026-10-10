@@ -42,6 +42,7 @@
                         <a href="index.php"><?= htmlspecialchars($module['name'], ENT_QUOTES, 'UTF-8') ?></a><span aria-hidden="true">/</span><strong>Configuración</strong>
                     <?php else: ?>
                         <strong><?= htmlspecialchars($module['name'], ENT_QUOTES, 'UTF-8') ?></strong>
+                        <?php if ($moduleKey === 'ventas'): ?><span aria-hidden="true">/</span><span>Órdenes</span><span aria-hidden="true">/</span><span>Cotizaciones</span><?php endif; ?>
                     <?php endif; ?>
                 </div>
                 <div class="topbar-right">
@@ -53,13 +54,21 @@
             <div class="page-content module-page">
                 <a class="back-link" href="../../index.php">← Volver al inicio</a>
                 <nav class="module-navigation" aria-label="Secciones de <?= htmlspecialchars($module['name'], ENT_QUOTES, 'UTF-8') ?>">
-                    <a class="module-navigation-link <?= ! $isConfiguration ? 'module-navigation-active' : '' ?>" href="index.php" <?= ! $isConfiguration ? 'aria-current="page"' : '' ?>><?= $moduleKey === 'contactos' ? 'Contactos' : ($moduleKey === 'inventario' ? 'Productos' : 'Vista general') ?></a>
+                    <?php if ($moduleKey === 'ventas'): ?>
+                        <details class="module-menu"><summary class="module-navigation-link <?= ! $isConfiguration ? 'module-navigation-active' : '' ?>">Órdenes <span aria-hidden="true">▾</span></summary><div class="module-menu-options"><a href="index.php" <?= ! $isConfiguration ? 'aria-current="page"' : '' ?>>Cotizaciones</a></div></details>
+                    <?php else: ?>
+                        <a class="module-navigation-link <?= ! $isConfiguration ? 'module-navigation-active' : '' ?>" href="index.php" <?= ! $isConfiguration ? 'aria-current="page"' : '' ?>><?= $moduleKey === 'contactos' ? 'Contactos' : ($moduleKey === 'inventario' ? 'Productos' : 'Vista general') ?></a>
+                    <?php endif; ?>
                     <a class="module-navigation-link <?= $isConfiguration ? 'module-navigation-active' : '' ?>" href="configuracion.php" <?= $isConfiguration ? 'aria-current="page"' : '' ?>><span aria-hidden="true">⚙</span> Configuración</a>
                 </nav>
                 <?php if ($moduleKey === 'contactos' && $modulePageData !== null): ?>
                     <?php require __DIR__ . '/contacts/page.php'; ?>
                 <?php elseif ($moduleKey === 'inventario' && $modulePageData !== null): ?>
                     <?php require __DIR__ . ($isConfiguration ? '/inventory/configuration.php' : '/inventory/products.php'); ?>
+                <?php elseif ($moduleKey === 'ventas' && ! $isConfiguration && $modulePageData !== null): ?>
+                    <?php require __DIR__ . '/sales/page.php'; ?>
+                <?php elseif ($moduleKey === 'contabilidad' && $isConfiguration && $modulePageData !== null): ?>
+                    <?php require __DIR__ . '/accounting/configuration.php'; ?>
                 <?php elseif ($isConfiguration && in_array($moduleKey, ['compras', 'ventas'], true) && $modulePageData !== null): ?>
                     <?php require __DIR__ . '/taxes/configuration.php'; ?>
                 <?php elseif ($isConfiguration): ?>

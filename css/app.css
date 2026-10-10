@@ -230,7 +230,41 @@ a:focus-visible, button:focus-visible { outline: 3px solid #5d4fc4; outline-offs
 .document-controls { display: flex; gap: 8px; margin-top: 6px; }
 .contact-sheet .document-controls select { width: 80px; flex: 0 0 80px; }
 .document-controls input { flex: 1; }
+.module-menu { position: relative; }
+.module-menu summary { cursor: pointer; }
+.module-menu-options { position: absolute; z-index: 25; top: 100%; left: 0; min-width: 210px; padding: 8px; border: 1px solid #dce1eb; border-radius: 10px; background: #fff; box-shadow: 0 8px 24px #17203318; }
+.module-menu-options a { display: block; padding: 10px 12px; border-radius: 6px; color: #514397; font-size: 15px; }
+.module-menu-options a:hover { background: #f0edfc; }
+.quotation-status { display: flex; flex-wrap: wrap; gap: 0; margin: 0; padding: 0; list-style: none; }
+.quotation-status li { padding: 10px 14px; border: 1px solid #dce1eb; color: #596579; background: #fff; font-size: 13px; font-weight: 600; }
+.quotation-status li:first-child { border-radius: 9px 0 0 9px; }
+.quotation-status li:last-child { border-radius: 0 9px 9px 0; }
+.quotation-status li[aria-current] { border-color: #514397; color: #514397; background: #f0edfc; }
+.quotation-state-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 12px; margin-bottom: 20px; }
+.quotation-sheet .quotation-fields { margin: 0; }
+.quotation-lines { min-width: 950px; }
+.quotation-lines td:first-child { min-width: 220px; }
+.quotation-lines td:nth-child(2), .quotation-lines td:nth-child(3) { min-width: 125px; }
+.quotation-lines td:nth-child(4) { min-width: 170px; }
+.quotation-money { white-space: nowrap; font-variant-numeric: tabular-nums; text-align: right; }
+.quotation-remove { min-width: 44px; font-size: 20px; }
+[data-add-line] { margin-top: 14px; }
+[data-add-line][hidden], [data-remove-line][hidden], [data-quotation-dirty-help][hidden] { display: none; }
+.quotation-tax-note { max-width: 720px; margin-top: 18px; }
+.quotation-totals { max-width: 360px; margin: 24px 0 0 auto; }
+.quotation-totals > div { display: flex; justify-content: space-between; gap: 24px; padding: 10px 0; border-bottom: 1px solid var(--line); }
+.quotation-totals dd { margin: 0; font-weight: 700; font-variant-numeric: tabular-nums; }
+.quotation-totals > div:last-child { color: #514397; font-size: 18px; }
+.quotation-sheet fieldset:disabled input, .quotation-sheet fieldset:disabled select, .quotation-sheet fieldset:disabled textarea { color: #414b60; background: #f5f7fb; }
 .product-options { display: flex; flex-wrap: wrap; gap: 24px; margin-top: 20px; }
+.product-stat-buttons { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 10px; }
+.product-stat-button { display: flex; min-height: 86px; min-width: 0; flex-direction: column; align-items: center; justify-content: center; gap: 6px; padding: 12px 10px; border: 1px solid #dce1eb; border-radius: 10px; color: #514397; background: #faf9ff; font: inherit; }
+.product-stat-button:disabled { opacity: 1; cursor: not-allowed; }
+.product-stat-value { font-family: Manrope, sans-serif; font-size: 24px; font-weight: 700; line-height: 1.2; }
+.product-stat-label { color: #414b60; font-size: 13px; font-weight: 600; text-align: center; }
+.product-stats-help { margin: 10px 0 24px; color: var(--muted); font-size: 13px; }
+@media (max-width: 1100px) { .product-stat-buttons { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
+@media (max-width: 480px) { .product-stat-buttons { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
 .contact-sheet .product-options label { flex-direction: row; align-items: center; gap: 10px; cursor: pointer; }
 .contact-sheet .product-options input[type="checkbox"] { width: 20px; min-width: 20px; height: 20px; min-height: 20px; margin: 0; padding: 0; accent-color: #514397; }
 .contact-notebook { margin-top: 24px; }

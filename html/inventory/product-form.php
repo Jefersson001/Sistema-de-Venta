@@ -8,6 +8,15 @@ $tabs = ['general' => 'Información general', 'variants' => 'Variantes', 'sales'
     <div class="contact-toolbar"><div><a class="overview-link" href="index.php">← Productos</a><h1 id="product-title"><?= $editing ? 'Editar producto' : 'Nuevo producto' ?></h1></div></div>
     <form class="contact-sheet" method="post" action="index.php?<?= $editing ? 'id=' . (int) $record['id'] : 'new=1' ?>">
         <input type="hidden" name="csrf" value="<?= inventoryEscape($page['csrf']) ?>"><input type="hidden" name="action" value="save_product">
+        <div class="product-stat-buttons" role="group" aria-label="Estadísticas del producto" aria-describedby="product-stats-help">
+            <?php foreach (['on-hand' => 'Cantidad a la mano', 'sold' => 'Vendido', 'purchased' => 'Comprado', 'incoming' => 'Entrada', 'outgoing' => 'Salida'] as $key => $label): ?>
+                <button class="product-stat-button" type="button" disabled data-product-stat="<?= $key ?>">
+                    <span class="product-stat-value" aria-label="Sin datos disponibles">—</span>
+                    <span class="product-stat-label"><?= $label ?></span>
+                </button>
+            <?php endforeach; ?>
+        </div>
+        <p class="product-stats-help" id="product-stats-help">Los indicadores estarán disponibles cuando se habiliten las operaciones de inventario, compras y ventas.</p>
         <label>Nombre *<input name="name" required maxlength="160" value="<?= inventoryEscape($record['name'] ?? '') ?>" placeholder="Nombre del producto"></label>
         <div class="product-options" role="group" aria-label="Uso del producto">
             <label><input type="checkbox" name="sale_enabled" value="1" <?= ! empty($record['sale_enabled']) ? 'checked' : '' ?>> Venta</label>

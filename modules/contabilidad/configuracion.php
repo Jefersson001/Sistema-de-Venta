@@ -2,6 +2,6 @@
 
 declare(strict_types=1);
 
-require_once dirname(__DIR__, 2) . '/php/module-page.php';
+require_once dirname(__DIR__, 2) . '/php/accounting-controller.php';
 
-renderModulePage('contabilidad', true);
+renderAccountingConfiguration();

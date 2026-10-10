@@ -1,0 +1,13 @@
+<section aria-labelledby="quotations-title">
+    <div class="contact-toolbar"><div><p class="eyebrow">VENTAS · ÓRDENES</p><h1 id="quotations-title">Cotizaciones</h1><p class="section-subtitle"><?= $page['total'] ?> registros · Vista de lista</p></div><a class="contact-button contact-button-primary" href="index.php?new=1">+ Nueva cotización</a></div>
+    <form class="contact-filters" method="get" action="index.php">
+        <label>Buscar<input name="q" type="search" maxlength="160" value="<?= salesEscape($page['search']) ?>" placeholder="Correlativo o cliente"></label>
+        <label>Estado<select name="status"><?php foreach (['quotations' => 'Cotizaciones', 'all' => 'Todos', 'draft' => 'Cotización', 'sent' => 'Cotización enviada', 'sale' => 'Orden de venta'] as $key => $label): ?><option value="<?= $key ?>" <?= $page['statusFilter'] === $key ? 'selected' : '' ?>><?= $label ?></option><?php endforeach; ?></select></label>
+        <button class="contact-button" type="submit">Filtrar</button><a class="contact-button" href="index.php">Limpiar</a>
+    </form>
+    <div class="contact-table-wrap" role="region" aria-label="Listado de cotizaciones" tabindex="0"><table class="contact-table"><thead><tr><th scope="col">Correlativo</th><th scope="col">Cliente</th><th scope="col">Fecha de la orden</th><th scope="col">Estado</th><th scope="col">Total sin impuestos</th></tr></thead><tbody>
+        <?php foreach ($page['quotations'] as $quotation): ?><tr><td><a class="contact-name" href="index.php?id=<?= (int) $quotation['id'] ?>"><?= salesEscape($quotation['name']) ?></a></td><td><?= salesEscape($quotation['customer_name']) ?></td><td><?= salesEscape($quotation['order_date']) ?></td><td><span class="contact-tag"><?= salesStatuses()[$quotation['status']] ?></span></td><td class="quotation-money"><?= salesEscape($quotation['total_amount']) ?></td></tr><?php endforeach; ?>
+        <?php if (! $page['quotations']): ?><tr><td colspan="5" class="contact-empty">No hay registros que coincidan con esta búsqueda. Pulsa «Nueva cotización» para crear uno.</td></tr><?php endif; ?>
+    </tbody></table></div>
+    <nav class="contact-pagination" aria-label="Páginas de cotizaciones"><span>Página <?= $page['currentPage'] ?> de <?= $page['pages'] ?></span><?php foreach (['Anterior' => $page['currentPage'] - 1, 'Siguiente' => $page['currentPage'] + 1] as $label => $number): ?><?php if ($number >= 1 && $number <= $page['pages']): ?><a class="contact-button" href="index.php?<?= salesEscape(http_build_query(['q' => $page['search'], 'status' => $page['statusFilter'], 'page' => $number])) ?>"><?= $label ?></a><?php endif; ?><?php endforeach; ?></nav>
+</section>
