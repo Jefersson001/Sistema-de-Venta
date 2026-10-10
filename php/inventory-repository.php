@@ -2,6 +2,60 @@
 
 declare(strict_types=1);
 
+function validateInventoryProduct(array $input, array $categories = [], array $purchaseTaxes = [], array $saleTaxes = []): array
+{
+    $name = is_string($input['name'] ?? null) ? trim($input['name']) : '';
+    $errors = [];
+    if ($name === '' || mb_strlen($name, 'UTF-8') > 160) {
+        $errors[] = 'Escribe un nombre de producto de entre 1 y 160 caracteres.';
+    }
+    $data = ['name' => $name];
+    foreach (['sale_enabled', 'purchase_enabled'] as $field) {
+        $value = $input[$field] ?? '0';
+        if (! in_array($value, ['0', '1'], true)) {
+            $errors[] = 'Las opciones Venta y Compra deben ser casillas válidas.';
+        }
+        $data[$field] = $value === '1' ? 1 : 0;
+    }
+    $rawPrice = $input['sale_price'] ?? '';
+    $price = is_string($rawPrice) ? str_replace(',', '.', trim($rawPrice)) : '';
+    if ($price === '' && is_string($rawPrice)) {
+        $price = '0';
+    }
+    $data['sale_price'] = $price;
+    if (! preg_match('/^[0-9]{1,10}(\.[0-9]{1,2})?$/', $price)) {
+        $errors[] = 'El precio de venta debe ser un importe no negativo, con hasta dos decimales y diez dígitos enteros.';
+    } else {
+        $parts = explode('.', $price);
+        $data['sale_price'] = (ltrim($parts[0], '0') ?: '0') . '.' . str_pad($parts[1] ?? '', 2, '0');
+    }
+    foreach (['category_id' => $categories, 'purchase_tax_id' => $purchaseTaxes, 'sale_tax_id' => $saleTaxes] as $field => $records) {
+        $data[$field] = inventoryId($input[$field] ?? null);
+        if (($input[$field] ?? '') !== '' && ! inventoryCategoryRecord($records, $data[$field])) {
+            $errors[] = match ($field) {
+                'category_id' => 'Selecciona una categoría válida.',
+                'purchase_tax_id' => 'Selecciona un impuesto del módulo Compras.',
+                'sale_tax_id' => 'Selecciona un impuesto del módulo Ventas.',
+            };
+        }
+    }
+    return [$data, $errors];
+}
+
+function saveInventoryProduct(PDO $db, array $data, ?int $id): int
+{
+    if ($id) {
+        $data['id'] = $id;
+        $sql = 'UPDATE inventory_products SET name = :name, sale_enabled = :sale_enabled, purchase_enabled = :purchase_enabled,
+            sale_price = :sale_price, category_id = :category_id, purchase_tax_id = :purchase_tax_id, sale_tax_id = :sale_tax_id WHERE id = :id';
+    } else {
+        $sql = 'INSERT INTO inventory_products (name, sale_enabled, purchase_enabled, sale_price, category_id, purchase_tax_id, sale_tax_id)
+            VALUES (:name, :sale_enabled, :purchase_enabled, :sale_price, :category_id, :purchase_tax_id, :sale_tax_id)';
+    }
+    $db->prepare($sql)->execute($data);
+    return $id ?? (int) $db->lastInsertId();
+}
+
 function inventoryId(mixed $value): ?int
 {
     if (! is_scalar($value)) {

@@ -53,13 +53,15 @@
             <div class="page-content module-page">
                 <a class="back-link" href="../../index.php">← Volver al inicio</a>
                 <nav class="module-navigation" aria-label="Secciones de <?= htmlspecialchars($module['name'], ENT_QUOTES, 'UTF-8') ?>">
-                    <a class="module-navigation-link <?= ! $isConfiguration ? 'module-navigation-active' : '' ?>" href="index.php" <?= ! $isConfiguration ? 'aria-current="page"' : '' ?>><?= $moduleKey === 'contactos' ? 'Contactos' : 'Vista general' ?></a>
+                    <a class="module-navigation-link <?= ! $isConfiguration ? 'module-navigation-active' : '' ?>" href="index.php" <?= ! $isConfiguration ? 'aria-current="page"' : '' ?>><?= $moduleKey === 'contactos' ? 'Contactos' : ($moduleKey === 'inventario' ? 'Productos' : 'Vista general') ?></a>
                     <a class="module-navigation-link <?= $isConfiguration ? 'module-navigation-active' : '' ?>" href="configuracion.php" <?= $isConfiguration ? 'aria-current="page"' : '' ?>><span aria-hidden="true">⚙</span> Configuración</a>
                 </nav>
                 <?php if ($moduleKey === 'contactos' && $modulePageData !== null): ?>
                     <?php require __DIR__ . '/contacts/page.php'; ?>
                 <?php elseif ($moduleKey === 'inventario' && $modulePageData !== null): ?>
-                    <?php require __DIR__ . '/inventory/configuration.php'; ?>
+                    <?php require __DIR__ . ($isConfiguration ? '/inventory/configuration.php' : '/inventory/products.php'); ?>
+                <?php elseif ($isConfiguration && in_array($moduleKey, ['compras', 'ventas'], true) && $modulePageData !== null): ?>
+                    <?php require __DIR__ . '/taxes/configuration.php'; ?>
                 <?php elseif ($isConfiguration): ?>
                     <?php require __DIR__ . '/module-configuration.php'; ?>
                 <?php else: ?>
