@@ -59,8 +59,9 @@ try {
         $act('settle_payment', ['payment_id' => $first]); $act('settle_payment', ['payment_id' => $first], false);
         assertStatus($current()['payment_state'] === 'partial', 'Pago parcial no actualizó el estado.'); $filter('partial');
         $act('cancel_invoice', [], false);
-        $act('register_payment', ['amount' => '60.01', 'payment_date' => commerceToday()], false);
+        $act('register_payment', ['amount' => '0.00', 'payment_date' => commerceToday()], false);
         $act('register_payment', ['amount' => '60.00', 'payment_date' => commerceToday()]);
+        assertStatus($current()['payment_state'] === 'in_payment', 'Los pagos cubren todo el importe pero la factura sigue parcialmente pagada.'); $filter('in_payment');
         $second = invoicePaymentDetails($db, $id)['payments'][1]['id']; $act('settle_payment', ['payment_id' => $second]);
         assertStatus($current()['payment_state'] === 'paid' && invoicePaymentDetails($db, $id)['settled'] === '100.00', 'Pago completo no dejó Pagado.'); $filter('paid');
         $act('cancel_payment', ['payment_id' => $first]); $act('cancel_payment', ['payment_id' => $second]);

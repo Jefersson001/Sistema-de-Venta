@@ -28,6 +28,7 @@ function invoiceRecomputePaymentState(PDO $db, array $invoice): void
     if ($details['reversal'] && !$details['credits']) $state='reversed';
     elseif ($invoice['document_type'] === 'invoice' && bccomp($details['credited'], $invoice['total_amount'],2)>=0 && bccomp($details['credited'],'0',2)>0) $state = 'reversed';
     elseif (bccomp($details['settled'], $amount, 2) >= 0) $state = 'paid';
+    elseif (bccomp($details['pending'], '0', 2) > 0 && bccomp(bcadd($details['settled'], $details['pending'], 2), $amount, 2) >= 0) $state = 'in_payment';
     elseif (bccomp($details['settled'], '0', 2) > 0) $state = 'partial';
     elseif (bccomp($details['pending'], '0', 2) > 0) $state = 'in_payment';
     $db->prepare('UPDATE accounting_invoices SET payment_state = ? WHERE id = ?')->execute([$state, $invoice['id']]);

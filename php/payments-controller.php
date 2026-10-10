@@ -30,8 +30,9 @@ function renderAccountingPayments(): void
             if($existing&&in_array($existing['status'],['pending','settled'],true)&&bccomp($existing['available'],'0',2)>0){
                 $q=$db->prepare("SELECT * FROM accounting_invoices WHERE contact_id=? AND invoice_type=? AND status='posted' AND payment_state!='reversed' ORDER BY invoice_date,id");$q->execute([$existing['contact_id'],$type]);
                 foreach($q->fetchAll() as $i){$inbound=($i['invoice_type']==='customer')===($i['document_type']==='invoice');if(($inbound?'inbound':'outbound')!==$existing['direction'])continue;$details=invoicePaymentDetails($db,(int)$i['id']);$balance=bcsub(paymentInvoiceAmount($db,$i),bcadd($details['settled'],$details['pending'],2),2);if(bccomp($balance,'0',2)<=0)continue;
-                    try{$maximum=accountingConvert($balance,$i['currency_code'],$existing['currency_code'],$existing);}catch(InvalidArgumentException $e){continue;}
-                    $i['balance']=$balance;$i['maximum']=bccomp($maximum,$existing['available'],2)>0?$existing['available']:$maximum;$page['candidates'][]=$i;
+                    try{$maximum=paymentApplicableAmount($existing['available'],$balance,$existing['currency_code'],$i['currency_code'],$existing);}catch(InvalidArgumentException $e){continue;}
+                    if(bccomp($maximum,'0',2)<=0||bccomp(accountingConvert($maximum,$existing['currency_code'],$i['currency_code'],$existing),'0',2)<=0)continue;
+                    $i['balance']=$balance;$i['maximum']=$maximum;$page['candidates'][]=$i;
                 }
             }
         }elseif($page['available']){

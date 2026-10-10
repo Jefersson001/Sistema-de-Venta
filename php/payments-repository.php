@@ -73,6 +73,15 @@ function paymentValidateInvoice(array $payment,array $invoice): void
     if($invoice['status']!=='posted'||$invoice['payment_state']==='reversed')throw new InvalidArgumentException('La acción requiere una factura registrada y no revertida.');
     if((int)$payment['contact_id']!==(int)$invoice['contact_id']||$payment['partner_type']!==$invoice['invoice_type']||$payment['direction']!==($inbound?'inbound':'outbound'))throw new InvalidArgumentException('El pago debe corresponder al mismo contacto y al sentido de la factura o reembolso.');
 }
+function paymentApplicableAmount(string $available, string $balance, string $paymentCurrency, string $invoiceCurrency, array $pair): string
+{
+    if (bccomp($balance, '0', 2) <= 0) return '0.00';
+    $maximum = accountingConvert($balance, $invoiceCurrency, $paymentCurrency, $pair);
+    $amount = bccomp($available, $maximum, 2) < 0 ? $available : $maximum;
+    // Rounding in the inverse conversion must not allocate more than the invoice balance.
+    if (bccomp(accountingConvert($amount, $paymentCurrency, $invoiceCurrency, $pair), $balance, 2) > 0) $amount = bcsub($amount, '0.01', 2);
+    return bccomp($amount, '0', 2) > 0 ? $amount : '0.00';
+}
 function paymentApplyLocked(PDO $db,array $payment,array $invoice,string $paymentAmount): void
 {
     paymentValidateInvoice($payment,$invoice);if(!in_array($payment['status'],['pending','settled'],true))throw new InvalidArgumentException('Registra el pago antes de aplicarlo a una factura.');
@@ -130,7 +139,13 @@ function paymentFromInvoice(PDO $db,int $invoiceId,?int $version,string $action,
             $invoices=paymentLockInvoices($db,[$invoiceId]);$i=$invoices[$invoiceId];if((int)$i['version']!==$version)throw new InvalidArgumentException('La factura cambió en otra ventana. Recarga antes de continuar.');
             $inbound=($i['invoice_type']==='customer')===($i['document_type']==='invoice');
             $data=validateAccountingPayment($db,$input+['partner_type'=>$i['invoice_type'],'direction'=>$inbound?'inbound':'outbound','contact_id'=>$i['contact_id']],null,$i);
-            $id=insertAccountingPayment($db,$data,'pending');$p=loadAccountingPayment($db,$id);paymentApplyLocked($db,$p,$i,$data['amount']);paymentRecomputeInvoices($db,$invoices);$db->commit();
+            paymentValidateInvoice($data, $i);
+            $details = invoicePaymentDetails($db, $invoiceId);
+            $balance = bcsub(paymentInvoiceAmount($db, $i), bcadd($details['settled'], $details['pending'], 2), 2);
+            if (bccomp($balance, '0', 2) <= 0) throw new InvalidArgumentException('La factura ya está cubierta por sus pagos. El importe adicional se puede registrar desde Pagos.');
+            $applied = paymentApplicableAmount($data['amount'], $balance, $data['currency_code'], $i['currency_code'], $data);
+            if ($i['document_type'] === 'credit' && bccomp(accountingConvert($data['amount'], $data['currency_code'], $i['currency_code'], $data), $balance, 2) > 0) throw new InvalidArgumentException('El reembolso supera el importe pendiente de devolver.');
+            $id=insertAccountingPayment($db,$data,'pending');$p=loadAccountingPayment($db,$id);paymentApplyLocked($db,$p,$i,$applied);paymentRecomputeInvoices($db,$invoices);$db->commit();
         }catch(Throwable $e){$db->rollBack();throw $e;}
     }else{
         $allocation=salesId($input['payment_id']??null);$q=$db->prepare('SELECT payment_id FROM accounting_invoice_payments WHERE id=? AND invoice_id=? AND status!=?');$q->execute([$allocation,$invoiceId,'cancel']);$id=$q->fetchColumn();

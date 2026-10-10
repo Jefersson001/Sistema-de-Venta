@@ -4,6 +4,7 @@
         <?php if (bccomp($details['pending'], '0', 2) > 0): ?><div><dt>En proceso de pago</dt><dd><?= accountingEscape($details['pending'].' '.$record['currency_code']) ?></dd></div><?php endif; ?>
         <?php if (bccomp($details['credited'], '0', 2) > 0): ?><div><dt>Notas de crédito</dt><dd><?= accountingEscape($details['credited'].' '.$record['currency_code']) ?></dd></div><?php endif; ?>
         <div><dt>Saldo sin pagar</dt><dd><?= accountingEscape(($record['payment_state'] === 'reversed' ? '0.00' : bcsub($details['effective_amount'], $details['settled'], 2)).' '.$record['currency_code']) ?></dd></div>
+        <?php if (bccomp($details['pending'], '0', 2) > 0): ?><div><dt>Saldo por cubrir</dt><dd><?= accountingEscape((bccomp($available, '0', 2) > 0 ? $available : '0.00').' '.$record['currency_code']) ?></dd></div><?php endif; ?>
     </dl>
     <?php if ($page['availablePayments'] && $canRegisterPayment): ?>
         <section class="invoice-outstanding" aria-labelledby="invoice-outstanding-title">
@@ -24,7 +25,8 @@
         </section>
     <?php endif; ?>
     <?php if ($details['payments']): ?>
-        <details class="invoice-payment-history"><summary>Historial de pagos</summary>
+        <details class="invoice-payment-history" <?= bccomp($details['pending'], '0', 2) > 0 ? 'open' : '' ?>><summary>Historial de pagos</summary>
+            <?php if (bccomp($details['pending'], '0', 2) > 0): ?><p class="section-subtitle">Los importes en proceso ya están aplicados. Confirma esos pagos cuando hayas recibido o enviado el dinero.</p><?php endif; ?>
             <div class="contact-table-wrap"><table class="contact-table"><thead><tr><th scope="col">Fecha</th><th scope="col">Referencia / Pago</th><th scope="col">Importe</th><th scope="col">Estado</th><th scope="col">Acciones</th></tr></thead><tbody>
             <?php foreach ($details['payments'] as $payment): ?><tr><td><?= accountingEscape($payment['payment_date']) ?></td><td><?= accountingEscape($payment['reference']) ?><?php if ($payment['payment_id']): ?> · <a class="contact-name" href="pagos.php?type=<?= $page['type'] ?>&amp;id=<?= (int)$payment['payment_id'] ?>"><?= accountingEscape($payment['payment_name']) ?></a><?php endif; ?></td><td><?= accountingEscape($payment['amount'].' '.$record['currency_code']) ?><small><?= accountingEscape($payment['payment_amount'].' '.$payment['payment_currency']) ?></small></td><td><?= match ($payment['status']) { 'pending' => 'En proceso de pago', 'settled' => 'Confirmado', default => 'Cancelado' } ?></td><td>
                 <?php if ($record['status'] === 'posted' && $record['payment_state'] !== 'reversed' && $payment['status'] !== 'cancel'): ?><form method="post" action="index.php?type=<?= $page['type'] ?>&amp;id=<?= (int)$record['id'] ?>"><input type="hidden" name="csrf" value="<?= accountingEscape($page['csrf']) ?>"><input type="hidden" name="version" value="<?= (int)$record['version'] ?>"><input type="hidden" name="payment_id" value="<?= (int)$payment['id'] ?>"><?php if ($payment['status'] === 'pending'): ?><button class="contact-button" type="submit" name="action" value="settle_payment">Confirmar pago</button><?php endif; ?><button class="contact-button" type="submit" name="action" value="cancel_payment">Quitar de factura</button></form><?php endif; ?>

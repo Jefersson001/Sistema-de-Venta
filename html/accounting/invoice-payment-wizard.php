@@ -23,6 +23,7 @@ $wizardCurrency = $wizardValue('currency_code', $record['currency_code']);
                 <label class="contact-full">Tasa de cambio<input name="exchange_rate" inputmode="decimal" value="<?= accountingEscape($wizardValue('exchange_rate', $page['settings']['exchange_rate'] ?? '')) ?>"><small>1 <?= accountingEscape($page['settings']['primary_code']) ?> = tasa en <?= accountingEscape($page['settings']['alternate_code']) ?>. El importe corresponde a la moneda del pago.</small></label>
             </div>
             <p class="section-subtitle">El pago queda en proceso hasta que lo confirmes.</p>
+            <?php if (!$credit): ?><p class="section-subtitle">Si el pago supera el saldo de esta factura, la diferencia queda disponible para otras facturas del mismo contacto.</p><?php endif; ?>
         </div>
         <footer class="invoice-wizard-footer"><button class="contact-button contact-button-primary" type="submit"><?= $credit ? 'Registrar reembolso' : 'Registrar pago' ?></button><button class="contact-button" type="button" data-invoice-wizard-close>Cancelar</button></footer>
     </form>

@@ -44,7 +44,7 @@ try{
     payCheck($candidate!==null&&$xpath->query('.//button[normalize-space(.)="Agregar"]',$candidate)->length===1&&$xpath->query('preceding::dl[contains(@class,"quotation-totals")]',$candidate)->length>=1,'El pago no aparece después de los totales con Agregar.');
     $apply=[];foreach($xpath->query('.//input[@type="hidden"]',$candidate) as $input)$apply[$input->getAttribute('name')]=$input->getAttribute('value');
     payCheck($apply['amount']==='20.00'&&$apply['payment_version']===(string)$p['version'],'Agregar no conserva el importe disponible y la versión del pago.');
-    [$status,$failed]=payRequest('contabilidad/index.php?type=customer&id='.$first,$cookie,['csrf'=>payToken($body),'action'=>'register_payment','version'=>$i['version'],'amount'=>'50000.00','payment_date'=>commerceToday(),'reference'=>'Conservar referencia']);
+    [$status,$failed]=payRequest('contabilidad/index.php?type=customer&id='.$first,$cookie,['csrf'=>payToken($body),'action'=>'register_payment','version'=>$i['version'],'amount'=>'0.00','payment_date'=>commerceToday(),'reference'=>'Conservar referencia']);
     @$dom->loadHTML('<?xml encoding="UTF-8">'.$failed);$xpath=new DOMXPath($dom);
     payCheck($status===200&&$xpath->query('//dialog[@id="invoice-payment-wizard" and @data-reopen]')->length===1&&$xpath->query('//dialog//input[@name="reference" and @value="Conservar referencia"]')->length===1&&payInvoice($db,$first)['payment_state']==='partial','Un pago inválido no conserva el asistente o alteró la factura.');
     payCreated(payRequest('contabilidad/index.php?type=customer&id='.$first,$cookie,$apply));payCheck(loadAccountingPayment($db,$payment)['available']==='0.00','Aplicar desde factura duplicó o perdió el importe disponible.');
@@ -66,7 +66,52 @@ try{
     $usdPayment=$createPayment('customer',$f['client'],'10.00');transitionAccountingPayment($db,$usdPayment,1,'post_payment');transitionAccountingPayment($db,$usdPayment,2,'settle_payment');transitionAccountingPayment($db,$usdPayment,3,'apply_payment',['invoice_id'=>$vesInvoice,'amount'=>'10.00']);payCheck(payInvoice($db,$vesInvoice)['payment_state']==='paid','No se aplicaron USD a la factura en VES.');
     foreach(['contabilidad/pagos.php?type=customer','contabilidad/pagos.php?type=supplier','contabilidad/configuracion.php?section=accounts','contabilidad/configuracion.php?section=methods','contabilidad/configuracion.php?section=currencies'] as $path){[$status,$body]=payRequest($path,$cookie);payCheck($status===200,'No abre una vista del módulo.');}
     [$status]=payRequest('contabilidad/pagos.php?type=customer&id='.$payment,$cookie,['action'=>'cancel_payment','version'=>'1']);payCheck($status===403,'Se aceptó un cambio sin CSRF.');
-    echo "PASS: pagos independientes tree/form, creación repetida, varias facturas por pago, aplicación desde factura, saldos, retiro, cancelación, clientes/proveedores, conversión USD/VES y resumen real.\n";
+    // Excess payments stay in the same payment, with no automatic assignment to other invoices.
+    foreach (['customer' => 'sale', 'supplier' => 'purchase'] as $type => $kind) {
+        $contact = $f[$type === 'customer' ? 'client' : 'supplier'];
+        $small = $createInvoice($kind, $contact, '30.00');
+        $next = $createInvoice($kind, $contact, '25.00');
+        $path = 'contabilidad/index.php?type='.$type.'&id='.$small;
+        [, $body] = payRequest($path, $cookie); $i = payInvoice($db, $small);
+        $post = ['csrf' => payToken($body), 'action' => 'register_payment', 'version' => $i['version'], 'amount' => '50.00', 'currency_code' => 'USD', 'payment_date' => commerceToday()];
+        payCreated(payRequest($path, $cookie, $post));
+        $allocation = invoicePaymentDetails($db, $small)['payments'][0];
+        $excess = loadAccountingPayment($db, (int)$allocation['payment_id']);
+        payCheck($excess['amount'] === '50.00' && $excess['allocated'] === '30.00' && $excess['available'] === '20.00' && payInvoice($db, $small)['payment_state'] === 'in_payment', 'Registrar 50 para factura 30 no conserva el excedente o el estado en proceso.');
+        payCheck(payInvoice($db, $next)['payment_state'] === 'not_paid' && !invoicePaymentDetails($db, $next)['payments'], 'El excedente se asignó automáticamente a otra factura.');
+        [$status] = payRequest($path, $cookie, $post);
+        payCheck($status === 200 && count(invoicePaymentDetails($db, $small)['payments']) === 1, 'Reenviar el asistente duplicó el exceso.');
+        $i = payInvoice($db, $small);
+        payCreated(payRequest($path, $cookie, ['csrf' => payToken($body), 'action' => 'settle_payment', 'version' => $i['version'], 'payment_id' => $allocation['id']]));
+        $excess = loadAccountingPayment($db, $excess['id']);
+        payCheck(payInvoice($db, $small)['payment_state'] === 'paid' && $excess['status'] === 'settled' && $excess['available'] === '20.00', 'Confirmar no liquida la factura o pierde el excedente.');
+        $nextPath = 'contabilidad/index.php?type='.$type.'&id='.$next;
+        [, $body] = payRequest($nextPath, $cookie); @$dom->loadHTML('<?xml encoding="UTF-8">'.$body); $xpath = new DOMXPath($dom);
+        $candidate = $xpath->query('//*[@id="invoice-lines"]//form[input[@name="existing_payment_id" and @value="'.$excess['id'].'"]]')->item(0);
+        payCheck($candidate !== null, 'La siguiente factura no propone el excedente disponible.');
+        $apply = []; foreach ($xpath->query('.//input[@type="hidden"]', $candidate) as $input) $apply[$input->getAttribute('name')] = $input->getAttribute('value');
+        payCreated(payRequest($nextPath, $cookie, $apply));
+        payCheck(loadAccountingPayment($db, $excess['id'])['available'] === '0.00' && payInvoice($db, $next)['payment_state'] === 'partial' && invoicePaymentDetails($db, $next)['settled'] === '20.00', 'Agregar el excedente no deja el saldo correcto en la siguiente factura.');
+        $i = payInvoice($db, $next);
+        payCreated(payRequest($nextPath, $cookie, ['csrf' => payToken($body), 'action' => 'register_payment', 'version' => $i['version'], 'amount' => '5.00', 'payment_date' => commerceToday()]));
+        payCheck(payInvoice($db, $next)['payment_state'] === 'in_payment', '20 confirmados y 5 pendientes sobre factura 25 no muestran En proceso de pago.');
+        $items = invoicePaymentDetails($db, $next)['payments']; $pending = end($items); $i = payInvoice($db, $next);
+        payCreated(payRequest($nextPath, $cookie, ['csrf' => payToken($body), 'action' => 'cancel_payment', 'version' => $i['version'], 'payment_id' => $pending['id']]));
+        payCheck(payInvoice($db, $next)['payment_state'] === 'partial', 'Retirar el pago pendiente no restaura el estado parcial.');
+        $released = loadAccountingPayment($db, (int)$pending['payment_id']); $i = payInvoice($db, $next);
+        transitionAccountingPayment($db, $released['id'], (int)$released['version'], 'apply_payment', ['invoice_id' => $next, 'invoice_version' => $i['version'], 'amount' => '5.00']);
+        $i = payInvoice($db, $next);
+        payCreated(payRequest($nextPath, $cookie, ['csrf' => payToken($body), 'action' => 'settle_payment', 'version' => $i['version'], 'payment_id' => $pending['id']]));
+        payCheck(payInvoice($db, $next)['payment_state'] === 'paid', 'La segunda factura no queda Pagado al confirmar todos sus pagos.');
+    }
+    $fxInvoice = $createInvoice('sale', $f['client'], '30.00');
+    $path = 'contabilidad/index.php?type=customer&id='.$fxInvoice;
+    [, $body] = payRequest($path, $cookie); $i = payInvoice($db, $fxInvoice);
+    payCreated(payRequest($path, $cookie, ['csrf' => payToken($body), 'action' => 'register_payment', 'version' => $i['version'], 'amount' => '5000.00', 'currency_code' => 'VES', 'exchange_rate' => '100', 'payment_date' => commerceToday()]));
+    $allocation = invoicePaymentDetails($db, $fxInvoice)['payments'][0]; $excess = loadAccountingPayment($db, (int)$allocation['payment_id']);
+    payCheck($allocation['amount'] === '30.00' && $allocation['payment_amount'] === '3000.00' && $excess['available'] === '2000.00', 'El exceso en VES no conserva las unidades de factura y pago.');
+    payCheck(paymentApplicableAmount('50.00', '0.03', 'VES', 'USD', ['primary_code' => 'USD', 'alternate_code' => 'VES', 'exchange_rate' => '0.5']) === '0.01', 'El redondeo genera una aplicación superior al saldo.');
+    echo "PASS: pagos independientes, excedente 50/30 aplicado después a otra factura, estados mixtos confirmados/en proceso, clientes/proveedores, USD/VES, redondeo y saldos del inicio.\n";
 }finally{
     if($db->inTransaction())$db->rollBack();
     foreach($orders as [$kind,$id]){$q=$db->prepare('SELECT id FROM accounting_invoices WHERE '.($kind==='sale'?'sale_id':'purchase_id').'=? ORDER BY id DESC');$q->execute([$id]);foreach($q->fetchAll(PDO::FETCH_COLUMN) as $invoice){foreach(['accounting_invoice_payments','accounting_invoice_reversals','accounting_invoice_lines'] as $t)$db->prepare('DELETE FROM '.$t.' WHERE invoice_id=?')->execute([$invoice]);$db->prepare('DELETE FROM accounting_invoices WHERE id=?')->execute([$invoice]);}$db->prepare('DELETE FROM '.($kind==='sale'?'sales_quotation_lines WHERE quotation_id':'purchase_order_lines WHERE order_id').'=?')->execute([$id]);$db->prepare('DELETE FROM '.($kind==='sale'?'sales_quotations':'purchase_orders').' WHERE id=?')->execute([$id]);}
