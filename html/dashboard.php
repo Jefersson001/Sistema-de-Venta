@@ -70,8 +70,8 @@
                 <section class="welcome-section">
                     <div class="welcome-copy">
                         <p class="eyebrow"><span class="eyebrow-line"></span> TU NEGOCIO, EN ORDEN</p>
-                        <h1>Todo empieza <span>aquí.</span></h1>
-                        <p class="welcome-description">Un espacio para conectar las áreas de tu negocio. Elige un módulo para comenzar.</p>
+                        <h1>Tu negocio, <span>al día.</span></h1>
+                        <p class="welcome-description">Consulta tus pendientes y accede a las áreas de tu negocio desde un mismo lugar.</p>
                     </div>
                     <div class="welcome-art" aria-hidden="true">
                         <span class="art-orbit orbit-one"></span>
@@ -81,6 +81,60 @@
                         <span class="art-node node-two">IN</span>
                         <span class="art-node node-three">VE</span>
                         <span class="art-node node-four">CT</span>
+                    </div>
+                </section>
+
+                <section class="quick-actions" aria-labelledby="actions-title">
+                    <div>
+                        <h2 id="actions-title">Acciones rápidas</h2>
+                        <p class="section-subtitle" id="actions-help">Crea un contacto. El registro de ventas y compras estará disponible próximamente.</p>
+                    </div>
+                    <div class="action-buttons" aria-describedby="actions-help">
+                        <button class="action-button action-primary" type="button" disabled>Nueva venta <span>Próximamente</span></button>
+                        <button class="action-button" type="button" disabled>Registrar compra <span>Próximamente</span></button>
+                        <a class="action-button" href="modules/contactos/index.php?new=1">Crear contacto <span aria-hidden="true">→</span></a>
+                    </div>
+                </section>
+
+                <section class="business-overview" aria-labelledby="overview-title">
+                    <div class="section-heading">
+                        <div>
+                            <p class="eyebrow">RESUMEN DEL NEGOCIO</p>
+                            <h2 id="overview-title">Pendientes y alertas</h2>
+                            <p class="section-subtitle"><?= $databaseStatus['connected']
+                                ? 'Los indicadores estarán disponibles cuando los módulos registren operaciones.'
+                                : 'No se pueden consultar los indicadores mientras la base de datos esté desconectada.' ?></p>
+                        </div>
+                    </div>
+                    <div class="overview-grid">
+                        <article class="overview-card">
+                            <span class="overview-label">Ventas por completar</span>
+                            <p class="overview-value">Sin datos disponibles</p>
+                            <p>Consulta aquí los pedidos que aún necesitan atención.</p>
+                            <a class="overview-link" href="modules/ventas/index.php">Ir a Ventas <span aria-hidden="true">→</span></a>
+                        </article>
+                        <article class="overview-card">
+                            <span class="overview-label">Compras por recibir</span>
+                            <p class="overview-value">Sin datos disponibles</p>
+                            <p>Da seguimiento a la mercancía pendiente de recepción.</p>
+                            <a class="overview-link" href="modules/compras/index.php">Ir a Compras <span aria-hidden="true">→</span></a>
+                        </article>
+                        <article class="overview-card">
+                            <span class="overview-label">Cobros pendientes</span>
+                            <p class="overview-value">Sin datos disponibles</p>
+                            <p>Revisa las cuentas por cobrar cuando se registren facturas y pagos.</p>
+                            <a class="overview-link" href="modules/contabilidad/index.php">Ir a Contabilidad <span aria-hidden="true">→</span></a>
+                        </article>
+                    </div>
+                    <div class="inventory-alert">
+                        <span class="inventory-alert-icon" aria-hidden="true">!</span>
+                        <div>
+                            <h3>Alertas de inventario</h3>
+                            <p><?= $databaseStatus['connected']
+                                ? 'Sin datos disponibles. Las alertas necesitan productos, existencias y un stock mínimo definido.'
+                                : 'No se puede comprobar el inventario sin conexión a la base de datos.' ?></p>
+                        </div>
+                        <a class="overview-link" href="modules/inventario/index.php">Ir a Inventario <span aria-hidden="true">→</span></a>
                     </div>
                 </section>
 
@@ -104,7 +158,7 @@
                             <a class="module-card" href="modules/<?= htmlspecialchars($key, ENT_QUOTES, 'UTF-8') ?>/index.php" data-module-card data-module-name="<?= htmlspecialchars(mb_strtolower($module['name']), ENT_QUOTES, 'UTF-8') ?>">
                                 <div class="module-card-top">
                                     <span class="module-icon icon-<?= htmlspecialchars($module['color'], ENT_QUOTES, 'UTF-8') ?>"><?= htmlspecialchars($module['initials'], ENT_QUOTES, 'UTF-8') ?></span>
-                                    <span class="module-status"><span></span> En desarrollo</span>
+                                    <span class="module-status"><span></span> <?= $key === 'contactos' ? 'Disponible' : 'En desarrollo' ?></span>
                                 </div>
                                 <div class="module-card-copy">
                                     <div class="module-title-row">

@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="theme-color" content="#f5f7fb">
-    <title><?= htmlspecialchars($module['name'], ENT_QUOTES, 'UTF-8') ?> | Nexo</title>
+    <title><?= $isConfiguration ? 'Configuración | ' : '' ?><?= htmlspecialchars($module['name'], ENT_QUOTES, 'UTF-8') ?> | Nexo</title>
     <link rel="stylesheet" href="../../css/app.css">
     <script src="../../js/app.js" defer></script>
 </head>
@@ -36,7 +36,14 @@
         <main class="main-area">
             <header class="topbar">
                 <button class="menu-toggle" type="button" aria-label="Abrir menú" aria-controls="sidebar" aria-expanded="false" data-menu-toggle>☰</button>
-                <div class="breadcrumb"><a href="../../index.php">Espacio de trabajo</a><span aria-hidden="true">/</span><strong><?= htmlspecialchars($module['name'], ENT_QUOTES, 'UTF-8') ?></strong></div>
+                <div class="breadcrumb">
+                    <a href="../../index.php">Espacio de trabajo</a><span aria-hidden="true">/</span>
+                    <?php if ($isConfiguration): ?>
+                        <a href="index.php"><?= htmlspecialchars($module['name'], ENT_QUOTES, 'UTF-8') ?></a><span aria-hidden="true">/</span><strong>Configuración</strong>
+                    <?php else: ?>
+                        <strong><?= htmlspecialchars($module['name'], ENT_QUOTES, 'UTF-8') ?></strong>
+                    <?php endif; ?>
+                </div>
                 <div class="topbar-right">
                     <span class="connection-pill <?= $databaseStatus['connected'] ? 'connection-online' : 'connection-offline' ?>"><span class="connection-dot"></span><?= $databaseStatus['connected'] ? 'Base de datos conectada' : 'Base de datos desconectada' ?></span>
                     <span class="avatar" aria-label="Usuario">U</span>
@@ -45,6 +52,15 @@
 
             <div class="page-content module-page">
                 <a class="back-link" href="../../index.php">← Volver al inicio</a>
+                <nav class="module-navigation" aria-label="Secciones de <?= htmlspecialchars($module['name'], ENT_QUOTES, 'UTF-8') ?>">
+                    <a class="module-navigation-link <?= ! $isConfiguration ? 'module-navigation-active' : '' ?>" href="index.php" <?= ! $isConfiguration ? 'aria-current="page"' : '' ?>><?= $moduleKey === 'contactos' ? 'Contactos' : 'Vista general' ?></a>
+                    <a class="module-navigation-link <?= $isConfiguration ? 'module-navigation-active' : '' ?>" href="configuracion.php" <?= $isConfiguration ? 'aria-current="page"' : '' ?>><span aria-hidden="true">⚙</span> Configuración</a>
+                </nav>
+                <?php if ($moduleKey === 'contactos' && $contactPage !== null): ?>
+                    <?php require __DIR__ . '/contacts/page.php'; ?>
+                <?php elseif ($isConfiguration): ?>
+                    <?php require __DIR__ . '/module-configuration.php'; ?>
+                <?php else: ?>
                 <section class="module-hero">
                     <span class="module-icon icon-<?= htmlspecialchars($module['color'], ENT_QUOTES, 'UTF-8') ?>"><?= htmlspecialchars($module['initials'], ENT_QUOTES, 'UTF-8') ?></span>
                     <p class="eyebrow"><?= htmlspecialchars($module['category'], ENT_QUOTES, 'UTF-8') ?></p>
@@ -60,6 +76,7 @@
                         <?php endforeach; ?>
                     </ul>
                 </section>
+                <?php endif; ?>
             </div>
         </main>
     </div>
