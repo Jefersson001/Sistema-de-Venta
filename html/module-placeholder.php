@@ -20,6 +20,7 @@
                     <?php elseif ($moduleKey === 'contabilidad'): ?>
                         <?php foreach (['customer' => 'Clientes', 'supplier' => 'Proveedores'] as $invoiceType => $invoiceLabel): ?><details class="module-menu"><summary class="module-navigation-link <?= ! $isConfiguration && ($modulePageData['type'] ?? '') === $invoiceType ? 'module-navigation-active' : '' ?>"><?= $invoiceLabel ?> <span aria-hidden="true">▾</span></summary><div class="module-menu-options"><a href="index.php?type=<?= $invoiceType ?>">Facturas</a><a href="pagos.php?type=<?= $invoiceType ?>">Pagos</a></div></details><?php endforeach; ?>
                         <details class="module-menu"><summary class="module-navigation-link <?= ($modulePageData['area'] ?? '') === 'cash_flow' ? 'module-navigation-active' : '' ?>">Informes <span aria-hidden="true">▾</span></summary><div class="module-menu-options"><a href="ingresos-egresos.php" <?= ($modulePageData['area'] ?? '') === 'cash_flow' ? 'aria-current="page"' : '' ?>>Ingresos y egresos</a></div></details>
+                        <details class="module-menu"><summary class="module-navigation-link <?= ($modulePageData['area']??'')==='treasury'?'module-navigation-active':'' ?>">Tesorería <span aria-hidden="true">▾</span></summary><div class="module-menu-options"><a href="tesoreria.php">Movimientos de dinero</a><a href="tesoreria.php?kind=transfer">Transferencias internas</a><a href="tesoreria.php?kind=opening">Saldos iniciales</a><a href="tesoreria.php?kind=income">Otros ingresos</a><a href="tesoreria.php?kind=expense">Otros egresos</a></div></details>
                     <?php else: ?>
                         <?php $isOverview = ! $isConfiguration && ! in_array($modulePageData['area'] ?? '', ['operations', 'reports'], true); ?>
                         <a class="module-navigation-link <?= $isOverview ? 'module-navigation-active' : '' ?>" href="index.php" <?= $isOverview ? 'aria-current="page"' : '' ?>><?= $moduleKey === 'contactos' ? 'Contactos' : ($moduleKey === 'inventario' ? 'Productos' : 'Vista general') ?></a>
@@ -43,7 +44,7 @@
                 <?php elseif ($moduleKey === 'contabilidad' && $isConfiguration && $modulePageData !== null): ?>
                     <?php require __DIR__ . (match ($modulePageData['area'] ?? '') { 'currencies' => '/accounting/currencies.php', 'payment_configuration' => '/accounting/payment-configuration.php', default => '/accounting/configuration.php' }); ?>
                 <?php elseif ($moduleKey === 'contabilidad' && ! $isConfiguration && $modulePageData !== null): ?>
-                    <?php require __DIR__ . (match ($modulePageData['area']??'') { 'cash_flow'=>'/accounting/cash-flow.php', 'payments'=>'/accounting/payments.php', default=>'/accounting/invoices.php' }); ?>
+                    <?php require __DIR__ . (match ($modulePageData['area']??'') { 'treasury'=>'/accounting/treasury.php', 'cash_flow'=>'/accounting/cash-flow.php', 'payments'=>'/accounting/payments.php', default=>'/accounting/invoices.php' }); ?>
                 <?php elseif ($moduleKey === 'compras' && ! $isConfiguration && ($modulePageData['area'] ?? '') === 'purchase_order'): ?>
                     <?php require __DIR__ . '/purchases/page.php'; ?>
                 <?php elseif ($isConfiguration && in_array($moduleKey, ['compras', 'ventas'], true) && $modulePageData !== null): ?>

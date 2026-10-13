@@ -22,8 +22,12 @@ function installCurrencyCatalog(PDO $db): void
     $codes = [$settings['primary_code'], $settings['alternate_code']];
     $columns = ['inventory_products'=>['currency_code'],'sales_quotations'=>['currency_code','currency_primary_code','currency_alternate_code'],
         'purchase_orders'=>['currency_code','currency_primary_code','currency_alternate_code'],'accounting_invoices'=>['currency_code','currency_primary_code','currency_alternate_code'],
-        'accounting_payments'=>['currency_code','primary_code','alternate_code'],'accounting_payment_accounts'=>['currency_code']];
+        'accounting_payments'=>['currency_code','primary_code','alternate_code'],'accounting_payment_accounts'=>['currency_code'],
+        'accounting_treasury_documents'=>['currency_code','destination_currency_code','primary_code','alternate_code'],'accounting_treasury_entries'=>['currency_code']];
     foreach ($columns as $table=>$fields) {
+        if(str_starts_with($table,'accounting_treasury_')){
+            $exists=$db->prepare('SELECT 1 FROM information_schema.TABLES WHERE TABLE_SCHEMA=DATABASE() AND TABLE_NAME=?');$exists->execute([$table]);if(!$exists->fetchColumn())continue;
+        }
         foreach ($fields as $field) $codes = array_merge($codes, $db->query('SELECT DISTINCT '.$field.' FROM '.$table.' WHERE '.$field.' IS NOT NULL')->fetchAll(PDO::FETCH_COLUMN));
     }
     $defaults = ['USD'=>['Dólar estadounidense','$','Dólar','Centavo','before'], 'VES'=>['Bolívar','Bs.','Bolívar','Céntimo','after']];

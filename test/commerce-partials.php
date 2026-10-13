@@ -17,8 +17,10 @@ function partialToken(string $body):string{checkPartial(preg_match('/name="csrf"
 function partialId(array $r):int{checkPartial($r[0]===303&&preg_match('/id=(\d+)/',$r[2],$m)===1,'Falló una acción: '.strip_tags($r[1]));return(int)$m[1];}
 function partialRecord(PDO $db,string $table,int $id):array{$q=$db->prepare('SELECT * FROM '.$table.' WHERE id=?');$q->execute([$id]);return $q->fetch();}
 try{
+    require_once __DIR__.'/treasury-cleanup.php';
     $roles=array_flip($db->query('SELECT id,system_key FROM contact_types WHERE system_key IS NOT NULL')->fetchAll(PDO::FETCH_KEY_PAIR));
     $db->prepare("INSERT INTO accounting_payment_accounts(name,account_type) VALUES (?,'cash')")->execute([$prefix]);$f['account']=(int)$db->lastInsertId();
+    $f['method']=(int)$db->query("SELECT id FROM accounting_payment_methods WHERE system_key='manual'")->fetchColumn();
     $db->prepare('INSERT INTO inventory_warehouses(name) VALUES (?)')->execute([$prefix]);$f['warehouse']=(int)$db->lastInsertId();
     $db->prepare('INSERT INTO inventory_locations(name,warehouse_id) VALUES (?,?)')->execute([$prefix,$f['warehouse']]);$f['location']=(int)$db->lastInsertId();
     foreach(['supplier','salesperson','client'] as $role){$db->prepare('INSERT INTO contacts(name,type_id,warehouse_id,location_id) VALUES (?,?,?,?)')->execute([$prefix.$role,$roles[$role],$role==='salesperson'?$f['warehouse']:null,$role==='salesperson'?$f['location']:null]);$f[$role]=(int)$db->lastInsertId();}
@@ -82,13 +84,13 @@ try{
     checkPartial(partialRecord($db,'accounting_invoices',$credit)['total_amount']==='6.96'&&invoiceCredits($db,$invoice)==='6.96','La nota de crédito parcial no conserva cantidades e impuestos.');
     checkPartial(commerceLineProgress($db,'sale',$sale)[0]['invoiced']==='8.000','La nota de crédito no redujo la cantidad facturada.');
     $creditRecord=partialRecord($db,'accounting_invoices',$credit);checkPartial($creditRecord['payment_state']==='paid','Una nota aplicada a deuda sin cobro exigió reembolso de dinero no recibido.');
-    try{transitionInvoiceStatus($db,$credit,(int)$creditRecord['version'],'register_payment',['account_id'=>$f['account'],'amount'=>'1.00','payment_date'=>commerceToday()]);throw new RuntimeException('Se reembolsó dinero no recibido.');}catch(InvalidArgumentException $e){}
+    try{transitionInvoiceStatus($db,$credit,(int)$creditRecord['version'],'register_payment',['account_id'=>$f['account'],'method_id'=>$f['method'],'amount'=>'1.00','payment_date'=>commerceToday()]);throw new RuntimeException('Se reembolsó dinero no recibido.');}catch(InvalidArgumentException $e){}
     // A paid invoice supports a cash refund through its new credit note.
-    $i=partialRecord($db,'accounting_invoices',$invoice);transitionInvoiceStatus($db,$invoice,(int)$i['version'],'register_payment',['account_id'=>$f['account'],'amount'=>'13.92','payment_date'=>commerceToday()]);
+    $i=partialRecord($db,'accounting_invoices',$invoice);transitionInvoiceStatus($db,$invoice,(int)$i['version'],'register_payment',['account_id'=>$f['account'],'method_id'=>$f['method'],'amount'=>'13.92','payment_date'=>commerceToday()]);
     $payments=invoicePaymentDetails($db,$invoice)['payments'];$i=partialRecord($db,'accounting_invoices',$invoice);transitionInvoiceStatus($db,$invoice,(int)$i['version'],'settle_payment',['payment_id'=>$payments[0]['id']]);
     $i=partialRecord($db,'accounting_invoices',$invoice);$fullCredit=createCreditNote($db,$invoice,(int)$i['version'],'Reembolso del resto');$register($fullCredit);
     $c=partialRecord($db,'accounting_invoices',$fullCredit);checkPartial(creditRefundAmount($db,$c)==='13.92'&&partialRecord($db,'accounting_invoices',$invoice)['payment_state']==='reversed','No se calculó el reembolso o la reversión completa.');
-    transitionInvoiceStatus($db,$fullCredit,(int)$c['version'],'register_payment',['account_id'=>$f['account'],'amount'=>'13.92','payment_date'=>commerceToday()]);$p=invoicePaymentDetails($db,$fullCredit)['payments'][0];$c=partialRecord($db,'accounting_invoices',$fullCredit);transitionInvoiceStatus($db,$fullCredit,(int)$c['version'],'settle_payment',['payment_id'=>$p['id']]);
+    transitionInvoiceStatus($db,$fullCredit,(int)$c['version'],'register_payment',['account_id'=>$f['account'],'method_id'=>$f['method'],'amount'=>'13.92','payment_date'=>commerceToday()]);$p=invoicePaymentDetails($db,$fullCredit)['payments'][0];$c=partialRecord($db,'accounting_invoices',$fullCredit);transitionInvoiceStatus($db,$fullCredit,(int)$c['version'],'settle_payment',['payment_id'=>$p['id']]);
     checkPartial(partialRecord($db,'accounting_invoices',$fullCredit)['payment_state']==='paid','No se confirmó el reembolso de la nota de crédito.');
     // Related line changes and quantities above the pending demand are refused.
     $ret=createStockReturn($db,$delivery,(int)$o['version']);$r=partialRecord($db,'inventory_operations',$ret);$lines=loadInventoryOperationLines($db,$ret);$lines[0]['quantity']='999.000';
@@ -167,6 +169,7 @@ try{
     echo "PASS: compra y venta parciales, relaciones por línea, pendientes automáticos, facturas sucesivas, impuestos, vencimiento, precios por proveedor, reservas, cancelación, sustitución, devolución y nota de crédito parcial.\n";
 }finally{
     if($db->inTransaction())$db->rollBack();
+    cleanupFixtureTreasury($db,array_values(array_intersect_key($f,array_flip(['client','supplier']))),$prefix);
     foreach($orders as [$kind,$id]){
         $fk=$kind==='sale'?'sale_id':'purchase_id';$q=$db->prepare('SELECT id FROM accounting_invoices WHERE '.$fk.'=? ORDER BY id DESC');$q->execute([$id]);
         foreach($q->fetchAll(PDO::FETCH_COLUMN) as $invoice){foreach(['accounting_invoice_payments','accounting_invoice_reversals','accounting_invoice_lines'] as $t)$db->prepare('DELETE FROM '.$t.' WHERE invoice_id=?')->execute([$invoice]);$db->prepare('DELETE FROM accounting_invoices WHERE id=?')->execute([$invoice]);}

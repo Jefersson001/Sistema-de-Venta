@@ -19,8 +19,10 @@ function statusRequest(string $path, string $cookie, ?array $post = null): array
 function statusToken(string $body): string { assertStatus(preg_match('/name="csrf" value="([a-f0-9]+)"/', $body, $m) === 1, 'Falta CSRF.'); return $m[1]; }
 function statusCreated(array $response): int { assertStatus($response[0] === 303 && preg_match('/id=(\d+)/', $response[2], $m) === 1, 'No se creó el documento: ' . $response[1]); return (int) $m[1]; }
 try {
+    require_once __DIR__.'/treasury-cleanup.php';
     $roles = array_flip($db->query('SELECT id, system_key FROM contact_types WHERE system_key IS NOT NULL')->fetchAll(PDO::FETCH_KEY_PAIR));
     $db->prepare("INSERT INTO accounting_payment_accounts(name,account_type) VALUES (?,'cash')")->execute([$prefix]);$fixtures['account']=(int)$db->lastInsertId();
+    $fixtures['method']=(int)$db->query("SELECT id FROM accounting_payment_methods WHERE system_key='manual'")->fetchColumn();
     foreach (['client', 'supplier'] as $role) {
         $db->prepare('INSERT INTO contacts (name, type_id) VALUES (?, ?)')->execute([$prefix . $role, $roles[$role]]); $fixtures[$role] = (int) $db->lastInsertId();
     }
@@ -38,7 +40,7 @@ try {
         [, $body] = statusRequest($path, $cookie); $token = statusToken($body);
         $current = function () use ($db, $id): array { $q = $db->prepare('SELECT * FROM accounting_invoices WHERE id = ?'); $q->execute([$id]); return $q->fetch(); };
         $act = function (string $action, array $extra = [], bool $accepted = true) use ($path, $cookie, $token, $current, $fixtures): array {
-            if($action==='register_payment')$extra+=['account_id'=>$fixtures['account']];
+            if($action==='register_payment')$extra+=['account_id'=>$fixtures['account'],'method_id'=>$fixtures['method']];
             $response = statusRequest($path, $cookie, ['csrf' => $token, 'version' => $current()['version'], 'action' => $action] + $extra);
             assertStatus($response[0] === ($accepted ? 303 : 200), 'Acción inesperada: ' . $action . ' ' . $response[1]); return $response;
         };
@@ -111,6 +113,7 @@ try {
     assertStatus((int) $q->fetchColumn() === 0, 'Un cambio de factura modificó inventario.');
     echo "PASS: estados de facturas de clientes y proveedores, envío local, pagos parciales/completos, filtros, reversión, cancelación, duplicados y cotizaciones canceladas.\n";
 } finally {
+    cleanupFixtureTreasury($db,array_values(array_intersect_key($fixtures,array_flip(['client','supplier']))),$prefix);
     rsort($invoiceIds,SORT_NUMERIC); foreach ($invoiceIds as $id) {
         foreach (['accounting_invoice_payments', 'accounting_invoice_reversals', 'accounting_invoice_lines'] as $table) $db->prepare('DELETE FROM ' . $table . ' WHERE invoice_id = ?')->execute([$id]);
         $db->prepare('DELETE FROM accounting_invoices WHERE id = ?')->execute([$id]);

@@ -3,7 +3,7 @@ $cashFlowEscape = static fn(mixed $value): string => htmlspecialchars((string)$v
 ?>
 <section class="business-overview cash-flow" aria-labelledby="cash-flow-title" data-cash-flow <?= $cashFlowLive ? 'data-cash-flow-endpoint="ingresos-egresos.php"' : '' ?>>
     <div class="section-heading">
-        <div><h2 id="cash-flow-title"><?= $cashFlowLive ? 'Ingresos y egresos' : 'Resumen del período' ?></h2><p class="section-subtitle">Pagos confirmados · <span data-cash-flow-range><?= $cashFlow ? $cashFlowEscape($cashFlowRange['label']) : 'Selecciona un período válido' ?></span></p></div>
+        <div><h2 id="cash-flow-title"><?= $cashFlowLive ? 'Ingresos y egresos' : 'Resumen del período' ?></h2><p class="section-subtitle">Movimientos confirmados · <span data-cash-flow-range><?= $cashFlow ? $cashFlowEscape($cashFlowRange['label']) : 'Selecciona un período válido' ?></span></p></div>
         <?php if ($cashFlowLive): ?><a class="overview-link" data-cash-flow-history href="../contabilidad/ingresos-egresos.php?<?= $cashFlowEscape(cashFlowQuery($cashFlowRange)) ?>">Ver historial →</a><?php endif; ?>
     </div>
     <form class="contact-filters cash-flow-filters" method="get" data-cash-flow-filter>
@@ -16,11 +16,12 @@ $cashFlowEscape = static fn(mixed $value): string => htmlspecialchars((string)$v
     </form>
     <p class="cash-flow-error" role="alert" data-cash-flow-error <?= !$cashFlowErrors ? 'hidden' : '' ?>><?= $cashFlowEscape(implode(' ', $cashFlowErrors)) ?></p>
     <div class="cash-flow-grid" data-cash-flow-cards>
-        <?php foreach (['income'=>'Ingresos', 'expense'=>'Egresos', 'net'=>'Diferencia'] as $key=>$label): ?>
+        <?php foreach (['income'=>'Ingresos', 'expense'=>'Egresos', 'net'=>'Diferencia','balance_start'=>'Saldo al inicio','balance_end'=>'Saldo disponible al cierre'] as $key=>$label): ?>
         <article class="overview-card cash-flow-card cash-flow-<?= $key ?>"><span class="overview-label"><?= $label ?></span><div class="cash-flow-amounts" data-cash-flow-amount="<?= $key ?>">
             <?php if ($cashFlow): ?><?php foreach ($cashFlow['currencies'] as $currency): ?><p class="cash-flow-money"><strong><?= $cashFlowEscape($currency[$key]) ?></strong><span><?= $cashFlowEscape($currency['code']) ?></span></p><?php endforeach; ?><?php else: ?><p class="cash-flow-money">—</p><?php endif; ?>
-        </div><p><?= match ($key) { 'income'=>'Dinero recibido.', 'expense'=>'Dinero enviado.', default=>'Ingresos menos egresos del período.' } ?></p></article>
+        </div><p><?= match ($key) { 'income'=>'Entradas externas del período.', 'expense'=>'Salidas externas del período.', 'balance_start'=>'Saldo antes de los movimientos del período.', 'balance_end'=>'Saldo acumulado hasta la fecha final.', default=>'Ingresos menos egresos, sin transferencias internas.' } ?></p></article>
         <?php endforeach; ?>
     </div>
-    <?php if ($cashFlowLive): ?><p class="section-subtitle cash-flow-updated" data-cash-flow-updated role="status"><?= $cashFlow ? 'Actualizado '.$cashFlowEscape($cashFlow['updated_time']).' · Hora de Venezuela' : 'Resumen no disponible.' ?></p><noscript><p class="section-subtitle">Recarga la página para actualizar el resumen.</p></noscript><?php endif; ?>
+    <?php if ($cashFlowLive): ?><p class="section-subtitle cash-flow-updated" data-cash-flow-updated role="status"><?= $cashFlow ? 'Actualizado '.$cashFlowEscape($cashFlow['updated_time']).' · Hora de Venezuela' : 'Resumen no disponible.' ?></p><noscript><p class="section-subtitle">Recarga la página para actualizar el resumen.</p></noscript>
+    <?php endif; ?>
 </section>

@@ -1,0 +1,9 @@
+<dialog class="contact-sheet invoice-wizard" id="<?= accountingEscape($reversalDialog) ?>" data-treasury-dialog <?= $page['errors']&&($_POST['action']??'')===$reversalAction?'data-reopen':'' ?>>
+<header class="invoice-wizard-header"><h2>Revertir movimiento</h2><button class="contact-button" type="button" data-treasury-dialog-close aria-label="Cerrar">×</button></header>
+<form method="post" action="<?= accountingEscape($reversalTarget) ?>"><input type="hidden" name="csrf" value="<?= accountingEscape($page['csrf']) ?>"><input type="hidden" name="version" value="<?= (int)$record['version'] ?>"><input type="hidden" name="action" value="<?= accountingEscape($reversalAction) ?>">
+<div class="invoice-wizard-body"><p>El original se conserva y se registra el movimiento contrario. Las facturas afectadas recuperan su saldo pendiente cuando corresponde.</p>
+<?php foreach($page['errors'] as $error): ?><p class="notice notice-error"><?= accountingEscape($error) ?></p><?php endforeach; ?>
+<label>Motivo *<textarea name="reason" required maxlength="255" rows="2"><?= accountingEscape(is_string($_POST['reason']??null)?$_POST['reason']:'') ?></textarea></label>
+<label>Fecha de reversión *<input type="date" name="movement_date" required <?= ($record['kind']??'')==='opening'?'readonly':'' ?> value="<?= accountingEscape(($record['kind']??'')==='opening'?$record['movement_date']:(is_string($_POST['movement_date']??null)?$_POST['movement_date']:commerceToday())) ?>"></label>
+<?php if(($record['kind']??'')==='opening'): ?><p class="section-subtitle">La corrección del saldo inicial conserva su fecha de inicio.</p><?php endif; ?></div>
+<footer class="invoice-wizard-footer"><button class="contact-button contact-button-primary">Confirmar reversión</button><button class="contact-button" type="button" data-treasury-dialog-close>Volver</button></footer></form></dialog>

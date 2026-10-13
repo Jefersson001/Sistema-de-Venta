@@ -298,12 +298,14 @@ a.product-stat-button:hover { border-color: #514397; background: #f0edff; }
 .contact-sheet .product-options label { flex-direction: row; align-items: center; gap: 10px; cursor: pointer; }
 .contact-sheet .product-options input[type="checkbox"] { width: 20px; min-width: 20px; height: 20px; min-height: 20px; margin: 0; padding: 0; accent-color: #514397; }
 .currency-options { margin-top: 0; align-items: center; }
-.cash-flow-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 14px; }
+.cash-flow-grid { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 14px; }
 .cash-flow .section-heading { align-items: center; flex-wrap: wrap; }
 .cash-flow-filters { align-items: end; }
 .cash-flow-date-range { display: flex; flex-wrap: wrap; gap: 14px; min-width: 0; }
 .cash-flow-date-range[hidden], .cash-flow-error[hidden] { display: none; }
+[data-treasury-transfer][hidden], [data-treasury-concept][hidden], [data-treasury-method][hidden], [data-treasury-contact][hidden], [data-payment-dirty][hidden], [data-treasury-dirty][hidden] { display: none; }
 .cash-flow-card { min-width: 0; }
+.cash-flow-card .overview-label { min-height: 42px; line-height: 1.5; }
 .cash-flow-amounts { display: grid; gap: 8px; margin: 14px 0; }
 .cash-flow-money { display: flex; flex-wrap: wrap; align-items: baseline; gap: 8px; margin: 0; font-variant-numeric: tabular-nums; }
 .cash-flow-money strong { font-family: Manrope, sans-serif; font-size: clamp(21px, 2.2vw, 28px); line-height: 1.3; overflow-wrap: anywhere; }
@@ -329,10 +331,13 @@ a.product-stat-button:hover { border-color: #514397; background: #f0edff; }
 .cash-flow-account-totals .cash-flow-income dd { color: #12683f; }
 .cash-flow-account-totals .cash-flow-expense dd { color: #a63745; }
 .cash-flow-account-totals .cash-flow-net dd { color: #514397; }
+.cash-flow-balance_end .cash-flow-money strong, .cash-flow-account-totals .cash-flow-balance_end dd { color: #514397; }
+.cash-flow-account-totals .cash-flow-balance_end { padding-top: 8px; border-top: 1px solid var(--line); }
 .cash-flow-account-footer { margin-top: auto; padding-top: 12px; border-top: 1px solid var(--line); color: var(--muted); font-size: 13px; }
 @media (max-width: 1100px) { .cash-flow-accounts-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
 @media (max-width: 720px) { .cash-flow-accounts-grid { grid-template-columns: 1fr; } }
-@media (max-width: 720px) { .cash-flow-grid { grid-template-columns: 1fr; }.cash-flow-date-range { width: 100%; }.cash-flow-money strong { font-size: 25px; } }
+@media (min-width: 721px) and (max-width: 1100px) { .cash-flow-grid { grid-template-columns: repeat(5, minmax(180px, 1fr)); overflow-x: auto; padding-bottom: 6px; }.cash-flow-card { padding: 16px; } }
+@media (max-width: 720px) { .cash-flow-grid { grid-template-columns: 1fr; }.cash-flow-card .overview-label { min-height: 0; }.cash-flow-date-range { width: 100%; }.cash-flow-money strong { font-size: 25px; } }
 .contact-notebook { margin-top: 20px; }
 .notebook-tabs { display: flex; flex-wrap: wrap; gap: 0; border-bottom: 1px solid #dce1eb; }
 .notebook-tabs a { display: inline-flex; min-height: 40px; align-items: center; padding: 8px 14px; border: 0; border-bottom: 2px solid transparent; color: #596579; font-size: 14px; font-weight: 600; }

@@ -27,8 +27,12 @@ function currencyCodeIsUsed(PDO $db, array $record): bool
     $q->execute([$record['id'],$record['id']]); if ($q->fetchColumn()) return true;
     $columns = ['inventory_products'=>['currency_code'],'sales_quotations'=>['currency_code','currency_primary_code','currency_alternate_code'],
         'purchase_orders'=>['currency_code','currency_primary_code','currency_alternate_code'],'accounting_invoices'=>['currency_code','currency_primary_code','currency_alternate_code'],
-        'accounting_payments'=>['currency_code','primary_code','alternate_code'],'accounting_payment_accounts'=>['currency_code']];
+        'accounting_payments'=>['currency_code','primary_code','alternate_code'],'accounting_payment_accounts'=>['currency_code'],
+        'accounting_treasury_documents'=>['currency_code','destination_currency_code','primary_code','alternate_code'],'accounting_treasury_entries'=>['currency_code']];
     foreach ($columns as $table=>$fields) {
+        if(str_starts_with($table,'accounting_treasury_')){
+            $exists=$db->prepare('SELECT 1 FROM information_schema.TABLES WHERE TABLE_SCHEMA=DATABASE() AND TABLE_NAME=?');$exists->execute([$table]);if(!$exists->fetchColumn())continue;
+        }
         $q = $db->prepare('SELECT COUNT(*) FROM '.$table.' WHERE '.implode(' OR ',array_map(static fn($field)=>$field.'=?',$fields))); $q->execute(array_fill(0,count($fields),$record['code']));
         if ($q->fetchColumn()) return true;
     }

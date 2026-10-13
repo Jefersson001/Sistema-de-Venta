@@ -19,6 +19,8 @@ function renderAccountingPayments(): void
                 if($action==='save_payment'&&$page['view']==='form'){
                     if(!$id&&!isset($_SESSION['payment_form_keys'][$page['creationKey']]))throw new InvalidArgumentException('La sesión de creación del pago no es válida.');
                     $input=$_POST;$input['partner_type']=$type;$saved=saveAccountingPayment($db,$input,$id,accountingId($_POST['version']??null),$page['creationKey']??'');$_SESSION['payment_flash']='Pago guardado.';header('Location: pagos.php?type='.$type.'&id='.$saved,true,303);exit;
+                }elseif($id&&$action==='reverse_payment'){
+                    $reversal=reverseAccountingPayment($db,$id,accountingId($_POST['version']??null),$_POST);header('Location: tesoreria.php?id='.$reversal,true,303);exit;
                 }elseif($id&&in_array($action,['post_payment','settle_payment','cancel_payment','apply_payment','unapply_payment'],true)){
                     transitionAccountingPayment($db,$id,accountingId($_POST['version']??null),$action,$_POST);$_SESSION['payment_flash']=match($action){'apply_payment'=>'Pago aplicado a la factura.','unapply_payment'=>'Aplicación retirada; el importe vuelve a estar disponible.','post_payment'=>'Pago registrado en proceso.','settle_payment'=>'Pago confirmado.',default=>'Pago cancelado.'};header('Location: pagos.php?type='.$type.'&id='.$id,true,303);exit;
                 }else{http_response_code(400);$page['errors'][]='La acción solicitada no es válida.';}
@@ -27,6 +29,7 @@ function renderAccountingPayments(): void
         if($page['view']==='form'&&$page['available']){
             $q=$db->prepare("SELECT c.id,c.name FROM contacts c JOIN contact_types t ON t.id=c.type_id WHERE (t.system_key=? AND c.active=1) OR c.id=? ORDER BY c.name,c.id");$q->execute([$type==='customer'?'client':'supplier',$existing['contact_id']??0]);$page['contacts']=$q->fetchAll();
             $page['accounts']=$db->query('SELECT * FROM accounting_payment_accounts ORDER BY name,id')->fetchAll();$page['methods']=$db->query('SELECT * FROM accounting_payment_methods ORDER BY name,id')->fetchAll();$page['candidates']=[];
+            $page['concepts']=treasuryConcepts($db);$page['record']['concept_id']??=treasuryDefaultConcept($db,$type,$page['record']['direction']);
             if($existing&&in_array($existing['status'],['pending','settled'],true)&&bccomp($existing['available'],'0',2)>0){
                 $q=$db->prepare("SELECT * FROM accounting_invoices WHERE contact_id=? AND invoice_type=? AND status='posted' AND payment_state!='reversed' ORDER BY invoice_date,id");$q->execute([$existing['contact_id'],$type]);
                 foreach($q->fetchAll() as $i){$inbound=($i['invoice_type']==='customer')===($i['document_type']==='invoice');if(($inbound?'inbound':'outbound')!==$existing['direction'])continue;$details=invoicePaymentDetails($db,(int)$i['id']);$balance=bcsub(paymentInvoiceAmount($db,$i),bcadd($details['settled'],$details['pending'],2),2);if(bccomp($balance,'0',2)<=0)continue;

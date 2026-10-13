@@ -54,6 +54,15 @@ try {
     saveCurrencyRecord($db,$data+['rates'=>$many],$id,3);
     $one=loadCurrencyRecord($db,$id)['rates'][0];saveCurrencyRecord($db,$data+['rates'=>[$one]],$id,4);
     currencyCheck(count(loadCurrencyRecord($db,$id)['rates'])===32,'Una página del notebook reemplaza todo el historial.');
+    // Currency-only installs precede Treasury; once present, its document/ledger codes are protected.
+    $db->exec('CREATE TABLE accounting_treasury_documents(currency_code CHAR(3),destination_currency_code CHAR(3),primary_code CHAR(3),alternate_code CHAR(3))');
+    $db->exec('CREATE TABLE accounting_treasury_entries(currency_code CHAR(3))');
+    foreach(['CNY'=>'accounting_treasury_documents','JPY'=>'accounting_treasury_entries'] as $code=>$table){
+        $protectedData=array_replace($data,['code'=>$code,'name'=>$code]);$protected=saveCurrencyRecord($db,$protectedData,null,null);
+        $db->prepare('INSERT INTO '.$table.'(currency_code) VALUES (?)')->execute([$code]);
+        currencyCheck(currencyCodeIsUsed($db,loadCurrencyRecord($db,$protected)),'Tesorería no protege el código utilizado.');
+        currencyRejected(fn()=>saveCurrencyRecord($db,array_replace($protectedData,['code'=>'CHF']),$protected,1));
+    }
     $snapshot=['primary_code'=>'USD','alternate_code'=>'VES','exchange_rate'=>'150.00000000'];
     currencyCheck(accountingConvert('10.00','USD','VES',$snapshot)==='1500.00','El catálogo nuevo reinterpreta la tasa guardada de un documento.');
     echo "PASS: catálogo de monedas, migración repetible, tasas fechadas/futuras/inversas, versiones, validaciones, principal/alterna, archivo, historial paginado y snapshots.\n";

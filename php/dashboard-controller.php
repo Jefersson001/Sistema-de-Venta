@@ -10,11 +10,15 @@ function renderDashboard(): void
     $databaseStatus = getDatabaseStatus();
     $dashboard = ['available' => false];
     $cashFlowPage = cashFlowPageState($_GET);
+    $cashFlowPage['cashFlowAccounts']=[];
     if ($databaseStatus['connected']) {
         try {
             $db = createDatabaseConnection();
             $dashboard = loadDashboard($db);
-            if (!$cashFlowPage['cashFlowErrors']) $cashFlowPage['cashFlow'] = loadCashFlowSummary($db, $cashFlowPage['cashFlowRange']);
+            if (!$cashFlowPage['cashFlowErrors']) {
+                $cashFlowPage['cashFlow'] = loadCashFlowSummary($db, $cashFlowPage['cashFlowRange']);
+                $cashFlowPage['cashFlowAccounts']=loadCashFlowAccounts($db,$cashFlowPage['cashFlowRange']);
+            }
         } catch (PDOException $exception) {
             error_log('Dashboard: ' . $exception->getMessage());
             $cashFlowPage['cashFlowErrors'][] = 'No se pudieron consultar los ingresos y egresos. Intenta de nuevo.';

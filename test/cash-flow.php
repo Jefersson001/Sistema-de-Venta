@@ -3,6 +3,7 @@ declare(strict_types=1);
 if (PHP_SAPI !== 'cli') { http_response_code(404); exit; }
 require_once dirname(__DIR__).'/php/connection.php';
 require_once dirname(__DIR__).'/php/cash-flow-repository.php';
+require_once dirname(__DIR__).'/php/payments-repository.php';require_once __DIR__.'/treasury-cleanup.php';
 
 function flowCheck(bool $condition, string $message): void { if (!$condition) throw new RuntimeException($message); }
 function flowRequest(string $path, ?array $post = null): array
@@ -41,7 +42,8 @@ try {
     $add=function(string $partner,string $direction,string $amount,string $currency,string $paymentDate,string $state='settled',?int $accountId=null) use ($db,$prefix,$contacts,$account,$method,$settings,&$payments,&$fixtures):int {
         $db->prepare('INSERT INTO accounting_payments(name,partner_type,direction,contact_id,amount,currency_code,primary_code,alternate_code,exchange_rate,payment_date,reference,account_id,method_id,status) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?)')
             ->execute([$prefix.count($payments),$partner,$direction,$contacts[$partner==='customer'?'client':'supplier'],$amount,$currency,$settings['primary_code'],$settings['alternate_code'],$settings['exchange_rate'],$paymentDate,$prefix,$accountId??$account,$method,$state]);
-        $id=(int)$db->lastInsertId(); $payments[]=$id; $fixtures[]=['id'=>$id,'direction'=>$direction,'amount'=>$amount,'currency'=>$currency,'date'=>$paymentDate,'status'=>$state,'account_id'=>$accountId??$account]; return $id;
+        $id=(int)$db->lastInsertId(); $payments[]=$id; $fixtures[]=['id'=>$id,'direction'=>$direction,'amount'=>$amount,'currency'=>$currency,'date'=>$paymentDate,'status'=>$state,'account_id'=>$accountId??$account];
+        if($state==='settled')treasuryPostPayment($db,loadAccountingPayment($db,$id));return $id;
     };
     $add('customer','inbound','100.00',$primary,$today);
     $add('supplier','outbound','40.00',$primary,$today);
@@ -111,10 +113,10 @@ try {
     $dom->loadHTML('<?xml encoding="UTF-8">'.$body);$xpath=new DOMXPath($dom);
     flowCheck($xpath->query('//input[@name="account_id" and @value="'.$accounts['bank'].'"]')->length===1 && $xpath->query('//*[@id="cash-flow-history-title"]')->length===1,'El detalle no conserva la cuenta al cambiar el período.');
     $actualIds=[];foreach($xpath->query('//table//a') as $link){parse_str(parse_url($link->getAttribute('href'),PHP_URL_QUERY),$query);$actualIds[]=(int)$query['id'];}
-    flowCheck($actualIds===array_map('intval',array_column($accountHistory['rows'],'id')),'La vista del banco muestra pagos de otra cuenta.');
+    flowCheck($actualIds===array_map('intval',array_column($accountHistory['rows'],'payment_id')),'La vista del banco muestra pagos de otra cuenta.');
     $pageLink=$xpath->query('//nav[@aria-label="Páginas del historial"]//a')->item(0);parse_str(parse_url($pageLink->getAttribute('href'),PHP_URL_QUERY),$pageQuery);
     flowCheck((int)$pageQuery['account_id']===$accounts['bank'] && $pageQuery['period']==='today' && $pageQuery['page']==='2','La paginación perdió el banco o período.');
-    [, $body]=flowRequest('contabilidad/ingresos-egresos.php?'.cashFlowQuery($ranges[0],$accounts['empty']));flowCheck(str_contains($body,'No hay pagos confirmados en este período.'),'Un banco vacío no muestra su historial vacío.');
+    [, $body]=flowRequest('contabilidad/ingresos-egresos.php?'.cashFlowQuery($ranges[0],$accounts['empty']));flowCheck(str_contains($body,'No hay movimientos confirmados en este período.'),'Un banco vacío no muestra su historial vacío.');
     foreach(['0','bad','999999999','%5B%5D=1'] as $bad){
         $query=$bad==='%5B%5D=1'?'account_id%5B%5D=1':'account_id='.$bad;
         [$status,$body]=flowRequest('contabilidad/ingresos-egresos.php?'.$query);flowCheck($status===404 && !str_contains($body,'data-cash-flow-account='),'Una cuenta inválida muestra silenciosamente todas las cuentas.');
@@ -137,12 +139,15 @@ try {
     // A newly confirmed payment is reflected on the next live read, including cancellations.
     [, $body]=flowRequest('dashboard/ingresos-egresos.php'); $before=flowAmounts(json_decode($body,true));
     $db->prepare("UPDATE accounting_payments SET status='settled' WHERE id=? AND reference=?")->execute([$pending,$prefix]);
+    treasuryPostPayment($db,loadAccountingPayment($db,$pending));
     [, $body]=flowRequest('dashboard/ingresos-egresos.php'); $after=flowAmounts(json_decode($body,true));
     flowCheck(bcsub($after[$primary]['income'],$before[$primary]['income'],2)==='999.00','El resumen no refleja un pago recién confirmado.');
-    $db->prepare("UPDATE accounting_payments SET status='cancel' WHERE id=? AND reference=?")->execute([$pending,$prefix]);
-    [, $body]=flowRequest('dashboard/ingresos-egresos.php'); flowCheck(flowAmounts(json_decode($body,true))===$before,'El resumen conserva un pago cancelado.');
+    reverseAccountingPayment($db,$pending,1,['reason'=>$prefix,'movement_date'=>$today]);
+    [, $body]=flowRequest('dashboard/ingresos-egresos.php');$reversed=flowAmounts(json_decode($body,true));
+    flowCheck(bcsub($reversed[$primary]['expense'],$before[$primary]['expense'],2)==='999.00'&&$reversed[$primary]['balance_end']===$before[$primary]['balance_end'],'La reversión no conserva el original y restaura el saldo.');
     echo "PASS: períodos, monedas, precisión, estados, tarjetas por caja/banco, aislamiento de cuentas, historial, paginación, fechas y actualización de ingresos y egresos.\n";
 } finally {
+    cleanupFixtureTreasury($db,array_values($contacts),$prefix);
     foreach ($payments as $id) $db->prepare('DELETE FROM accounting_payments WHERE id=? AND reference=?')->execute([$id,$prefix]);
     foreach ($contacts as $role=>$id) $db->prepare('DELETE FROM contacts WHERE id=? AND name=?')->execute([$id,$prefix.$role]);
     foreach ($accounts as $key=>$id) $db->prepare('DELETE FROM accounting_payment_accounts WHERE id=? AND name=?')->execute([$id,$prefix.$key]);

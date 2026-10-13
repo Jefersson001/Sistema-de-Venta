@@ -54,7 +54,7 @@ for (const widget of document.querySelectorAll('[data-cash-flow]')) {
     let applied = parameters();
 
     function render(data) {
-        for (const key of ['income', 'expense', 'net']) {
+        for (const key of ['income', 'expense', 'net','balance_start','balance_end']) {
             const amounts = widget.querySelector(`[data-cash-flow-amount="${key}"]`);
             const rows = data.currencies.map(currency => {
                 const row = document.createElement('p'); row.className = 'cash-flow-money';
@@ -66,6 +66,20 @@ for (const widget of document.querySelectorAll('[data-cash-flow]')) {
         }
         rangeLabel.textContent = data.range.label;
         link.href = '../contabilidad/ingresos-egresos.php?' + applied.toString();
+        const accountGrid=widget.querySelector('[data-cash-flow-account-grid]');
+        if(accountGrid){
+            const element=(tag,className,value)=>{const node=document.createElement(tag);node.className=className;if(value!==undefined)node.textContent=value;return node;};
+            const labels={balance_start:'Saldo al inicio',income:'Ingresos',expense:'Egresos',net:'Diferencia',transfer_in:'Transferencias recibidas',transfer_out:'Transferencias enviadas',opening_changes:'Saldos iniciales del período',balance_end:'Saldo al cierre'};
+            const accountCards=data.accounts.map(account=>{
+                const card=element('a','overview-card cash-flow-account-card');card.dataset.cashFlowAccount=account.id;
+                card.href=accountGrid.dataset.historyPrefix+'ingresos-egresos.php?'+applied.toString()+'&account_id='+encodeURIComponent(account.id);
+                const heading=element('div','cash-flow-account-heading');heading.append(element('h3','',account.name),element('span','module-status',account.account_type==='cash'?'Caja':'Banco'));card.append(heading);
+                for(const currency of account.currencies){const block=element('div','cash-flow-account-currency');block.append(element('strong','',currency.code));const totals=element('dl','cash-flow-account-totals');
+                    for(const [key,label] of Object.entries(labels)){if(['transfer_in','transfer_out','opening_changes'].includes(key)&&currency[key]==='0.00')continue;const row=element('div','cash-flow-'+key);row.append(element('dt','',label),element('dd','',currency[key]));totals.append(row);}block.append(totals);card.append(block);}
+                const footer=element('div','cash-flow-account-footer');footer.append(element('span','',account.count+' movimientos confirmados'),element('span','overview-link','Ver historial →'));card.append(footer);return card;
+            });
+            accountGrid.replaceChildren(...accountCards);
+        }
         if (!dirty) { period.value = data.range.period; from.value = data.range.date_from; to.value = data.range.date_to; showDates(); }
         updated.textContent = 'Actualizado ' + data.updated_time + ' · Cada 30 s · Hora de Venezuela';
         error.hidden = true; error.textContent = '';

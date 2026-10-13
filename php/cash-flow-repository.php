@@ -42,79 +42,63 @@ function cashFlowQuery(array $range, ?int $accountId = null): string
 
 function cashFlowZeroAmounts(array $codes): array
 {
-    $amounts = [];
-    foreach ($codes as $code) $amounts[$code] = ['code'=>$code, 'income'=>'0.00', 'expense'=>'0.00', 'net'=>'0.00', 'income_count'=>0, 'expense_count'=>0];
+    $amounts=[];
+    foreach($codes as $code)$amounts[$code]=['code'=>$code,'income'=>'0.00','expense'=>'0.00','net'=>'0.00','income_count'=>0,'expense_count'=>0,
+        'balance_start'=>'0.00','balance_end'=>'0.00','transfer_in'=>'0.00','transfer_out'=>'0.00','opening_changes'=>'0.00'];
     return $amounts;
 }
-
-function cashFlowAmounts(array $row): array
+function cashFlowLedgerTotals(PDO $db,array $range,?int $accountId=null): array
 {
-    $income = bcadd($row['income'], '0', 2); $expense = bcadd($row['expense'], '0', 2);
-    return ['code'=>$row['currency_code'], 'income'=>$income, 'expense'=>$expense, 'net'=>bcsub($income,$expense,2),
-        'income_count'=>(int)$row['income_count'], 'expense_count'=>(int)$row['expense_count']];
+    $external="category IN ('payment','movement','reversal')";
+    $sql="SELECT account_id,currency_code,
+        SUM(CASE WHEN $external AND movement_date>=? AND amount>0 THEN amount ELSE 0 END) AS income,
+        SUM(CASE WHEN $external AND movement_date>=? AND amount<0 THEN -amount ELSE 0 END) AS expense,
+        SUM($external AND movement_date>=? AND amount>0) AS income_count,
+        SUM($external AND movement_date>=? AND amount<0) AS expense_count,
+        SUM(CASE WHEN movement_date<? OR (category='opening' AND movement_date=?) THEN amount ELSE 0 END) AS balance_start,
+        SUM(amount) AS balance_end,
+        SUM(CASE WHEN category='transfer' AND movement_date>=? AND amount>0 THEN amount ELSE 0 END) AS transfer_in,
+        SUM(CASE WHEN category='transfer' AND movement_date>=? AND amount<0 THEN -amount ELSE 0 END) AS transfer_out,
+        SUM(CASE WHEN category='opening' AND movement_date>? THEN amount ELSE 0 END) AS opening_changes,
+        SUM(movement_date>=?) AS movement_count
+        FROM accounting_treasury_entries WHERE movement_date<=?".($accountId?' AND account_id=?':'').' GROUP BY account_id,currency_code';
+    $params=array_fill(0,10,$range['date_from']);$params[]=$range['date_to'];if($accountId)$params[]=$accountId;
+    $q=$db->prepare($sql);$q->execute($params);return $q->fetchAll();
 }
-
-function loadCashFlowSummary(PDO $db, array $range, ?int $accountId = null): array
+function cashFlowMerge(array &$amounts,array $row): void
 {
-    // Count the full payment exactly once, regardless of its invoice allocations.
-    $query = $db->prepare("SELECT currency_code,
-        SUM(CASE WHEN direction='inbound' THEN amount ELSE 0 END) AS income,
-        SUM(CASE WHEN direction='outbound' THEN amount ELSE 0 END) AS expense,
-        SUM(direction='inbound') AS income_count, SUM(direction='outbound') AS expense_count
-        FROM accounting_payments WHERE status='settled' AND payment_date BETWEEN ? AND ?".($accountId ? ' AND account_id=?' : '').' GROUP BY currency_code');
-    $params = [$range['date_from'], $range['date_to']]; if ($accountId) $params[] = $accountId;
-    $query->execute($params);
-    $codes = accountingCurrencyCodes(accountingCurrencies($db));
-    if ($accountId) {
-        $account = $db->prepare('SELECT currency_code FROM accounting_payment_accounts WHERE id=?'); $account->execute([$accountId]);
-        if ($currency = $account->fetchColumn()) $codes = [$currency];
-    }
-    $amounts = cashFlowZeroAmounts($codes);
-    $count = 0;
-    foreach ($query->fetchAll() as $row) {
-        $amounts[$row['currency_code']] = cashFlowAmounts($row);
-        $count += (int)$row['income_count'] + (int)$row['expense_count'];
-    }
-    $updated = new DateTimeImmutable('now', new DateTimeZone('America/Caracas'));
-    return ['range'=>$range, 'currencies'=>array_values($amounts), 'count'=>$count, 'updated_at'=>$updated->format(DATE_ATOM), 'updated_time'=>$updated->format('H:i:s')];
+    $code=$row['currency_code'];$amounts[$code]??=cashFlowZeroAmounts([$code])[$code];
+    foreach(['income','expense','balance_start','balance_end','transfer_in','transfer_out','opening_changes'] as $key)$amounts[$code][$key]=bcadd($amounts[$code][$key],$row[$key],2);
+    foreach(['income_count','expense_count'] as $key)$amounts[$code][$key]+=(int)$row[$key];
+    $amounts[$code]['net']=bcsub($amounts[$code]['income'],$amounts[$code]['expense'],2);
 }
-
-function loadCashFlowAccounts(PDO $db, array $range): array
+function loadCashFlowSummary(PDO $db,array $range,?int $accountId=null): array
 {
-    $codes = accountingCurrencyCodes(accountingCurrencies($db));
-    $accounts = [];
-    foreach ($db->query('SELECT * FROM accounting_payment_accounts ORDER BY name,id')->fetchAll() as $account) {
-        $account['currencies'] = cashFlowZeroAmounts($account['currency_code'] ? [$account['currency_code']] : $codes);
-        $account['count'] = 0; $accounts[(int)$account['id']] = $account;
-    }
-    $query = $db->prepare("SELECT account_id,currency_code,
-        SUM(CASE WHEN direction='inbound' THEN amount ELSE 0 END) AS income,
-        SUM(CASE WHEN direction='outbound' THEN amount ELSE 0 END) AS expense,
-        SUM(direction='inbound') AS income_count,SUM(direction='outbound') AS expense_count
-        FROM accounting_payments WHERE status='settled' AND payment_date BETWEEN ? AND ? GROUP BY account_id,currency_code");
-    $query->execute([$range['date_from'],$range['date_to']]);
-    foreach ($query->fetchAll() as $row) {
-        $accounts[(int)$row['account_id']]['currencies'][$row['currency_code']] = cashFlowAmounts($row);
-        $accounts[(int)$row['account_id']]['count'] += (int)$row['income_count']+(int)$row['expense_count'];
-    }
-    foreach ($accounts as &$account) $account['currencies'] = array_values($account['currencies']);
-    unset($account);
-    return array_values($accounts);
+    $codes=accountingCurrencyCodes(accountingCurrencies($db));
+    if($accountId){$q=$db->prepare('SELECT currency_code FROM accounting_payment_accounts WHERE id=?');$q->execute([$accountId]);if($code=$q->fetchColumn())$codes=[$code];}
+    $amounts=cashFlowZeroAmounts($codes);$count=0;
+    foreach(cashFlowLedgerTotals($db,$range,$accountId) as $row){cashFlowMerge($amounts,$row);$count+=(int)$row['movement_count'];}
+    $updated=new DateTimeImmutable('now',new DateTimeZone('America/Caracas'));
+    return ['range'=>$range,'currencies'=>array_values($amounts),'count'=>$count,'updated_at'=>$updated->format(DATE_ATOM),'updated_time'=>$updated->format('H:i:s')];
 }
-
-function loadCashFlowHistory(PDO $db, array $range, mixed $requestedPage, ?int $accountId = null): array
+function loadCashFlowAccounts(PDO $db,array $range): array
 {
-    $params = [$range['date_from'], $range['date_to']];
-    $where = " WHERE p.status='settled' AND p.payment_date BETWEEN ? AND ?";
-    if ($accountId) { $where .= ' AND p.account_id=?'; $params[] = $accountId; }
-    $query = $db->prepare('SELECT COUNT(*) FROM accounting_payments p'.$where); $query->execute($params);
-    $total = (int)$query->fetchColumn(); $pages = max(1, (int)ceil($total/20));
-    $page = is_string($requestedPage) || is_int($requestedPage) ? filter_var($requestedPage, FILTER_VALIDATE_INT, ['options'=>['min_range'=>1]]) : false;
-    $page = min($page ?: 1, $pages);
-    $query = $db->prepare('SELECT p.*,c.name AS contact_name,a.name AS account_name,m.name AS method_name
-        FROM accounting_payments p JOIN contacts c ON c.id=p.contact_id
-        JOIN accounting_payment_accounts a ON a.id=p.account_id JOIN accounting_payment_methods m ON m.id=p.method_id'
-        .$where.' ORDER BY p.payment_date DESC,p.id DESC LIMIT 20 OFFSET '.(($page-1)*20));
-    $query->execute($params);
-    return ['rows'=>$query->fetchAll(), 'total'=>$total, 'pages'=>$pages, 'currentPage'=>$page];
+    $codes=accountingCurrencyCodes(accountingCurrencies($db));$accounts=[];
+    foreach($db->query('SELECT * FROM accounting_payment_accounts ORDER BY name,id')->fetchAll() as $a){$a['currencies']=cashFlowZeroAmounts($a['currency_code']?[$a['currency_code']]:$codes);$a['count']=0;$accounts[(int)$a['id']]=$a;}
+    foreach(cashFlowLedgerTotals($db,$range) as $row){cashFlowMerge($accounts[(int)$row['account_id']]['currencies'],$row);$accounts[(int)$row['account_id']]['count']+=(int)$row['movement_count'];}
+    foreach($accounts as &$a)$a['currencies']=array_values($a['currencies']);unset($a);return array_values($accounts);
+}
+function loadCashFlowHistory(PDO $db,array $range,mixed $requestedPage,?int $accountId=null): array
+{
+    $params=[$range['date_from'],$range['date_to']];$where=' WHERE e.movement_date BETWEEN ? AND ?';
+    if($accountId){$where.=' AND e.account_id=?';$params[]=$accountId;}
+    $q=$db->prepare('SELECT COUNT(*) FROM accounting_treasury_entries e'.$where);$q->execute($params);$total=(int)$q->fetchColumn();$pages=max(1,(int)ceil($total/20));
+    $page=is_string($requestedPage)||is_int($requestedPage)?filter_var($requestedPage,FILTER_VALIDATE_INT,['options'=>['min_range'=>1]]):false;$page=min($page?:1,$pages);
+    $q=$db->prepare("SELECT e.*,e.movement_date AS payment_date,ABS(e.amount) AS display_amount,IF(e.amount>=0,'inbound','outbound') AS direction,
+        p.partner_type,COALESCE(p.name,d.name) AS name,c.name AS contact_name,a.name AS account_name,m.name AS method_name,k.name AS concept_name,
+        'settled' AS status FROM accounting_treasury_entries e JOIN accounting_payment_accounts a ON a.id=e.account_id
+        LEFT JOIN accounting_payments p ON p.id=e.payment_id LEFT JOIN accounting_treasury_documents d ON d.id=e.document_id
+        LEFT JOIN contacts c ON c.id=e.contact_id LEFT JOIN accounting_payment_methods m ON m.id=e.method_id
+        LEFT JOIN accounting_cash_concepts k ON k.id=e.concept_id".$where.' ORDER BY e.movement_date DESC,e.id DESC LIMIT 20 OFFSET '.(($page-1)*20));$q->execute($params);
+    return ['rows'=>$q->fetchAll(),'total'=>$total,'pages'=>$pages,'currentPage'=>$page];
 }

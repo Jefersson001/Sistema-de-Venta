@@ -2,14 +2,15 @@
 declare(strict_types=1);
 require_once __DIR__.'/invoice-status-repository.php';
 require_once __DIR__.'/currency-repository.php';
+require_once __DIR__.'/treasury-repository.php';
 
-function paymentStatuses(): array {return ['draft'=>'Borrador','pending'=>'En proceso de pago','settled'=>'Pagado','cancel'=>'Cancelado'];}
+function paymentStatuses(): array {return ['draft'=>'Borrador','pending'=>'En proceso de pago','settled'=>'Pagado','cancel'=>'Cancelado','reversed'=>'Revertido'];}
 function loadAccountingPayment(PDO $db,int $id): ?array
 {
-    $q=$db->prepare('SELECT p.*,c.name AS contact_name,a.name AS account_name,m.name AS method_name FROM accounting_payments p JOIN contacts c ON c.id=p.contact_id JOIN accounting_payment_accounts a ON a.id=p.account_id JOIN accounting_payment_methods m ON m.id=p.method_id WHERE p.id=?');$q->execute([$id]);$p=$q->fetch();if(!$p)return null;
+    $q=$db->prepare('SELECT p.*,c.name AS contact_name,a.name AS account_name,m.name AS method_name,k.name AS concept_name,r.id AS reversal_id FROM accounting_payments p JOIN contacts c ON c.id=p.contact_id JOIN accounting_payment_accounts a ON a.id=p.account_id JOIN accounting_payment_methods m ON m.id=p.method_id LEFT JOIN accounting_cash_concepts k ON k.id=p.concept_id LEFT JOIN accounting_treasury_documents r ON r.payment_id=p.id WHERE p.id=?');$q->execute([$id]);$p=$q->fetch();if(!$p)return null;
     $q=$db->prepare('SELECT l.*,i.name AS invoice_name,i.invoice_type,i.currency_code,i.document_type FROM accounting_invoice_payments l JOIN accounting_invoices i ON i.id=l.invoice_id WHERE l.payment_id=? ORDER BY l.id');$q->execute([$id]);$p['allocations']=$q->fetchAll();$p['allocated']='0.00';
     foreach($p['allocations'] as $l)if($l['status']!=='cancel')$p['allocated']=bcadd($p['allocated'],$l['payment_amount'],2);
-    $p['available']=$p['status']==='cancel'?'0.00':bcsub($p['amount'],$p['allocated'],2);return $p;
+    $p['available']=in_array($p['status'],['cancel','reversed'],true)?'0.00':bcsub($p['amount'],$p['allocated'],2);return $p;
 }
 function validateAccountingPayment(PDO $db,array $input,?array $existing=null,?array $invoice=null): array
 {
@@ -26,16 +27,16 @@ function validateAccountingPayment(PDO $db,array $input,?array $existing=null,?a
     if(!is_string($currency)||!in_array($currency,array_merge(accountingCurrencyCodes($settings),[$existing['currency_code']??null,$invoice['currency_code']??null]),true))throw new InvalidArgumentException('Selecciona una moneda configurada.');
     $account=salesId($input['account_id']??null);
     if(!$account)throw new InvalidArgumentException('Selecciona una cuenta de '.($direction==='inbound'?'ingreso':'egreso').' válida.');
-    if(isset($input['method_id'])&&!salesId($input['method_id']))throw new InvalidArgumentException('Selecciona un medio de pago válido.');
-    $method=salesId($input['method_id']??null)??(int)$db->query("SELECT id FROM accounting_payment_methods WHERE system_key='manual'")->fetchColumn();
-    $q=$db->prepare('SELECT currency_code FROM accounting_payment_accounts WHERE id=?');$q->execute([$account]);$a=$q->fetch();
-    if(!$a)throw new InvalidArgumentException('La cuenta seleccionada no existe.');
+    $method=salesId($input['method_id']??null);if(!$method)throw new InvalidArgumentException('Selecciona un medio de pago válido.');
+    if(array_key_exists('concept_id',$input)&&!salesId($input['concept_id']))throw new InvalidArgumentException('Selecciona un concepto válido.');
+    $accounts=treasuryLockAccounts($db,[$account]);$a=$accounts[$account];
     if($a['currency_code']&&$a['currency_code']!==$currency)throw new InvalidArgumentException('La cuenta seleccionada debe admitir la moneda del pago.');
     $q=$db->prepare('SELECT id FROM accounting_payment_methods WHERE id=?');$q->execute([$method]);if(!$q->fetchColumn())throw new InvalidArgumentException('Selecciona un medio de pago válido.');
+    $concept=treasuryConcept($db,salesId($input['concept_id']??null)??treasuryDefaultConcept($db,$type,$direction),$direction,salesId($existing['concept_id']??null));
     $pair=$existing?['primary_code'=>$existing['primary_code'],'alternate_code'=>$existing['alternate_code'],'exchange_rate'=>$existing['exchange_rate']]:$settings;
     $rate=accountingExchangeRate($input['exchange_rate']??$pair['exchange_rate']);
     if($currency!==$pair['primary_code']&&$currency===$pair['alternate_code']&&!$rate)throw new InvalidArgumentException('Indica la tasa de cambio utilizada para registrar el pago en moneda alterna.');
-    return ['partner_type'=>$type,'direction'=>$direction,'contact_id'=>$contact,'amount'=>$amount,'currency_code'=>$currency,'primary_code'=>$pair['primary_code'],'alternate_code'=>$pair['alternate_code'],'exchange_rate'=>$rate,'payment_date'=>$date,'reference'=>$reference,'account_id'=>$account,'method_id'=>$method];
+    return ['partner_type'=>$type,'direction'=>$direction,'contact_id'=>$contact,'amount'=>$amount,'currency_code'=>$currency,'primary_code'=>$pair['primary_code'],'alternate_code'=>$pair['alternate_code'],'exchange_rate'=>$rate,'payment_date'=>$date,'reference'=>$reference,'account_id'=>$account,'method_id'=>$method,'concept_id'=>$concept];
 }
 function insertAccountingPayment(PDO $db,array $data,string $status='draft',?string $key=null): int
 {
@@ -101,6 +102,7 @@ function paymentRecomputeInvoices(PDO $db,array $invoices): void
 }
 function transitionAccountingPayment(PDO $db,int $id,?int $version,string $action,array $input=[]): void
 {
+    if($action==='reverse_payment'){reverseAccountingPayment($db,$id,$version,$input);return;}
     workflowBegin($db);
     try{
         $q=$db->prepare('SELECT * FROM accounting_payments WHERE id=? FOR UPDATE');$q->execute([$id]);$p=$q->fetch();
@@ -118,8 +120,10 @@ function transitionAccountingPayment(PDO $db,int $id,?int $version,string $actio
                 $i=$invoices[(int)$a['invoice_id']];paymentValidateInvoice($p,$i);$d=invoicePaymentDetails($db,(int)$i['id']);if(bccomp(bcadd($d['settled'],$a['amount'],2),paymentInvoiceAmount($db,$i),2)>0)throw new InvalidArgumentException('Una aplicación supera el saldo actual de su factura.');
             }
             $db->prepare("UPDATE accounting_payments SET status='settled' WHERE id=?")->execute([$id]);$db->prepare("UPDATE accounting_invoice_payments SET status='settled' WHERE payment_id=? AND status='pending'")->execute([$id]);
+            treasuryPostPayment($db,$p);
         }elseif(in_array($action,['cancel_payment','unapply_payment'],true)){
-            if($p['status']==='cancel')throw new InvalidArgumentException('El pago ya está cancelado.');
+            if(in_array($p['status'],['cancel','reversed'],true))throw new InvalidArgumentException('El pago ya está cancelado o revertido.');
+            if($action==='cancel_payment'&&$p['status']==='settled')throw new InvalidArgumentException('Un pago confirmado conserva su movimiento. Usa Revertir pago para corregirlo.');
             $target=$action==='unapply_payment'?salesId($input['invoice_id']??null):null;
             $allocations=loadAccountingPayment($db,$id)['allocations'];$found=false;
             foreach($allocations as $a)if($a['status']!=='cancel'&&(!$target||(int)$a['invoice_id']===$target)){

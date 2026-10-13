@@ -92,6 +92,8 @@ function renderAccountingInvoices(): void
             $page['links'] = commerceLinks($db, $page['documentKind'], (int) $page['record'][$type === 'customer' ? 'sale_id' : 'purchase_id']);
             $page['paymentDetails'] = invoicePaymentDetails($db, $id);
             $page['settings']=accountingCurrencies($db);$page['paymentAccounts']=$db->query('SELECT * FROM accounting_payment_accounts ORDER BY name,id')->fetchAll();$page['paymentMethods']=$db->query('SELECT * FROM accounting_payment_methods ORDER BY name,id')->fetchAll();$page['availablePayments']=[];
+            $page['paymentConcepts']=treasuryConcepts($db);
+            $page['defaultPaymentConcept']=treasuryDefaultConcept($db,$type,(($type==='customer')===($page['record']['document_type']==='invoice'))?'inbound':'outbound');
             if($page['record']['status']==='posted'&&$page['record']['payment_state']!=='reversed'){
                 $inbound=($type==='customer')===($page['record']['document_type']==='invoice');$q=$db->prepare("SELECT id FROM accounting_payments WHERE contact_id=? AND partner_type=? AND direction=? AND status IN('pending','settled') ORDER BY payment_date,id");$q->execute([$page['record']['contact_id'],$type,$inbound?'inbound':'outbound']);
                 $d=$page['paymentDetails'];$balance=bcsub(paymentInvoiceAmount($db,$page['record']),bcadd($d['pending'],$d['settled'],2),2);

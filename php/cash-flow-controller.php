@@ -60,7 +60,8 @@ function renderCashFlowSnapshot(): void
     }
     try {
         $range = cashFlowRange($_GET);
-        echo json_encode(loadCashFlowSummary(createDatabaseConnection(), $range), JSON_UNESCAPED_UNICODE | JSON_THROW_ON_ERROR);
+        $db=createDatabaseConnection();$summary=loadCashFlowSummary($db,$range);$summary['accounts']=loadCashFlowAccounts($db,$range);
+        echo json_encode($summary, JSON_UNESCAPED_UNICODE | JSON_THROW_ON_ERROR);
     } catch (InvalidArgumentException $exception) {
         http_response_code(422); echo json_encode(['error'=>$exception->getMessage()], JSON_UNESCAPED_UNICODE);
     } catch (Throwable $exception) {
