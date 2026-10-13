@@ -82,7 +82,8 @@ for (const widget of document.querySelectorAll('[data-cash-flow]')) {
         }
         if (!dirty) { period.value = data.range.period; from.value = data.range.date_from; to.value = data.range.date_to; showDates(); }
         updated.textContent = 'Actualizado ' + data.updated_time + ' · Cada 30 s · Hora de Venezuela';
-        error.hidden = true; error.textContent = '';
+        if (!dirty) { error.hidden = true; error.textContent = ''; }
+        widget.dispatchEvent(new CustomEvent('cash-flow:snapshot', { bubbles: true, detail: data }));
     }
 
     async function update(changeUrl = false) {
@@ -92,6 +93,7 @@ for (const widget of document.querySelectorAll('[data-cash-flow]')) {
         const timeout = setTimeout(() => current.abort(), 15000);
         cards.setAttribute('aria-busy', 'true');
         updated.textContent = 'Actualizando…';
+        widget.dispatchEvent(new CustomEvent('cash-flow:refresh-state', { bubbles: true, detail: { loading: true } }));
         try {
             const response = await fetch(endpoint + '?' + applied.toString(), { cache: 'no-store', signal: current.signal, headers: { Accept: 'application/json' } });
             const data = await response.json();
@@ -109,6 +111,7 @@ for (const widget of document.querySelectorAll('[data-cash-flow]')) {
             error.textContent = failure.name === 'AbortError' ? 'La consulta tardó demasiado. Intenta actualizar de nuevo.' : failure.message;
             error.hidden = false;
             updated.textContent = 'No se pudo actualizar. Los valores conservan el último período consultado.';
+            widget.dispatchEvent(new CustomEvent('cash-flow:refresh-state', { bubbles: true, detail: { error: error.textContent } }));
         } finally {
             clearTimeout(timeout);
             if (number === requestNumber) { controller = null; cards.setAttribute('aria-busy', 'false'); }
@@ -124,8 +127,8 @@ for (const widget of document.querySelectorAll('[data-cash-flow]')) {
         applied = parameters(); dirty = false; update(true);
     });
     if (error.hidden) updated.textContent += ' · Se actualiza cada 30 s';
-    const timer = setInterval(() => { if (!document.hidden && !controller && !dirty) update(); }, 30000);
-    document.addEventListener('visibilitychange', () => { if (!document.hidden && !controller && !dirty) update(); });
+    const timer = setInterval(() => { if (!document.hidden && !controller) update(); }, 30000);
+    document.addEventListener('visibilitychange', () => { if (!document.hidden && !controller) update(); });
     window.addEventListener('popstate', () => {
         const query = new URL(window.location.href).searchParams;
         clearTimeout(dateTimer);

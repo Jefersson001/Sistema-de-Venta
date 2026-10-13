@@ -1,7 +1,7 @@
 <?php
 $cashFlowEscape = static fn(mixed $value): string => htmlspecialchars((string)$value, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
 ?>
-<section class="business-overview cash-flow" aria-labelledby="cash-flow-title" data-cash-flow <?= $cashFlowLive ? 'data-cash-flow-endpoint="ingresos-egresos.php"' : '' ?>>
+<section class="business-overview cash-flow" aria-labelledby="cash-flow-title" data-cash-flow <?= $cashFlowLive ? 'data-cash-flow-endpoint="'.$cashFlowEscape($cashFlowEndpoint ?? 'ingresos-egresos.php').'"' : '' ?>>
     <div class="section-heading">
         <div><h2 id="cash-flow-title"><?= $cashFlowLive ? 'Ingresos y egresos' : 'Resumen del período' ?></h2><p class="section-subtitle">Movimientos confirmados · <span data-cash-flow-range><?= $cashFlow ? $cashFlowEscape($cashFlowRange['label']) : 'Selecciona un período válido' ?></span></p></div>
         <?php if ($cashFlowLive): ?><a class="overview-link" data-cash-flow-history href="../contabilidad/ingresos-egresos.php?<?= $cashFlowEscape(cashFlowQuery($cashFlowRange)) ?>">Ver historial →</a><?php endif; ?>
