@@ -20,6 +20,7 @@ function statusToken(string $body): string { assertStatus(preg_match('/name="csr
 function statusCreated(array $response): int { assertStatus($response[0] === 303 && preg_match('/id=(\d+)/', $response[2], $m) === 1, 'No se creó el documento: ' . $response[1]); return (int) $m[1]; }
 try {
     $roles = array_flip($db->query('SELECT id, system_key FROM contact_types WHERE system_key IS NOT NULL')->fetchAll(PDO::FETCH_KEY_PAIR));
+    $db->prepare("INSERT INTO accounting_payment_accounts(name,account_type) VALUES (?,'cash')")->execute([$prefix]);$fixtures['account']=(int)$db->lastInsertId();
     foreach (['client', 'supplier'] as $role) {
         $db->prepare('INSERT INTO contacts (name, type_id) VALUES (?, ?)')->execute([$prefix . $role, $roles[$role]]); $fixtures[$role] = (int) $db->lastInsertId();
     }
@@ -36,7 +37,8 @@ try {
         $path = 'contabilidad/index.php?type=' . $type . '&id=' . $id;
         [, $body] = statusRequest($path, $cookie); $token = statusToken($body);
         $current = function () use ($db, $id): array { $q = $db->prepare('SELECT * FROM accounting_invoices WHERE id = ?'); $q->execute([$id]); return $q->fetch(); };
-        $act = function (string $action, array $extra = [], bool $accepted = true) use ($path, $cookie, $token, $current): array {
+        $act = function (string $action, array $extra = [], bool $accepted = true) use ($path, $cookie, $token, $current, $fixtures): array {
+            if($action==='register_payment')$extra+=['account_id'=>$fixtures['account']];
             $response = statusRequest($path, $cookie, ['csrf' => $token, 'version' => $current()['version'], 'action' => $action] + $extra);
             assertStatus($response[0] === ($accepted ? 303 : 200), 'Acción inesperada: ' . $action . ' ' . $response[1]); return $response;
         };
@@ -121,4 +123,5 @@ try {
     if (isset($fixtures['product'])) $db->prepare('DELETE FROM inventory_products WHERE id = ? AND name = ?')->execute([$fixtures['product'], $prefix]);
     foreach (['client', 'supplier'] as $role) if (isset($fixtures[$role])) $db->prepare('DELETE FROM contacts WHERE id = ? AND name = ?')->execute([$fixtures[$role], $prefix . $role]);
     if (is_file($cookie)) unlink($cookie);
+    if(isset($fixtures['account']))$db->prepare('DELETE FROM accounting_payment_accounts WHERE id=? AND name=?')->execute([$fixtures['account'],$prefix]);
 }

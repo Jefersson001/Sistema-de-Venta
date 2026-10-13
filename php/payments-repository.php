@@ -24,11 +24,13 @@ function validateAccountingPayment(PDO $db,array $input,?array $existing=null,?a
     $reference=is_string($input['reference']??null)?trim($input['reference']):'';if(mb_strlen($reference)>160)throw new InvalidArgumentException('La referencia admite hasta 160 caracteres.');
     $currency=$input['currency_code']??$existing['currency_code']??$invoice['currency_code']??$settings['primary_code'];
     if(!is_string($currency)||!in_array($currency,array_merge(accountingCurrencyCodes($settings),[$existing['currency_code']??null,$invoice['currency_code']??null]),true))throw new InvalidArgumentException('Selecciona una moneda configurada.');
-    if(isset($input['account_id'])&&!salesId($input['account_id']))throw new InvalidArgumentException('Selecciona una caja o banco válido.');
+    $account=salesId($input['account_id']??null);
+    if(!$account)throw new InvalidArgumentException('Selecciona una cuenta de '.($direction==='inbound'?'ingreso':'egreso').' válida.');
     if(isset($input['method_id'])&&!salesId($input['method_id']))throw new InvalidArgumentException('Selecciona un medio de pago válido.');
-    $account=salesId($input['account_id']??null)??(int)$db->query("SELECT id FROM accounting_payment_accounts WHERE system_key='default_cash'")->fetchColumn();
     $method=salesId($input['method_id']??null)??(int)$db->query("SELECT id FROM accounting_payment_methods WHERE system_key='manual'")->fetchColumn();
-    $q=$db->prepare('SELECT currency_code FROM accounting_payment_accounts WHERE id=?');$q->execute([$account]);$a=$q->fetch();if(!$a||($a['currency_code']&&$a['currency_code']!==$currency))throw new InvalidArgumentException('La caja o banco debe admitir la moneda del pago.');
+    $q=$db->prepare('SELECT currency_code FROM accounting_payment_accounts WHERE id=?');$q->execute([$account]);$a=$q->fetch();
+    if(!$a)throw new InvalidArgumentException('La cuenta seleccionada no existe.');
+    if($a['currency_code']&&$a['currency_code']!==$currency)throw new InvalidArgumentException('La cuenta seleccionada debe admitir la moneda del pago.');
     $q=$db->prepare('SELECT id FROM accounting_payment_methods WHERE id=?');$q->execute([$method]);if(!$q->fetchColumn())throw new InvalidArgumentException('Selecciona un medio de pago válido.');
     $pair=$existing?['primary_code'=>$existing['primary_code'],'alternate_code'=>$existing['alternate_code'],'exchange_rate'=>$existing['exchange_rate']]:$settings;
     $rate=accountingExchangeRate($input['exchange_rate']??$pair['exchange_rate']);
