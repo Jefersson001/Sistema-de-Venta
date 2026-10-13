@@ -5,37 +5,13 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="theme-color" content="#f5f7fb">
     <title><?= $isConfiguration ? 'Configuración | ' : '' ?><?= htmlspecialchars($module['name'], ENT_QUOTES, 'UTF-8') ?> | Nexo</title>
-    <link rel="stylesheet" href="../../css/app.css">
-    <script src="../../js/app.js" defer></script>
+    <link rel="stylesheet" href="../../css/app.css?v=<?= filemtime(dirname(__DIR__) . '/css/app.css') ?>">
+    <script src="../../js/app.js?v=<?= filemtime(dirname(__DIR__) . '/js/app.js') ?>" defer></script>
 </head>
 <body>
     <div class="app-shell">
-        <aside class="sidebar" id="sidebar">
-            <a class="brand" href="../../index.php" aria-label="Nexo, inicio">
-                <span class="brand-mark">N</span>
-                <span class="brand-name">nexo<span>.</span><small>GESTIÓN EMPRESARIAL</small></span>
-            </a>
-            <p class="sidebar-label">ESPACIO DE TRABAJO</p>
-            <a class="sidebar-link" href="../../index.php"><span class="sidebar-icon" aria-hidden="true">⌂</span><span>Inicio</span></a>
-            <p class="sidebar-label sidebar-label-modules">MÓDULOS</p>
-            <nav class="sidebar-modules" aria-label="Módulos">
-                <?php foreach ($modules as $key => $sidebarModule): ?>
-                    <a class="sidebar-link <?= $key === $moduleKey ? 'sidebar-link-active' : '' ?>" href="../<?= htmlspecialchars($key, ENT_QUOTES, 'UTF-8') ?>/index.php">
-                        <span class="sidebar-dot dot-<?= htmlspecialchars($sidebarModule['color'], ENT_QUOTES, 'UTF-8') ?>"></span>
-                        <span><?= htmlspecialchars($sidebarModule['name'], ENT_QUOTES, 'UTF-8') ?></span>
-                        <?php if ($key === $moduleKey): ?><span class="sidebar-arrow" aria-hidden="true">›</span><?php endif; ?>
-                    </a>
-                <?php endforeach; ?>
-            </nav>
-            <div class="sidebar-bottom">
-                <div class="workspace-card"><span class="workspace-icon" aria-hidden="true">✦</span><div><strong>Un sistema conectado</strong><p>Tus áreas, en un mismo lugar.</p></div></div>
-                <p class="sidebar-version">NEXO · ESPACIO DE TRABAJO</p>
-            </div>
-        </aside>
-
         <main class="main-area">
             <header class="topbar">
-                <button class="menu-toggle" type="button" aria-label="Abrir menú" aria-controls="sidebar" aria-expanded="false" data-menu-toggle>☰</button>
                 <div class="breadcrumb">
                     <a href="../../index.php">Espacio de trabajo</a><span aria-hidden="true">/</span>
                     <?php if ($isConfiguration): ?>
@@ -110,6 +86,6 @@
             </div>
         </main>
     </div>
-    <div class="sidebar-backdrop" data-sidebar-backdrop></div>
+    <?php $homeHref = '../../index.php'; $isHomePage = false; require __DIR__ . '/partials/bottom-navigation.php'; ?>
 </body>
 </html>

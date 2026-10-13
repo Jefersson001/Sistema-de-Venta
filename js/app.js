@@ -51,25 +51,7 @@ searchInput?.addEventListener('input', () => {
     }
 });
 
-const menuToggle = document.querySelector('[data-menu-toggle]');
-const backdrop = document.querySelector('[data-sidebar-backdrop]');
-
-function setSidebarOpen(isOpen) {
-    document.body.classList.toggle('sidebar-open', isOpen);
-    menuToggle?.setAttribute('aria-expanded', String(isOpen));
-}
-
-menuToggle?.addEventListener('click', () => {
-    setSidebarOpen(menuToggle.getAttribute('aria-expanded') !== 'true');
-});
-
-backdrop?.addEventListener('click', () => setSidebarOpen(false));
-
 document.addEventListener('keydown', (event) => {
-    if (event.key === 'Escape') {
-        setSidebarOpen(false);
-    }
-
     if (event.key === '/' && !['INPUT', 'TEXTAREA'].includes(document.activeElement?.tagName)) {
         event.preventDefault();
         searchInput?.focus();
