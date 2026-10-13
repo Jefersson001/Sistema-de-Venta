@@ -22,7 +22,7 @@ $isExternalPartner = in_array($selectedType['system_key'] ?? '', ['client', 'sup
         <p class="section-subtitle">Los campos marcados con * son obligatorios.</p>
         <fieldset><legend>Información principal</legend>
             <div class="contact-form-grid">
-                <label class="contact-full">Nombre o razón social *<input name="name" required maxlength="160" autocomplete="name" value="<?= contactEscape($record['name'] ?? '') ?>"></label>
+                <label class="contact-full record-name-field">Nombre o razón social *<input name="name" required maxlength="160" autocomplete="name" value="<?= contactEscape($record['name'] ?? '') ?>"></label>
                 <label>Persona o empresa *<select name="entity_kind" required><option value="person" <?= ($record['entity_kind'] ?? '') === 'person' ? 'selected' : '' ?>>Persona</option><option value="company" <?= ($record['entity_kind'] ?? '') === 'company' ? 'selected' : '' ?>>Empresa</option></select></label>
                 <label>Tipo de contacto *<select name="type_id" required data-contact-type><option value="">Selecciona un tipo</option><?php foreach ($page['catalogs']['types'] as $type): ?><option value="<?= (int) $type['id'] ?>" data-contact-kind="<?= contactEscape($type['system_key'] ?? '') ?>" <?= (int) ($record['type_id'] ?? 0) === (int) $type['id'] ? 'selected' : '' ?>><?= contactEscape($type['name']) ?></option><?php endforeach; ?></select></label>
                 <div class="document-field">

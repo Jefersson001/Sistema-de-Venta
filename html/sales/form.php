@@ -10,7 +10,7 @@ $storageDisplay = $locked ? ($record['storage_label'] ?? '') : ($selectedSeller[
         <ol class="quotation-status" aria-label="Estado de la cotización"><?php foreach (salesStatuses() as $key => $label): ?><li <?= $record['status'] === $key ? 'aria-current="step"' : '' ?>><?= $label ?></li><?php endforeach; ?></ol>
     </div>
     <?php if ($confirmed): ?>
-        <?php $documentView = 'order'; require dirname(__DIR__) . '/commerce/links.php'; require dirname(__DIR__) . '/commerce/progress.php'; ?>
+        <?php $documentView = 'order'; require dirname(__DIR__) . '/commerce/links.php'; ?>
     <?php endif; ?>
     <?php if ($editing && ! $locked): ?>
         <form class="quotation-state-actions" method="post" action="index.php?id=<?= (int) $record['id'] ?>" data-quotation-status-form>
@@ -43,7 +43,7 @@ $storageDisplay = $locked ? ($record['storage_label'] ?? '') : ($selectedSeller[
                         <?php $displayLines = $record['lines'] ?: ($locked ? [] : [[]]); foreach ($displayLines as $lineKey => $line): ?><?php require __DIR__ . '/line.php'; ?><?php endforeach; ?>
                     </tbody></table></div>
                     <?php if (! $locked): ?>
-                        <button class="contact-button" type="button" data-add-line hidden>+ Agregar línea</button>
+                        <button class="contact-button contact-button-link" type="button" data-add-line hidden>+ Agregar línea</button>
                         <template data-quotation-line-template><?php $lineKey = '__INDEX__'; $line = []; require __DIR__ . '/line.php'; ?></template>
                     <?php endif; ?>
                     <p class="section-subtitle quotation-tax-note">Base imponible: cantidad × precio. El total incluye los impuestos de las líneas.</p>
