@@ -26,8 +26,10 @@ if ($record['status'] === 'posted') {
     </div>
     <?php if($credit): ?><p class="notice">Nota de crédito · <?= accountingEscape($record['credit_reason']) ?> · <a href="index.php?type=<?= $page['type'] ?>&amp;id=<?= (int)$record['reversal_of_id'] ?>">Factura original</a></p><?php endif; ?>
     <?php foreach($page['paymentDetails']['credits'] as $creditDocument): ?><p class="notice"><a href="index.php?type=<?= $page['type'] ?>&amp;id=<?= (int)$creditDocument['id'] ?>">Nota de crédito <?= accountingEscape($creditDocument['name']) ?></a> · <?= invoiceStatuses()[$creditDocument['status']] ?></p><?php endforeach; ?>
-    <?php $documentView = 'invoice'; require dirname(__DIR__) . '/commerce/links.php'; ?>
-    <?php require __DIR__ . '/invoice-status-actions.php'; ?>
+    <div class="document-actions" role="group" aria-label="Acciones de la factura">
+        <?php $documentView = 'invoice'; require dirname(__DIR__) . '/commerce/links.php'; ?>
+        <?php require __DIR__ . '/invoice-status-actions.php'; ?>
+    </div>
     <div class="contact-sheet quotation-sheet"><form id="invoice-details" method="post" action="index.php?type=<?= $page['type'] ?>&amp;id=<?= (int) $record['id'] ?>">
         <input type="hidden" name="csrf" value="<?= accountingEscape($page['csrf']) ?>"><input type="hidden" name="version" value="<?= (int) $record['version'] ?>">
         <fieldset <?= $posted ? 'disabled' : '' ?> class="quotation-fields"><div class="contact-form-grid">

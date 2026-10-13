@@ -10,7 +10,7 @@ Recepción copia líneas y demandas con una relación directa a cada línea de c
 
 Facturar toma solo las cantidades disponibles según la política: recibidas o, si corresponde, ordenadas. Un borrador existente se reutiliza; las facturas canceladas liberan sus cantidades para crear un nuevo documento sin borrar el anterior. Devolver productos crea un movimiento inverso relacionado. Las notas de crédito y los reembolsos se administran desde la factura de proveedor.
 
-La recepción muestra Orden de compra. La factura de proveedor muestra Orden de recepción y abre las recepciones relacionadas. Una factura sin recepción permite volver a la compra. Crear documentos no modifica existencias; estas cambian solo al validar movimientos.
+La recepción y la factura de proveedor muestran Compra y abren su orden de compra de origen. La compra muestra Recepción y Factura con sus contadores. El enlace Compra funciona también en facturas sin recepción. La factura reúne sus botones relacionados y de estado, incluido Cancelar factura, en una misma barra. Crear documentos no modifica existencias; estas cambian solo al validar movimientos.
 
 Los impuestos de Compras tienen Nombre y Porcentaje (0–100). Los términos de pago pertenecen a Contabilidad y calculan el vencimiento mediante sus días. Comprado sigue consultando cantidades de órdenes confirmadas; una recepción manual no genera una compra.
 

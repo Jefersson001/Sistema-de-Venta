@@ -25,6 +25,13 @@
                     </div>
                 </section>
 
+                <?php
+                $cashFlow = $modulePageData['cashFlow']; $cashFlowRange = $modulePageData['cashFlowRange'];
+                $cashFlowErrors = $modulePageData['cashFlowErrors']; $cashFlowLive = true;
+                require __DIR__ . '/partials/cash-flow.php';
+                ?>
+                <script src="../../js/cash-flow.js?v=<?= filemtime(dirname(__DIR__).'/js/cash-flow.js') ?>" defer></script>
+
                 <section class="business-overview" aria-labelledby="overview-title">
                     <div class="section-heading">
                         <h2 id="overview-title">Resumen del negocio</h2>

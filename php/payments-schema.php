@@ -3,6 +3,24 @@ declare(strict_types=1);
 require_once __DIR__.'/workflow-schema.php';
 require_once __DIR__.'/currency-schema.php';
 
+function installDefaultPaymentMethods(PDO $db): void
+{
+    $defaults = ['manual'=>'Manual', 'cash'=>'Efectivo', 'bank_transfer'=>'Transferencia bancaria',
+        'mobile_payment'=>'Pago móvil', 'card'=>'Tarjeta', 'zelle'=>'Zelle', 'usdt'=>'USDT', 'paypal'=>'PayPal', 'biopago'=>'Bio Pago'];
+    $normalize = static fn(string $name): string => mb_strtolower(rtrim(trim($name), ". \t\n\r\0\x0B"), 'UTF-8');
+    $names = []; $keys = [];
+    foreach ($db->query('SELECT name,system_key FROM accounting_payment_methods')->fetchAll() as $method) {
+        $names[$normalize($method['name'])] = true;
+        if ($method['system_key'] !== null) $keys[$method['system_key']] = true;
+    }
+    $insert = $db->prepare('INSERT IGNORE INTO accounting_payment_methods(name,system_key) VALUES (?,?)');
+    foreach ($defaults as $key => $name) {
+        if (isset($keys[$key]) || isset($names[$normalize($name)])) continue;
+        $insert->execute([$name, $key]);
+        $names[$normalize($name)] = true; $keys[$key] = true;
+    }
+}
+
 function installAccountingPayments(PDO $db): void
 {
     $db->exec("CREATE TABLE IF NOT EXISTS accounting_currency_settings (id TINYINT UNSIGNED PRIMARY KEY, primary_code CHAR(3) NOT NULL, alternate_code CHAR(3) NOT NULL, exchange_rate DECIMAL(20,8) NULL, version INT UNSIGNED NOT NULL DEFAULT 1) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4");
@@ -12,7 +30,7 @@ function installAccountingPayments(PDO $db): void
     $db->exec("CREATE TABLE IF NOT EXISTS accounting_payment_accounts (id INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,name VARCHAR(120) NOT NULL UNIQUE, account_type ENUM('cash','bank') NOT NULL, currency_code CHAR(3) NULL, system_key VARCHAR(32) NULL UNIQUE) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4");
     $db->exec("CREATE TABLE IF NOT EXISTS accounting_payment_methods (id INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,name VARCHAR(120) NOT NULL UNIQUE,system_key VARCHAR(32) NULL UNIQUE) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4");
     $db->exec("INSERT IGNORE INTO accounting_payment_accounts(name,account_type,system_key) VALUES('Caja','cash','default_cash')");
-    $db->exec("INSERT IGNORE INTO accounting_payment_methods(name,system_key) VALUES('Manual','manual')");
+    installDefaultPaymentMethods($db);
     $db->exec("CREATE TABLE IF NOT EXISTS accounting_payments (
         id INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,name VARCHAR(32) NULL UNIQUE,
         partner_type ENUM('customer','supplier') NOT NULL,direction ENUM('inbound','outbound') NOT NULL,contact_id INT UNSIGNED NOT NULL,

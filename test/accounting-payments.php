@@ -2,6 +2,7 @@
 declare(strict_types=1);
 if(PHP_SAPI!=='cli'){http_response_code(404);exit;}
 require_once dirname(__DIR__).'/php/connection.php';require_once dirname(__DIR__).'/php/payments-repository.php';require_once dirname(__DIR__).'/php/dashboard-repository.php';
+require_once dirname(__DIR__).'/php/cash-flow-repository.php';
 $db=createDatabaseConnection();$prefix='Test pagos '.bin2hex(random_bytes(8));$cookie=tempnam(sys_get_temp_dir(),'payments-');$f=[];$orders=[];$payments=[];
 function payCheck(bool $ok,string $message):void{if(!$ok)throw new RuntimeException($message);}
 function payRequest(string $path,string $cookie,?array $post=null):array{
@@ -12,7 +13,7 @@ function payToken(string $html):string{payCheck(preg_match('/name="csrf" value="
 function payCreated(array $r):int{payCheck($r[0]===303&&preg_match('/id=(\d+)/',$r[2],$m)===1,'Falló una acción: '.strip_tags($r[1]));return(int)$m[1];}
 function payInvoice(PDO $db,int $id):array{$q=$db->prepare('SELECT * FROM accounting_invoices WHERE id=?');$q->execute([$id]);return$q->fetch();}
 try{
-    $baseline=loadDashboard($db);$roles=array_flip($db->query('SELECT id,system_key FROM contact_types WHERE system_key IS NOT NULL')->fetchAll(PDO::FETCH_KEY_PAIR));
+    $baseline=loadDashboard($db);$cashRange=cashFlowRange([]);$cashBaseline=array_column(loadCashFlowSummary($db,$cashRange)['currencies'],null,'code');$roles=array_flip($db->query('SELECT id,system_key FROM contact_types WHERE system_key IS NOT NULL')->fetchAll(PDO::FETCH_KEY_PAIR));
     foreach(['client','other','supplier'] as $role){$db->prepare('INSERT INTO contacts(name,type_id) VALUES(?,?)')->execute([$prefix.$role,$roles[$role==='supplier'?'supplier':'client']]);$f[$role]=(int)$db->lastInsertId();}
     $db->prepare("INSERT INTO inventory_products(name,sale_enabled,purchase_enabled,product_type,invoice_policy) VALUES(?,1,1,'service','ordered')")->execute([$prefix]);$f['product']=(int)$db->lastInsertId();
     $createInvoice=function(string $kind,int $contact,string $amount,string $currency='USD')use($db,$cookie,$f,&$orders):int{
@@ -37,6 +38,7 @@ try{
     $p=loadAccountingPayment($db,$payment);payCheck($p['available']==='20.00'&&payInvoice($db,$first)['payment_state']==='in_payment','No se mantiene el importe restante o el estado en proceso.');
     foreach([['invoice_id'=>$foreign,'amount'=>'10.00'],['invoice_id'=>$first,'amount'=>'30.00'],['invoice_id'=>$bill,'amount'=>'10.00']] as $bad)try{transitionAccountingPayment($db,$payment,(int)$p['version'],'apply_payment',$bad);throw new RuntimeException('Se aceptó otra persona, tipo o un sobrepago.');}catch(InvalidArgumentException $e){}
     transitionAccountingPayment($db,$payment,(int)$p['version'],'settle_payment');payCheck(payInvoice($db,$first)['payment_state']==='partial'&&payInvoice($db,$second)['payment_state']==='paid','Confirmar el pago no actualizó todas sus facturas.');
+    $cashTotals=array_column(loadCashFlowSummary($db,$cashRange)['currencies'],null,'code');payCheck(bcsub($cashTotals['USD']['income'],$cashBaseline['USD']['income']??'0.00',2)==='150.00','Un pago aplicado a dos facturas debe contar una vez y conservar el anticipo sin aplicar.');
     [, $body]=payRequest('contabilidad/index.php?type=customer&id='.$first,$cookie);$i=payInvoice($db,$first);$p=loadAccountingPayment($db,$payment);
     $dom=new DOMDocument();@$dom->loadHTML('<?xml encoding="UTF-8">'.$body);$xpath=new DOMXPath($dom);
     payCheck($xpath->query('//*[@id="invoice-tab-payments"]')->length===0&&$xpath->query('//*[@id="invoice-lines"]//*[@id="invoice-payments"]')->length===1,'Los pagos siguen en una pestaña separada.');

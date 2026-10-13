@@ -72,14 +72,17 @@ try {
         expectCommerce(commerceCreated(commerceRequest($module . '/index.php?id=' . $id, $cookie, ['csrf' => $token, 'action' => 'create_invoice'])) === $invoiceId, 'Se duplicó la factura desde otro acceso.');
         $invoiceType = $kind === 'purchase' ? 'supplier' : 'customer'; $invoicePath = 'contabilidad/index.php?type=' . $invoiceType . '&id=' . $invoiceId;
         [$status, $invoiceForm] = commerceRequest($invoicePath, $cookie);
-        $invoiceTarget = $kind === 'sale' ? '../ventas/index.php?id=' . $id : 'operaciones.php?type=receipt&amp;id=' . $operation;
-        expectCommerce($status === 200 && str_contains($invoiceForm, $invoiceTarget), 'La factura no enlaza a su venta o recepción.');
+        $invoiceTarget = '../' . $module . '/index.php?id=' . $id;
+        expectCommerce($status === 200 && str_contains($invoiceForm, $invoiceTarget), 'La factura no enlaza a su venta o compra.');
         $invoiceDom = new DOMDocument(); libxml_use_internal_errors(true); $invoiceDom->loadHTML('<?xml encoding="UTF-8">' . $invoiceForm); $invoiceXpath = new DOMXPath($invoiceDom);
         expectCommerce($invoiceXpath->query('//*[@aria-label="Documentos relacionados"]//a')->length === 1
             && $invoiceXpath->query('//*[@aria-label="Documentos relacionados"]//*[@data-related-invoice]')->length === 0
-            && $invoiceXpath->query('//*[@aria-label="Documentos relacionados"]//*[@data-related-source]')->length === ($kind === 'sale' ? 1 : 0)
-            && $invoiceXpath->query('//*[@aria-label="Documentos relacionados"]//*[@data-related-operation]')->length === ($kind === 'sale' ? 0 : 1),
-            'La factura no muestra únicamente su venta o recepción relacionada.');
+            && $invoiceXpath->query('//*[@aria-label="Documentos relacionados"]//*[@data-related-source]')->length === 1
+            && $invoiceXpath->query('//*[@aria-label="Documentos relacionados"]//*[@data-related-operation]')->length === 0,
+            'La factura no muestra únicamente su venta o compra relacionada.');
+        expectCommerce(str_starts_with(trim($invoiceXpath->query('//*[@data-related-source]')->item(0)->textContent),$kind==='sale'?'Venta':'Compra'), 'Nombre incorrecto del enlace de la factura.');
+        expectCommerce($invoiceXpath->query('//*[@aria-label="Acciones de la factura"][.//*[@data-related-source] and .//input[@value="cancel_invoice"]]')->length===1
+            && $invoiceXpath->query('//form//form')->length===0, 'Cancelar factura debe compartir la barra de acciones sin formularios anidados.');
         $invoiceQuery = $db->prepare('SELECT * FROM accounting_invoices WHERE id = ?'); $invoiceQuery->execute([$invoiceId]); $invoice = $invoiceQuery->fetch();
         expectCommerce($invoice['invoice_type'] === $invoiceType && (int) $invoice['contact_id'] === $fixtures[$party] && $invoice['invoice_address'] === 'Dirección ' . $party && (int) $invoice['payment_term_id'] === $fixtures['term'], 'La factura no copió contacto, dirección o términos.');
         $invoiceLines = $db->prepare('SELECT * FROM accounting_invoice_lines WHERE invoice_id = ?'); $invoiceLines->execute([$invoiceId]); $invoiceLine = $invoiceLines->fetch();
@@ -96,8 +99,10 @@ try {
             && $operationXpath->query('//*[@aria-label="Documentos relacionados"]//*[@data-related-source]')->length === 1
             && $operationXpath->query('//*[@aria-label="Documentos relacionados"]//*[@data-related-operation or @data-related-invoice or @data-quotation-invoice]')->length === 0,
             'La entrega/recepción debe mostrar solo el botón a su orden de origen.');
+        expectCommerce(str_starts_with(trim($operationXpath->query('//*[@data-related-source]')->item(0)->textContent),$kind==='sale'?'Venta':'Compra'), 'La recepción debe mostrar Compra y la entrega Venta.');
         [$status, $orderForm] = commerceRequest($module . '/index.php?id=' . $id, $cookie);
         expectCommerce(str_contains($orderForm, 'Factura · 1') && str_contains($orderForm, 'data-related-operation') && str_contains($orderForm, 'data-related-invoice'), 'La orden perdió sus botones a la factura y operación.');
+        if($kind==='purchase')expectCommerce(str_contains($orderForm,'Recepción · 1'),'La compra no muestra Recepción.');
         [$status, $invoiceList] = commerceRequest('contabilidad/index.php?type=' . $invoiceType . '&status=posted&q=' . rawurlencode($invoice['name']), $cookie);
         expectCommerce($status === 200 && str_contains($invoiceList, $invoice['name']) && ! str_contains($invoiceList, 'value="confirm_invoice"'), 'La lista de facturas no está separada del formulario.');
         // Direct invoice mode skips inventory, preserving the same source lines.
