@@ -47,6 +47,32 @@ function workflowLockOrder(PDO $db, array $operation): void
     if ($table) { $q=$db->prepare("SELECT id FROM $table WHERE id=? FOR UPDATE"); $q->execute([$operation['quotation_id'] ?? $operation['purchase_order_id']]); }
 }
 
+// The caller holds the order lock and commits the cancellation as one transaction.
+function cancelPendingOrderOperations(PDO $db, string $kind, int $orderId): void
+{
+    $sale = $kind === 'sale';
+    $operationKey = $sale ? 'quotation_id' : 'purchase_order_id';
+    $invoiceKey = $sale ? 'sale_id' : 'purchase_id';
+    $query = $db->prepare("SELECT id,status FROM inventory_operations WHERE $operationKey=? ORDER BY id FOR UPDATE");
+    $query->execute([$orderId]);
+    $operations = $query->fetchAll();
+    foreach ($operations as $operation) {
+        if ($operation['status'] === 'done') {
+            throw new InvalidArgumentException('La orden tiene movimientos hechos y debe conservarse. Usa devoluciones para revertir las cantidades; no se pueden cancelar movimientos ya realizados.');
+        }
+    }
+    $query = $db->prepare("SELECT id FROM accounting_invoices WHERE $invoiceKey=? AND status<>'cancel' LIMIT 1 FOR UPDATE");
+    $query->execute([$orderId]);
+    if ($query->fetchColumn()) {
+        throw new InvalidArgumentException('La orden tiene facturas activas. Resuelve o cancela esas facturas antes de cancelar la orden.');
+    }
+    foreach ($operations as $operation) {
+        if (!in_array($operation['status'], ['draft', 'waiting', 'ready'], true)) continue;
+        $db->prepare('DELETE FROM inventory_reservations WHERE operation_id=?')->execute([$operation['id']]);
+        $db->prepare("UPDATE inventory_operations SET status='cancel',version=version+1 WHERE id=?")->execute([$operation['id']]);
+    }
+}
+
 function inventoryReserved(PDO $db, int $product, int $location, ?int $exclude = null): string
 {
     // Read current committed reservations after locking the stock balance, including

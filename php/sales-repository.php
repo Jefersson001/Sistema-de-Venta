@@ -190,16 +190,14 @@ function saveSalesQuotation(PDO $db, array $data, array $lines, ?int $id, ?int $
 
 function transitionSalesQuotation(PDO $db, int $id, ?int $version, string $target): void
 {
-    $db->beginTransaction();
+    workflowBegin($db);
     try {
         $statement = $db->prepare('SELECT status, version FROM sales_quotations WHERE id = ? FOR UPDATE');
         $statement->execute([$id]); $current = $statement->fetch();
         if (! $current || (int) $current['version'] !== $version) { throw new InvalidArgumentException('La cotización cambió. Recarga la página antes de continuar.'); }
         if ($target === 'cancel') {
             if (! in_array($current['status'], ['draft', 'sent', 'sale'], true)) throw new InvalidArgumentException('La cotización ya está cancelada.');
-            $linked = $db->prepare('SELECT COUNT(*) FROM inventory_operations WHERE quotation_id = ?'); $linked->execute([$id]);
-            $invoice = $db->prepare('SELECT COUNT(*) FROM accounting_invoices WHERE sale_id = ?'); $invoice->execute([$id]);
-            if ($linked->fetchColumn() || $invoice->fetchColumn()) throw new InvalidArgumentException('La orden tiene documentos relacionados y no se puede cancelar desde la cotización.');
+            cancelPendingOrderOperations($db, 'sale', $id);
             $db->prepare("UPDATE sales_quotations SET status = 'cancel', version = version + 1 WHERE id = ?")->execute([$id]);
             $db->commit(); return;
         }

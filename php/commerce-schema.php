@@ -21,7 +21,7 @@ function installCommerceDocuments(PDO $db): void
             if ($name === 'destination_location_id') { $db->exec('ALTER TABLE purchase_orders ADD CONSTRAINT purchase_destination FOREIGN KEY (destination_location_id) REFERENCES inventory_locations(id)'); }
         }
     }
-    $db->exec("ALTER TABLE purchase_orders MODIFY status ENUM('draft', 'sent', 'purchase') NOT NULL DEFAULT 'draft'");
+    $db->exec("ALTER TABLE purchase_orders MODIFY status ENUM('draft', 'sent', 'purchase', 'cancel') NOT NULL DEFAULT 'draft'");
     foreach (['position' => 'INT UNSIGNED NOT NULL DEFAULT 0', 'product_name' => 'VARCHAR(160) NULL',
         'tax_id' => 'INT UNSIGNED NULL', 'tax_name' => 'VARCHAR(120) NULL',
         'base_amount' => 'DECIMAL(18,2) NOT NULL DEFAULT 0.00', 'total_amount' => 'DECIMAL(18,2) NOT NULL DEFAULT 0.00'] as $name => $definition) {

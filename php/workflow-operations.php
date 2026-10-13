@@ -69,8 +69,11 @@ function createStockReturn(PDO $db,int $id,?int $version): int
 
 function cancelStockOperation(PDO $db,int $id,?int $version): void
 {
+    $q=$db->prepare('SELECT quotation_id,purchase_order_id FROM inventory_operations WHERE id=?');$q->execute([$id]);$relation=$q->fetch();
+    if(!$relation)throw new InvalidArgumentException('La operación no existe.');
     workflowBegin($db);
     try{
+        workflowLockOrder($db,$relation);
         $q=$db->prepare('SELECT status,version FROM inventory_operations WHERE id=? FOR UPDATE');$q->execute([$id]);$o=$q->fetch();
         if(!$o || !in_array($o['status'],['draft','waiting','ready'],true) || (int)$o['version']!==$version)throw new InvalidArgumentException('La operación no admite cancelación. Recarga antes de continuar.');
         $db->prepare('DELETE FROM inventory_reservations WHERE operation_id=?')->execute([$id]);

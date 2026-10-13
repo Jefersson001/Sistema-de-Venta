@@ -31,12 +31,12 @@ try{
     $r=partialRequest('inventario/index.php?id='.$f['product'],$cookie,['csrf'=>partialToken($productForm),'action'=>'save_product','name'=>$prefix,'sale_enabled'=>'1','purchase_enabled'=>'1','sale_price'=>'3.00','cost_price'=>'0','product_type'=>'goods','invoice_policy'=>'delivered','supplier_prices'=>[['supplier_id'=>$f['supplier'],'price'=>'2.00']]]);
     checkPartial($r[0]===303,'No se guardó el precio de proveedor.');
     $prices=loadPurchaseCatalogs($db,null);checkPartial(count(array_filter($prices['supplierPrices'],fn($p)=>(int)$p['product_id']===$f['product']&&$p['price']==='2.00'))===1,'No se relacionó el precio del proveedor.');
-    $createOrder=function(string $kind,string $quantity='10.000')use($db,$cookie,$f,&$orders):int{
+    $createOrder=function(string $kind,string $quantity='10.000',bool $confirm=true)use($db,$cookie,$f,&$orders):int{
         $module=$kind==='sale'?'ventas':'compras';[, $body]=partialRequest($module.'/index.php?new=1',$cookie);$token=partialToken($body);
         if($kind==='purchase')checkPartial(str_contains($body,'>Orden de compra</option>')&&!str_contains($body,'>Orden de venta</option>'),'Compra muestra un tipo de venta.');
         $post=['csrf'=>$token,'action'=>$kind==='sale'?'save_quotation':'save_purchase','order_type'=>$kind==='sale'?'delivery':'receipt','order_date'=>commerceToday(),'payment_term_id'=>$f['term'],'destination_location_id'=>$f['location'],$kind==='sale'?'customer_id':'supplier_id'=>$f[$kind==='sale'?'client':'supplier'],'lines'=>[['product_id'=>$f['product'],'quantity'=>$quantity,'unit_price'=>$kind==='sale'?'3.00':'2.00','tax_id'=>$f[$module.'_tax']]]];
         $id=partialId(partialRequest($module.'/index.php?new=1',$cookie,$post));$orders[]=[$kind,$id];
-        partialId(partialRequest($module.'/index.php?id='.$id,$cookie,['csrf'=>$token,'version'=>'1','action'=>$kind==='sale'?'confirm_sale':'confirm_purchase']));return $id;
+        if($confirm)partialId(partialRequest($module.'/index.php?id='.$id,$cookie,['csrf'=>$token,'version'=>'1','action'=>$kind==='sale'?'confirm_sale':'confirm_purchase']));return $id;
     };
     $move=function(int $id,string $qty,bool $validate=true)use($db,$cookie):void{
         $o=partialRecord($db,'inventory_operations',$id);$path='inventario/operaciones.php?type='.$o['operation_type'].'&id='.$id;[, $body]=partialRequest($path,$cookie);$token=partialToken($body);$lines=loadInventoryOperationLines($db,$id);
@@ -106,6 +106,62 @@ try{
         foreach($workers as [$process,$pipes]){$results[]=trim(stream_get_contents($pipes[1]));$errors=stream_get_contents($pipes[2]);fclose($pipes[1]);fclose($pipes[2]);$exit=proc_close($process);checkPartial($exit===0&&$errors==='','Falló una conexión de reserva: '.$exit.' '.$errors.' '.end($results));}
         sort($results);checkPartial($results===['RESERVED','WAITING'],'Las reservas simultáneas comprometieron dos veces el mismo stock.');
     }finally{if($holder->inTransaction())$holder->rollBack();}
+    foreach($racing as $op)cancelStockOperation($db,$op,(int)partialRecord($db,'inventory_operations',$op)['version']);
+    // Cancellation is explicit on the order; cancelling a picking never cancels its order.
+    foreach(['draft','sent'] as $state){
+        $draft=$createOrder('purchase','1.000',false);
+        if($state==='sent')transitionPurchaseOrder($db,$draft,1,'sent');
+        $path='compras/index.php?id='.$draft;[, $body]=partialRequest($path,$cookie);
+        checkPartial(str_contains($body,'value="cancel_purchase"')&&str_contains($body,'Cancelado'),'Falta el botón o estado Cancelado en Compras.');
+        $version=$state==='sent'?2:1;
+        [$code]=partialRequest($path,$cookie,['action'=>'cancel_purchase','version'=>$version]);checkPartial($code===403,'Cancelación sin CSRF aceptada.');
+        partialId(partialRequest($path,$cookie,['csrf'=>partialToken($body),'action'=>'cancel_purchase','version'=>$version]));
+        checkPartial(partialRecord($db,'purchase_orders',$draft)['status']==='cancel','No se canceló la solicitud.');
+        [, $body]=partialRequest($path,$cookie);
+        checkPartial(str_contains($body,'<fieldset disabled')&&!str_contains($body,'value="confirm_purchase"')&&!str_contains($body,'Guardar solicitud')&&!str_contains($body,'data-order-remove'),'La compra cancelada permite modificar o confirmar.');
+        [, $list]=partialRequest('compras/index.php?status=cancel&q='.rawurlencode(partialRecord($db,'purchase_orders',$draft)['name']),$cookie);
+        checkPartial(str_contains($list,'href="index.php?id='.$draft.'"'),'El filtro no muestra compras canceladas.');
+        try{transitionPurchaseOrder($db,$draft,$version+1,'purchase');throw new RuntimeException('Se confirmó una compra cancelada.');}catch(InvalidArgumentException $e){}
+        try{savePurchaseOrder($db,[],[],$draft,$version+1);throw new RuntimeException('Se editó una compra cancelada.');}catch(InvalidArgumentException $e){}
+    }
+    foreach(['sale','purchase'] as $kind){
+        $id=$createOrder($kind,'1.000');$table=$kind==='sale'?'sales_quotations':'purchase_orders';$module=$kind==='sale'?'ventas':'compras';$action=$kind==='sale'?'cancel_quotation':'cancel_purchase';
+        $operation=createLinkedStockOperation($db,$kind,$id);transitionInventoryOperation($db,$operation,1,'confirm_operation');
+        if($kind==='sale'){
+            transitionInventoryOperation($db,$operation,2,'check_ready');
+            checkPartial(inventoryReserved($db,$f['product'],$f['location'])!=='0.000','La entrega no reservó existencias.');
+            cancelStockOperation($db,$operation,3);
+            checkPartial(partialRecord($db,$table,$id)['status']==='sale','Cancelar la entrega canceló la venta.');
+            $replacement=createLinkedStockOperation($db,$kind,$id);checkPartial($replacement!==$operation,'Se reutilizó la entrega cancelada.');
+            transitionInventoryOperation($db,$replacement,1,'confirm_operation');transitionInventoryOperation($db,$replacement,2,'check_ready');
+        }
+        $path=$module.'/index.php?id='.$id;[, $body]=partialRequest($path,$cookie);$token=partialToken($body);
+        checkPartial(str_contains($body,'value="'.$action.'"'),'Falta Cancelar en la orden confirmada.');
+        partialRequest($path,$cookie,['csrf'=>$token,'action'=>$action,'version'=>1]);
+        checkPartial(partialRecord($db,$table,$id)['status']===($kind==='sale'?'sale':'purchase'),'Una versión antigua canceló la orden.');
+        $stock=loadInventoryProductStock($db,$f['product'])['total'];
+        partialId(partialRequest($path,$cookie,['csrf'=>$token,'action'=>$action,'version'=>2]));
+        checkPartial(partialRecord($db,$table,$id)['status']==='cancel','No se canceló la orden confirmada.');
+        $linked=commerceLinks($db,$kind,$id);
+        checkPartial(count(array_filter($linked['operations'],fn($o)=>$o['status']!=='cancel'))===0,'La cancelación dejó movimientos pendientes.');
+        checkPartial(!$linked['can_stock']&&!$linked['can_invoice'],'Una orden cancelada permite generar documentos.');
+        [, $cancelledForm]=partialRequest($path,$cookie);checkPartial(str_contains($cancelledForm,'data-related-operation'),'Se perdió el acceso al historial de movimientos cancelados.');
+        $opIds=array_column($linked['operations'],'id');$q=$db->prepare('SELECT COUNT(*) FROM inventory_reservations WHERE operation_id IN ('.implode(',',array_fill(0,count($opIds),'?')).')');$q->execute($opIds);
+        checkPartial((int)$q->fetchColumn()===0&&loadInventoryProductStock($db,$f['product'])['total']===$stock,'La cancelación no liberó reservas o alteró existencias.');
+        try{createLinkedStockOperation($db,$kind,$id);throw new RuntimeException('Se generó un movimiento desde una orden cancelada.');}catch(InvalidArgumentException $e){}
+        try{createCommerceInvoice($db,$kind,$id);throw new RuntimeException('Se facturó una orden cancelada.');}catch(InvalidArgumentException $e){}
+    }
+    // Active invoices and completed stock moves must reject the whole cancellation.
+    $db->prepare("UPDATE inventory_products SET invoice_policy='ordered' WHERE id=?")->execute([$f['product']]);
+    foreach(['sale','purchase'] as $kind){
+        $id=$createOrder($kind,'1.000');$table=$kind==='sale'?'sales_quotations':'purchase_orders';$op=createLinkedStockOperation($db,$kind,$id);$invoice=createCommerceInvoice($db,$kind,$id);
+        $cancel=fn(int $order,int $version)=>$kind==='sale'?transitionSalesQuotation($db,$order,$version,'cancel'):transitionPurchaseOrder($db,$order,$version,'cancel');
+        try{$cancel($id,2);throw new RuntimeException('Se canceló una orden con factura activa.');}catch(InvalidArgumentException $e){checkPartial(str_contains($e->getMessage(),'facturas activas'),'Rechazo incorrecto de factura activa.');}
+        checkPartial(partialRecord($db,'inventory_operations',$op)['status']==='draft'&&(int)partialRecord($db,$table,$id)['version']===2,'El rechazo dejó cambios parciales.');
+        transitionInvoiceStatus($db,$invoice,1,'cancel_invoice',[]);$cancel($id,2);
+        checkPartial(partialRecord($db,$table,$id)['status']==='cancel','Las facturas ya canceladas bloquean la orden.');
+        try{$cancel($kind==='sale'?$sale:$purchase,2);throw new RuntimeException('Se canceló una orden con movimientos hechos.');}catch(InvalidArgumentException $e){checkPartial(str_contains($e->getMessage(),'movimientos hechos'),'Rechazo incorrecto de movimiento hecho.');}
+    }
     foreach(['ventas/index.php?id='.$sale,'compras/index.php?id='.$purchase,'inventario/operaciones.php?type=delivery&sale_id='.$sale,'contabilidad/index.php?type=customer&sale_id='.$sale] as $path){[$status,$body]=partialRequest($path,$cookie);checkPartial($status===200,'No abre documentos relacionados.');}
     echo "PASS: compra y venta parciales, relaciones por línea, pendientes automáticos, facturas sucesivas, impuestos, vencimiento, precios por proveedor, reservas, cancelación, sustitución, devolución y nota de crédito parcial.\n";
 }finally{

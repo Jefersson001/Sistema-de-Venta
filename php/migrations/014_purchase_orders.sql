@@ -4,7 +4,7 @@ CREATE TABLE IF NOT EXISTS purchase_orders (
     supplier_id INT UNSIGNED NOT NULL,
     order_date DATE NOT NULL,
     approved_date DATE NULL,
-    status ENUM('draft', 'purchase') NOT NULL DEFAULT 'draft',
+    status ENUM('draft', 'sent', 'purchase', 'cancel') NOT NULL DEFAULT 'draft',
     FOREIGN KEY (supplier_id) REFERENCES contacts(id)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 CREATE TABLE IF NOT EXISTS purchase_order_lines (

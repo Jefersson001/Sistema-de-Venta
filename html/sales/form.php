@@ -9,18 +9,22 @@ $storageDisplay = $locked ? ($record['storage_label'] ?? '') : ($selectedSeller[
     <div class="contact-toolbar"><div><a class="overview-link" href="index.php">← Cotizaciones</a><h1 id="quotation-title"><?= $editing ? salesEscape($record['name']) : 'Nueva cotización' ?></h1></div>
         <ol class="quotation-status" aria-label="Estado de la cotización"><?php foreach (salesStatuses() as $key => $label): ?><li <?= $record['status'] === $key ? 'aria-current="step"' : '' ?>><?= $label ?></li><?php endforeach; ?></ol>
     </div>
-    <?php if ($confirmed): ?>
+    <?php if ($editing): ?><div class="document-actions">
+    <?php if ($editing && $locked): ?>
         <?php $documentView = 'order'; require dirname(__DIR__) . '/commerce/links.php'; ?>
     <?php endif; ?>
-    <?php if ($editing && ! $locked): ?>
+    <?php if ($editing && ! $cancelled): ?>
         <form class="quotation-state-actions" method="post" action="index.php?id=<?= (int) $record['id'] ?>" data-quotation-status-form>
             <input type="hidden" name="csrf" value="<?= salesEscape($page['csrf']) ?>"><input type="hidden" name="version" value="<?= (int) $record['version'] ?>">
+            <?php if (! $confirmed): ?>
             <?php if ($record['status'] === 'draft'): ?><button class="contact-button" type="submit" name="action" value="mark_sent">Marcar como enviada</button><?php endif; ?>
             <button class="contact-button contact-button-primary" type="submit" name="action" value="confirm_sale">Confirmar orden de venta</button>
+            <?php endif; ?>
             <button class="contact-button" type="submit" name="action" value="cancel_quotation">Cancelar</button>
             <span class="section-subtitle" data-quotation-dirty-help hidden>Guarda los cambios antes de cambiar el estado.</span>
         </form>
     <?php endif; ?>
+    </div><?php endif; ?>
     <?php if ($confirmed): ?><p class="notice" role="status">Orden de venta confirmada.</p><?php endif; ?>
     <form class="contact-sheet quotation-sheet" method="post" action="index.php?<?= $editing ? 'id=' . (int) $record['id'] : 'new=1' ?>" data-quotation-form>
         <input type="hidden" name="csrf" value="<?= salesEscape($page['csrf']) ?>"><input type="hidden" name="action" value="save_quotation"><input type="hidden" name="version" value="<?= (int) ($record['version'] ?? 0) ?>">

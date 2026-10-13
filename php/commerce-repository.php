@@ -4,7 +4,7 @@ require_once __DIR__ . '/sales-repository.php';
 require_once __DIR__ . '/sales-delivery-repository.php';
 require_once __DIR__ . '/workflow-invoices.php';
 
-function purchaseStatuses(): array { return ['draft' => 'Solicitud de cotización', 'sent' => 'Solicitud enviada', 'purchase' => 'Orden de compra']; }
+function purchaseStatuses(): array { return ['draft' => 'Solicitud de cotización', 'sent' => 'Solicitud enviada', 'purchase' => 'Orden de compra', 'cancel' => 'Cancelado']; }
 
 function loadPurchaseOrder(PDO $db, int $id): ?array
 {
@@ -70,6 +70,7 @@ function savePurchaseOrder(PDO $db, array $data, array $lines, ?int $id, ?int $v
             $lock = $db->prepare('SELECT status, version FROM purchase_orders WHERE id = ? FOR UPDATE'); $lock->execute([$id]); $current = $lock->fetch();
             if (! $current || (int) $current['version'] !== $version) throw new InvalidArgumentException('La orden cambió en otra ventana. Recarga antes de guardar.');
             if ($current['status'] === 'purchase') throw new InvalidArgumentException('La orden de compra confirmada no admite cambios.');
+            if ($current['status'] === 'cancel') throw new InvalidArgumentException('La orden de compra cancelada no admite cambios.');
             $db->prepare('UPDATE purchase_orders SET ' . implode(', ', array_map(static fn ($key) => $key . ' = :' . $key, array_keys($data))) . ', version = version + 1 WHERE id = :id')->execute($data + ['id' => $id]);
             $db->prepare('DELETE FROM purchase_order_lines WHERE order_id = ?')->execute([$id]);
         } else {
@@ -89,6 +90,12 @@ function transitionPurchaseOrder(PDO $db, int $id, ?int $version, string $target
     try {
         $lock = $db->prepare('SELECT status, version FROM purchase_orders WHERE id = ? FOR UPDATE'); $lock->execute([$id]); $order = $lock->fetch();
         if (! $order || (int) $order['version'] !== $version) throw new InvalidArgumentException('La orden cambió. Recarga antes de continuar.');
+        if ($target === 'cancel') {
+            if (!in_array($order['status'], ['draft', 'sent', 'purchase'], true)) throw new InvalidArgumentException('La orden de compra ya está cancelada.');
+            cancelPendingOrderOperations($db, 'purchase', $id);
+            $db->prepare("UPDATE purchase_orders SET status='cancel',version=version+1 WHERE id=?")->execute([$id]);
+            $db->commit(); return;
+        }
         if (!(($target === 'sent' && $order['status'] === 'draft') || ($target === 'purchase' && in_array($order['status'], ['draft', 'sent'], true)))) throw new InvalidArgumentException('El cambio de estado no es válido.');
         $lines = $db->prepare('SELECT COUNT(*) FROM purchase_order_lines WHERE order_id = ?'); $lines->execute([$id]);
         if (! $lines->fetchColumn()) throw new InvalidArgumentException('Agrega al menos un producto antes de confirmar.');

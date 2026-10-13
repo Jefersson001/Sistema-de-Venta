@@ -34,9 +34,9 @@ function renderPurchaseOrders(): void
                         [$data, $lines, $page['errors']] = validatePurchaseOrder($_POST, $page['catalogs'], $existing);
                         $page['record'] = $data + ['lines' => $lines] + $page['record'];
                         if (! $page['errors']) { $id = savePurchaseOrder($db, $data, $lines, $id, salesId($_POST['version'] ?? null)); $_SESSION['purchase_flash'] = 'Solicitud guardada correctamente.'; header('Location: index.php?id=' . $id, true, 303); exit; }
-                    } elseif ($id && in_array($action, ['mark_sent', 'confirm_purchase'], true)) {
-                        transitionPurchaseOrder($db, $id, salesId($_POST['version'] ?? null), $action === 'mark_sent' ? 'sent' : 'purchase');
-                        $_SESSION['purchase_flash'] = $action === 'mark_sent' ? 'Solicitud marcada como enviada.' : 'Orden de compra confirmada.';
+                    } elseif ($id && in_array($action, ['mark_sent', 'confirm_purchase', 'cancel_purchase'], true)) {
+                        transitionPurchaseOrder($db, $id, salesId($_POST['version'] ?? null), match ($action) { 'mark_sent' => 'sent', 'cancel_purchase' => 'cancel', default => 'purchase' });
+                        $_SESSION['purchase_flash'] = match ($action) { 'mark_sent' => 'Solicitud marcada como enviada.', 'cancel_purchase' => 'Orden de compra cancelada.', default => 'Orden de compra confirmada.' };
                         header('Location: index.php?id=' . $id, true, 303); exit;
                     } elseif ($id && $action === 'create_receipt') {
                         $operationId = createPurchaseReceipt($db, $id); header('Location: ../inventario/operaciones.php?type=receipt&id=' . $operationId, true, 303); exit;
