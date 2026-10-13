@@ -10,24 +10,13 @@
 </head>
 <body>
     <div class="app-shell">
+        <?php $homeHref = 'index.php'; $isHomePage = true; require __DIR__ . '/partials/top-navigation.php'; ?>
         <main class="main-area">
-            <header class="topbar">
-                <div class="breadcrumb"><span>Espacio de trabajo</span><span aria-hidden="true">/</span><strong>Inicio</strong></div>
-                <div class="topbar-right">
-                    <span class="connection-pill <?= $databaseStatus['connected'] ? 'connection-online' : 'connection-offline' ?>">
-                        <span class="connection-dot"></span>
-                        <?= $databaseStatus['connected'] ? 'Base de datos conectada' : 'Base de datos desconectada' ?>
-                    </span>
-                    <span class="avatar" aria-label="Usuario">U</span>
-                </div>
-            </header>
-
             <div class="page-content">
                 <section class="module-section module-launcher" aria-labelledby="modules-title">
                     <div class="section-heading">
                         <div>
-                            <p class="eyebrow">PANEL DE CONTROL</p>
-                            <h1 id="modules-title">Mis módulos</h1>
+                            <p class="eyebrow">PANEL DE CONTROL / Mis módulos</p>
                         </div>
                         <label class="module-search">
                             <span aria-hidden="true">⌕</span>
@@ -65,6 +54,5 @@
             </div>
         </main>
     </div>
-    <?php $homeHref = 'index.php'; $isHomePage = true; require __DIR__ . '/partials/bottom-navigation.php'; ?>
 </body>
 </html>

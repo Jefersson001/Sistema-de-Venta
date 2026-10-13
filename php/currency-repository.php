@@ -1,6 +1,20 @@
 <?php
 declare(strict_types=1);
-function accountingCurrencies(PDO $db): array { return $db->query('SELECT * FROM accounting_currency_settings WHERE id=1')->fetch(); }
+function accountingCurrencies(PDO $db, ?string $date = null): array
+{
+    $settings = $db->query('SELECT * FROM accounting_currency_settings WHERE id=1')->fetch();
+    $date ??= (new DateTimeImmutable('now', new DateTimeZone('America/Caracas')))->format('Y-m-d');
+    $settings['exchange_rate'] = currencyRateForPair($db, $settings['primary_code'], $settings['alternate_code'], $date);
+    return $settings;
+}
+
+function currencyRateForPair(PDO $db, string $from, string $to, string $date): ?string
+{
+    if ($from === $to) return '1.00000000';
+    $q = $db->prepare('SELECT r.rate,b.code AS base_code FROM accounting_currency_rates r JOIN accounting_currencies c ON c.id=r.currency_id JOIN accounting_currencies b ON b.id=r.base_currency_id WHERE r.rate_date<=? AND ((b.code=? AND c.code=?) OR (b.code=? AND c.code=?)) ORDER BY r.rate_date DESC,(b.code=?) DESC,r.id DESC LIMIT 1');
+    $q->execute([$date,$from,$to,$to,$from,$from]); $rate = $q->fetch();
+    return $rate ? ($rate['base_code'] === $from ? $rate['rate'] : bcdiv('1',$rate['rate'],8)) : null;
+}
 function accountingCurrencyCodes(array $settings): array { return array_values(array_unique([$settings['primary_code'],$settings['alternate_code']])); }
 function accountingConvert(string $amount,string $from,string $to,array $settings): string
 {

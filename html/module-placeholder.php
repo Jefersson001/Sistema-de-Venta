@@ -10,27 +10,8 @@
 </head>
 <body>
     <div class="app-shell">
+        <?php $homeHref = '../../index.php'; $isHomePage = false; require __DIR__ . '/partials/top-navigation.php'; ?>
         <main class="main-area">
-            <header class="topbar">
-                <div class="breadcrumb">
-                    <a href="../../index.php">Espacio de trabajo</a><span aria-hidden="true">/</span>
-                    <?php if ($isConfiguration): ?>
-                        <a href="index.php"><?= htmlspecialchars($module['name'], ENT_QUOTES, 'UTF-8') ?></a><span aria-hidden="true">/</span><strong>Configuración</strong>
-                    <?php else: ?>
-                        <strong><?= htmlspecialchars($module['name'], ENT_QUOTES, 'UTF-8') ?></strong>
-                        <?php if ($moduleKey === 'ventas'): ?><span aria-hidden="true">/</span><span>Órdenes</span><span aria-hidden="true">/</span><span>Cotizaciones</span><?php endif; ?>
-                        <?php if ($moduleKey === 'compras'): ?><span aria-hidden="true">/</span><span>Órdenes</span><span aria-hidden="true">/</span><span>Solicitudes de cotización</span><?php endif; ?>
-                        <?php if ($moduleKey === 'contabilidad' && ($modulePageData['area'] ?? '') === 'invoices'): ?><span aria-hidden="true">/</span><span><?= ($modulePageData['type'] ?? '') === 'supplier' ? 'Proveedores' : 'Clientes' ?></span><span aria-hidden="true">/</span><span>Facturas</span><?php endif; ?>
-                        <?php if ($moduleKey==='contabilidad' && ($modulePageData['area']??'')==='payments'): ?><span aria-hidden="true">/</span><span><?= ($modulePageData['type']??'')==='supplier'?'Proveedores':'Clientes' ?></span><span aria-hidden="true">/</span><span>Pagos</span><?php endif; ?>
-                        <?php if ($moduleKey === 'inventario' && ($modulePageData['area'] ?? '') === 'operations'): ?><span aria-hidden="true">/</span><span>Operaciones</span><span aria-hidden="true">/</span><span><?= htmlspecialchars($modulePageData['definition']['label'], ENT_QUOTES, 'UTF-8') ?></span><?php endif; ?>
-                    <?php endif; ?>
-                </div>
-                <div class="topbar-right">
-                    <span class="connection-pill <?= $databaseStatus['connected'] ? 'connection-online' : 'connection-offline' ?>"><span class="connection-dot"></span><?= $databaseStatus['connected'] ? 'Base de datos conectada' : 'Base de datos desconectada' ?></span>
-                    <span class="avatar" aria-label="Usuario">U</span>
-                </div>
-            </header>
-
             <div class="page-content module-page">
                 <a class="back-link" href="../../index.php">← Volver al inicio</a>
                 <?php if ($moduleKey !== 'dashboard'): ?><nav class="module-navigation" aria-label="Secciones de <?= htmlspecialchars($module['name'], ENT_QUOTES, 'UTF-8') ?>">
@@ -59,7 +40,7 @@
                 <?php elseif ($moduleKey === 'ventas' && ! $isConfiguration && $modulePageData !== null): ?>
                     <?php require __DIR__ . '/sales/page.php'; ?>
                 <?php elseif ($moduleKey === 'contabilidad' && $isConfiguration && $modulePageData !== null): ?>
-                    <?php require __DIR__ . (($modulePageData['area']??'')==='payment_configuration'?'/accounting/payment-configuration.php':'/accounting/configuration.php'); ?>
+                    <?php require __DIR__ . (match ($modulePageData['area'] ?? '') { 'currencies' => '/accounting/currencies.php', 'payment_configuration' => '/accounting/payment-configuration.php', default => '/accounting/configuration.php' }); ?>
                 <?php elseif ($moduleKey === 'contabilidad' && ! $isConfiguration && $modulePageData !== null): ?>
                     <?php require __DIR__ . (($modulePageData['area']??'')==='payments'?'/accounting/payments.php':'/accounting/invoices.php'); ?>
                 <?php elseif ($moduleKey === 'compras' && ! $isConfiguration && ($modulePageData['area'] ?? '') === 'purchase_order'): ?>
@@ -88,6 +69,5 @@
             </div>
         </main>
     </div>
-    <?php $homeHref = '../../index.php'; $isHomePage = false; require __DIR__ . '/partials/bottom-navigation.php'; ?>
 </body>
 </html>

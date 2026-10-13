@@ -1,6 +1,7 @@
 <?php
 declare(strict_types=1);
 require_once __DIR__.'/workflow-schema.php';
+require_once __DIR__.'/currency-schema.php';
 
 function installAccountingPayments(PDO $db): void
 {
@@ -36,4 +37,5 @@ function installAccountingPayments(PDO $db): void
         }$db->commit();
     }catch(Throwable $e){$db->rollBack();throw $e;}
     if(!$db->query("SHOW INDEX FROM accounting_invoice_payments WHERE Key_name='payment_invoice_once'")->fetch())$db->exec('ALTER TABLE accounting_invoice_payments ADD UNIQUE KEY payment_invoice_once(payment_id,invoice_id), ADD CONSTRAINT allocation_payment FOREIGN KEY(payment_id) REFERENCES accounting_payments(id)');
+    installCurrencyCatalog($db);
 }
