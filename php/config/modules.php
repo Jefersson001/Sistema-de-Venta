@@ -3,6 +3,14 @@
 declare(strict_types=1);
 
 return [
+    'dashboard' => [
+        'name' => 'Dashboard',
+        'description' => 'Consulta el resumen del negocio, pendientes y alertas.',
+        'category' => 'Panel de control',
+        'initials' => 'DB',
+        'color' => 'violet',
+        'features' => ['Indicadores del negocio', 'Acciones rápidas', 'Pendientes y alertas'],
+    ],
     'contactos' => [
         'name' => 'Contactos',
         'description' => 'Centraliza clientes, proveedores y sus datos.',

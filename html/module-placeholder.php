@@ -33,7 +33,7 @@
 
             <div class="page-content module-page">
                 <a class="back-link" href="../../index.php">← Volver al inicio</a>
-                <nav class="module-navigation" aria-label="Secciones de <?= htmlspecialchars($module['name'], ENT_QUOTES, 'UTF-8') ?>">
+                <?php if ($moduleKey !== 'dashboard'): ?><nav class="module-navigation" aria-label="Secciones de <?= htmlspecialchars($module['name'], ENT_QUOTES, 'UTF-8') ?>">
                     <?php if (in_array($moduleKey, ['ventas', 'compras'], true)): ?>
                         <details class="module-menu"><summary class="module-navigation-link <?= ! $isConfiguration ? 'module-navigation-active' : '' ?>">Órdenes <span aria-hidden="true">▾</span></summary><div class="module-menu-options"><a href="index.php" <?= ! $isConfiguration ? 'aria-current="page"' : '' ?>><?= $moduleKey === 'ventas' ? 'Cotizaciones' : 'Solicitudes de cotización' ?></a></div></details>
                     <?php elseif ($moduleKey === 'contabilidad'): ?>
@@ -48,9 +48,11 @@
                         </div></details>
                         <details class="module-menu"><summary class="module-navigation-link <?= ($modulePageData['area'] ?? '') === 'reports' ? 'module-navigation-active' : '' ?>">Informes <span aria-hidden="true">▾</span></summary><div class="module-menu-options"><a href="informes.php?view=movements">Historial de movimientos</a><a href="informes.php?view=stock">Existencias por ubicación</a></div></details>
                     <?php endif; ?>
-                    <a class="module-navigation-link <?= $isConfiguration ? 'module-navigation-active' : '' ?>" href="configuracion.php" <?= $isConfiguration ? 'aria-current="page"' : '' ?>><span aria-hidden="true">⚙</span> Configuración</a>
-                </nav>
-                <?php if ($moduleKey === 'contactos' && $modulePageData !== null): ?>
+                    <?php if ($moduleKey !== 'dashboard'): ?><a class="module-navigation-link <?= $isConfiguration ? 'module-navigation-active' : '' ?>" href="configuracion.php" <?= $isConfiguration ? 'aria-current="page"' : '' ?>><span aria-hidden="true">⚙</span> Configuración</a><?php endif; ?>
+                </nav><?php endif; ?>
+                <?php if ($moduleKey === 'dashboard' && ! $isConfiguration && $modulePageData !== null): ?>
+                    <?php require __DIR__ . '/dashboard.php'; ?>
+                <?php elseif ($moduleKey === 'contactos' && $modulePageData !== null): ?>
                     <?php require __DIR__ . '/contacts/page.php'; ?>
                 <?php elseif ($moduleKey === 'inventario' && $modulePageData !== null): ?>
                     <?php require __DIR__ . ($isConfiguration ? '/inventory/configuration.php' : (match ($modulePageData['area'] ?? '') { 'operations' => '/inventory/operations.php', 'reports' => '/inventory/reports.php', default => '/inventory/products.php' })); ?>
