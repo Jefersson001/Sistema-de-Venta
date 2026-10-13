@@ -21,14 +21,27 @@ function cashFlowPageState(array $input): array
 
 function renderCashFlowReport(): void
 {
-    $page = cashFlowPageState($_GET) + ['area'=>'cash_flow', 'history'=>['rows'=>[], 'total'=>0, 'pages'=>1, 'currentPage'=>1]];
+    $page = cashFlowPageState($_GET) + ['area'=>'cash_flow', 'account'=>null, 'accounts'=>[], 'history'=>['rows'=>[], 'total'=>0, 'pages'=>1, 'currentPage'=>1]];
     $page['databaseStatus'] = getDatabaseStatus();
     if (!$page['databaseStatus']['connected']) $page['cashFlowErrors'][] = 'No se pudo conectar a la base de datos.';
-    elseif (!$page['cashFlowErrors']) {
+    else {
         try {
             $db = createDatabaseConnection();
-            $page['cashFlow'] = loadCashFlowSummary($db, $page['cashFlowRange']);
-            $page['history'] = loadCashFlowHistory($db, $page['cashFlowRange'], $_GET['page'] ?? 1);
+            $accountId = null;
+            if (isset($_GET['account_id'])) {
+                $accountId = is_string($_GET['account_id']) ? filter_var($_GET['account_id'], FILTER_VALIDATE_INT, ['options'=>['min_range'=>1]]) : false;
+                if ($accountId) {
+                    $query = $db->prepare('SELECT * FROM accounting_payment_accounts WHERE id=?'); $query->execute([$accountId]); $page['account'] = $query->fetch() ?: null;
+                }
+                if (!$page['account']) { http_response_code(404); throw new InvalidArgumentException('La caja o banco solicitado no existe.'); }
+            }
+            if (!$page['cashFlowErrors']) {
+                $page['cashFlow'] = loadCashFlowSummary($db, $page['cashFlowRange'], $accountId);
+                if ($accountId) $page['history'] = loadCashFlowHistory($db, $page['cashFlowRange'], $_GET['page'] ?? 1, $accountId);
+                else $page['accounts'] = loadCashFlowAccounts($db, $page['cashFlowRange']);
+            }
+        } catch (InvalidArgumentException $exception) {
+            $page['cashFlowErrors'][] = $exception->getMessage();
         } catch (PDOException $exception) {
             error_log('Ingresos y egresos: '.$exception->getMessage());
             $page['cashFlowErrors'][] = 'No se pudieron consultar los ingresos y egresos. Intenta de nuevo.';

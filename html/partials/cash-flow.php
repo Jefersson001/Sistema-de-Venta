@@ -7,6 +7,7 @@ $cashFlowEscape = static fn(mixed $value): string => htmlspecialchars((string)$v
         <?php if ($cashFlowLive): ?><a class="overview-link" data-cash-flow-history href="../contabilidad/ingresos-egresos.php?<?= $cashFlowEscape(cashFlowQuery($cashFlowRange)) ?>">Ver historial →</a><?php endif; ?>
     </div>
     <form class="contact-filters cash-flow-filters" method="get" data-cash-flow-filter>
+        <?php if (!$cashFlowLive && !empty($modulePageData['account']['id'])): ?><input type="hidden" name="account_id" value="<?= (int)$modulePageData['account']['id'] ?>"><?php endif; ?>
         <label>Período<select name="period" data-cash-flow-period><?php foreach (cashFlowPeriods() as $value=>$label): ?><option value="<?= $value ?>" <?= $cashFlowRange['period']===$value ? 'selected' : '' ?>><?= $cashFlowEscape($label) ?></option><?php endforeach; ?></select></label>
         <div class="cash-flow-date-range" data-cash-flow-dates <?= $cashFlowRange['period'] !== 'custom' ? 'hidden' : '' ?>>
             <label>Desde<input type="date" name="date_from" min="1000-01-01" max="9999-12-31" value="<?= $cashFlowEscape($cashFlowRange['date_from']) ?>"></label>

@@ -316,6 +316,22 @@ a.product-stat-button:hover { border-color: #514397; background: #f0edff; }
 .cash-flow-updated { margin-top: 6px; }
 .cash-flow-error { color: #a63745; margin-bottom: 14px; }
 .cash-flow-type { font-weight: 600; }
+.cash-flow-accounts-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 14px; }
+.cash-flow-account-card { gap: 16px; transition: border-color .18s ease, box-shadow .18s ease; }
+.cash-flow-account-card:hover { border-color: #b6a9dc; box-shadow: 0 6px 20px #51439712; }
+.cash-flow-account-card:focus-visible { outline: 2px solid #514397; outline-offset: 3px; }
+.cash-flow-account-heading, .cash-flow-account-footer { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 8px; }
+.cash-flow-account-heading h3 { min-width: 0; margin: 0; overflow-wrap: anywhere; font-size: 18px; }
+.cash-flow-account-currency > strong { color: var(--muted); font-size: 13px; }
+.cash-flow-account-totals { display: grid; gap: 8px; margin: 8px 0 0; }
+.cash-flow-account-totals > div { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 8px; font-size: 14px; }
+.cash-flow-account-totals dd { margin: 0; font-weight: 700; font-variant-numeric: tabular-nums; overflow-wrap: anywhere; }
+.cash-flow-account-totals .cash-flow-income dd { color: #12683f; }
+.cash-flow-account-totals .cash-flow-expense dd { color: #a63745; }
+.cash-flow-account-totals .cash-flow-net dd { color: #514397; }
+.cash-flow-account-footer { margin-top: auto; padding-top: 12px; border-top: 1px solid var(--line); color: var(--muted); font-size: 13px; }
+@media (max-width: 1100px) { .cash-flow-accounts-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+@media (max-width: 720px) { .cash-flow-accounts-grid { grid-template-columns: 1fr; } }
 @media (max-width: 720px) { .cash-flow-grid { grid-template-columns: 1fr; }.cash-flow-date-range { width: 100%; }.cash-flow-money strong { font-size: 25px; } }
 .contact-notebook { margin-top: 20px; }
 .notebook-tabs { display: flex; flex-wrap: wrap; gap: 0; border-bottom: 1px solid #dce1eb; }

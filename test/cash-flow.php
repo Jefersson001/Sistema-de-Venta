@@ -16,7 +16,7 @@ function flowRequest(string $path, ?array $post = null): array
 }
 function flowAmounts(array $summary): array { return array_column($summary['currencies'],null,'code'); }
 
-$db=createDatabaseConnection(); $prefix='Test flujo '.bin2hex(random_bytes(8)); $contacts=[]; $payments=[]; $fixtures=[];
+$db=createDatabaseConnection(); $prefix='Test flujo '.bin2hex(random_bytes(8)); $contacts=[]; $payments=[]; $fixtures=[]; $accounts=[];
 try {
     $leap=cashFlowRange(['period'=>'last7'],'2024-03-01');
     flowCheck($leap['date_from']==='2024-02-24' && $leap['date_to']==='2024-03-01','Últimos 7 días no incluye hoy o falla en año bisiesto.');
@@ -32,13 +32,16 @@ try {
     }
     $account=(int)$db->query("SELECT id FROM accounting_payment_accounts WHERE system_key='default_cash'")->fetchColumn();
     $method=(int)$db->query("SELECT id FROM accounting_payment_methods WHERE system_key='manual'")->fetchColumn();
+    foreach (['bank'=>['bank',null],'cash'=>['cash',$alternate],'empty'=>['bank',$primary]] as $key=>[$type,$currency]) {
+        $db->prepare('INSERT INTO accounting_payment_accounts(name,account_type,currency_code) VALUES (?,?,?)')->execute([$prefix.$key,$type,$currency]); $accounts[$key]=(int)$db->lastInsertId();
+    }
     $today=commerceToday(); $date=new DateTimeImmutable($today); $oldCode='XHF';
     $ranges=[cashFlowRange([]),cashFlowRange(['period'=>'last7']),cashFlowRange(['period'=>'month']),cashFlowRange(['period'=>'custom','date_from'=>$date->modify('-7 days')->format('Y-m-d'),'date_to'=>$date->modify('+1 day')->format('Y-m-d')])];
     $baseline=[]; foreach ($ranges as $range) $baseline[$range['period']]=flowAmounts(loadCashFlowSummary($db,$range));
-    $add=function(string $partner,string $direction,string $amount,string $currency,string $paymentDate,string $state='settled') use ($db,$prefix,$contacts,$account,$method,$settings,&$payments,&$fixtures):int {
+    $add=function(string $partner,string $direction,string $amount,string $currency,string $paymentDate,string $state='settled',?int $accountId=null) use ($db,$prefix,$contacts,$account,$method,$settings,&$payments,&$fixtures):int {
         $db->prepare('INSERT INTO accounting_payments(name,partner_type,direction,contact_id,amount,currency_code,primary_code,alternate_code,exchange_rate,payment_date,reference,account_id,method_id,status) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?)')
-            ->execute([$prefix.count($payments),$partner,$direction,$contacts[$partner==='customer'?'client':'supplier'],$amount,$currency,$settings['primary_code'],$settings['alternate_code'],$settings['exchange_rate'],$paymentDate,$prefix,$account,$method,$state]);
-        $id=(int)$db->lastInsertId(); $payments[]=$id; $fixtures[]=['id'=>$id,'direction'=>$direction,'amount'=>$amount,'currency'=>$currency,'date'=>$paymentDate,'status'=>$state]; return $id;
+            ->execute([$prefix.count($payments),$partner,$direction,$contacts[$partner==='customer'?'client':'supplier'],$amount,$currency,$settings['primary_code'],$settings['alternate_code'],$settings['exchange_rate'],$paymentDate,$prefix,$accountId??$account,$method,$state]);
+        $id=(int)$db->lastInsertId(); $payments[]=$id; $fixtures[]=['id'=>$id,'direction'=>$direction,'amount'=>$amount,'currency'=>$currency,'date'=>$paymentDate,'status'=>$state,'account_id'=>$accountId??$account]; return $id;
     };
     $add('customer','inbound','100.00',$primary,$today);
     $add('supplier','outbound','40.00',$primary,$today);
@@ -55,7 +58,12 @@ try {
     $add('customer','inbound','555.00',$primary,$date->modify('+1 day')->format('Y-m-d'));
     $add('customer','inbound','90071992547409.93',$oldCode,$today);
     $add('customer','inbound','0.07',$oldCode,$today);
-    for ($n=0;$n<22;$n++) $add('customer','inbound','0.01',$primary,$today);
+    for ($n=0;$n<22;$n++) $add('customer','inbound','0.01',$primary,$today,'settled',$accounts['bank']);
+    $add('customer','inbound','25.12',$primary,$today,'settled',$accounts['bank']);
+    $add('supplier','outbound','2.05',$primary,$today,'settled',$accounts['bank']);
+    $add('supplier','outbound','15.00',$alternate,$today,'settled',$accounts['cash']);
+    $add('customer','inbound','123.00',$primary,$today,'pending',$accounts['bank']);
+    $add('customer','inbound','456.00',$primary,$date->modify('-20 days')->format('Y-m-d'),'settled',$accounts['bank']);
 
     foreach ($ranges as $range) {
         $expected=$baseline[$range['period']];
@@ -83,6 +91,36 @@ try {
             }
         }
     }
+    $accountCards=array_column(loadCashFlowAccounts($db,$ranges[0]),null,'id');
+    $bankAmounts=flowAmounts(['currencies'=>$accountCards[$accounts['bank']]['currencies']]);
+    flowCheck($bankAmounts[$primary]['income']==='25.34' && $bankAmounts[$primary]['expense']==='2.05' && $bankAmounts[$primary]['net']==='23.29' && $accountCards[$accounts['bank']]['count']===24,'El resumen del banco incluye pagos de otra cuenta, fecha o estado.');
+    $cashAmounts=flowAmounts(['currencies'=>$accountCards[$accounts['cash']]['currencies']]);
+    flowCheck(count($cashAmounts)===1 && $cashAmounts[$alternate]['expense']==='15.00' && $cashAmounts[$alternate]['net']==='-15.00','La caja mezcla monedas o no calcula egresos.');
+    flowCheck($accountCards[$accounts['empty']]['count']===0 && $accountCards[$accounts['empty']]['currencies'][0]['income']==='0.00','No se muestran bancos sin pagos.');
+    $accountTotals=flowAmounts(loadCashFlowSummary($db,$ranges[0],$accounts['bank'])); flowCheck($accountTotals===$bankAmounts,'La tarjeta y el detalle del banco difieren.');
+    $accountHistory=loadCashFlowHistory($db,$ranges[0],1,$accounts['bank']);flowCheck($accountHistory['total']===24 && $accountHistory['pages']===2,'Paginación del banco incorrecta.');
+    foreach($accountHistory['rows'] as $row)flowCheck((int)$row['account_id']===$accounts['bank'],'Se filtraron pagos de otra cuenta en el historial del banco.');
+    $custom=$ranges[3];
+    [, $body]=flowRequest('contabilidad/ingresos-egresos.php?'.cashFlowQuery($custom));
+    $dom=new DOMDocument();$dom->loadHTML('<?xml encoding="UTF-8">'.$body);$xpath=new DOMXPath($dom);
+    flowCheck($xpath->query('//*[@id="cash-flow-history-title"]')->length===0 && $xpath->query('//*[@data-cash-flow-account]')->length===count($accountCards),'La vista general no muestra tarjetas en lugar del listado.');
+    $bankLink=$xpath->query('//*[@data-cash-flow-account="'.$accounts['bank'].'"]')->item(0);
+    parse_str(parse_url($bankLink->getAttribute('href'),PHP_URL_QUERY),$linkQuery);
+    flowCheck((int)$linkQuery['account_id']===$accounts['bank'] && $linkQuery['date_from']===$custom['date_from'] && $linkQuery['date_to']===$custom['date_to'],'La tarjeta perdió la cuenta o las fechas.');
+    [, $body]=flowRequest('contabilidad/ingresos-egresos.php?'.cashFlowQuery($ranges[0],$accounts['bank']));
+    $dom->loadHTML('<?xml encoding="UTF-8">'.$body);$xpath=new DOMXPath($dom);
+    flowCheck($xpath->query('//input[@name="account_id" and @value="'.$accounts['bank'].'"]')->length===1 && $xpath->query('//*[@id="cash-flow-history-title"]')->length===1,'El detalle no conserva la cuenta al cambiar el período.');
+    $actualIds=[];foreach($xpath->query('//table//a') as $link){parse_str(parse_url($link->getAttribute('href'),PHP_URL_QUERY),$query);$actualIds[]=(int)$query['id'];}
+    flowCheck($actualIds===array_map('intval',array_column($accountHistory['rows'],'id')),'La vista del banco muestra pagos de otra cuenta.');
+    $pageLink=$xpath->query('//nav[@aria-label="Páginas del historial"]//a')->item(0);parse_str(parse_url($pageLink->getAttribute('href'),PHP_URL_QUERY),$pageQuery);
+    flowCheck((int)$pageQuery['account_id']===$accounts['bank'] && $pageQuery['period']==='today' && $pageQuery['page']==='2','La paginación perdió el banco o período.');
+    [, $body]=flowRequest('contabilidad/ingresos-egresos.php?'.cashFlowQuery($ranges[0],$accounts['empty']));flowCheck(str_contains($body,'No hay pagos confirmados en este período.'),'Un banco vacío no muestra su historial vacío.');
+    foreach(['0','bad','999999999','%5B%5D=1'] as $bad){
+        $query=$bad==='%5B%5D=1'?'account_id%5B%5D=1':'account_id='.$bad;
+        [$status,$body]=flowRequest('contabilidad/ingresos-egresos.php?'.$query);flowCheck($status===404 && !str_contains($body,'data-cash-flow-account='),'Una cuenta inválida muestra silenciosamente todas las cuentas.');
+    }
+    [, $body]=flowRequest('contabilidad/ingresos-egresos.php?account_id='.$accounts['bank'].'&period=custom&date_from=bad&date_to='.$today);
+    flowCheck(str_contains($body,'name="account_id" value="'.$accounts['bank'].'"'),'Un error de fecha descarta la cuenta seleccionada.');
     $history=loadCashFlowHistory($db,$ranges[0],1); flowCheck(count($history['rows'])===20 && $history['pages']>=2,'El historial no pagina.');
     foreach ($history['rows'] as $row) flowCheck($row['status']==='settled' && $row['payment_date']===$today,'El historial incluye un pago fuera del período o sin confirmar.');
     $second=loadCashFlowHistory($db,$ranges[0],2);
@@ -103,8 +141,9 @@ try {
     flowCheck(bcsub($after[$primary]['income'],$before[$primary]['income'],2)==='999.00','El resumen no refleja un pago recién confirmado.');
     $db->prepare("UPDATE accounting_payments SET status='cancel' WHERE id=? AND reference=?")->execute([$pending,$prefix]);
     [, $body]=flowRequest('dashboard/ingresos-egresos.php'); flowCheck(flowAmounts(json_decode($body,true))===$before,'El resumen conserva un pago cancelado.');
-    echo "PASS: períodos, límites de fechas, monedas, precisión decimal, anticipos, reembolsos, estados, paginación, vistas y actualización de ingresos y egresos.\n";
+    echo "PASS: períodos, monedas, precisión, estados, tarjetas por caja/banco, aislamiento de cuentas, historial, paginación, fechas y actualización de ingresos y egresos.\n";
 } finally {
     foreach ($payments as $id) $db->prepare('DELETE FROM accounting_payments WHERE id=? AND reference=?')->execute([$id,$prefix]);
     foreach ($contacts as $role=>$id) $db->prepare('DELETE FROM contacts WHERE id=? AND name=?')->execute([$id,$prefix.$role]);
+    foreach ($accounts as $key=>$id) $db->prepare('DELETE FROM accounting_payment_accounts WHERE id=? AND name=?')->execute([$id,$prefix.$key]);
 }
