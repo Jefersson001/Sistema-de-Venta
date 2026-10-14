@@ -1,5 +1,6 @@
 <?php
 declare(strict_types=1);
+require_once __DIR__.'/http-session.php';
 if(PHP_SAPI!=='cli'){http_response_code(404);exit;}
 require_once dirname(__DIR__).'/php/connection.php';require_once dirname(__DIR__).'/php/payments-repository.php';require_once dirname(__DIR__).'/php/dashboard-repository.php';
 require_once dirname(__DIR__).'/php/cash-flow-repository.php';
@@ -8,7 +9,7 @@ $db=createDatabaseConnection();$prefix='Test pagos '.bin2hex(random_bytes(8));$c
 function payCheck(bool $ok,string $message):void{if(!$ok)throw new RuntimeException($message);}
 function payRequest(string $path,string $cookie,?array $post=null):array{
     $url=str_starts_with($path,'modules/')||$path==='index.php'?'http://localhost/project/'.$path:'http://localhost/project/modules/'.$path;
-    $c=curl_init($url);curl_setopt_array($c,[CURLOPT_RETURNTRANSFER=>true,CURLOPT_COOKIEFILE=>$cookie,CURLOPT_COOKIEJAR=>$cookie,CURLOPT_TIMEOUT=>15]);if($post!==null)curl_setopt($c,CURLOPT_POSTFIELDS,http_build_query($post));$body=curl_exec($c);$status=curl_getinfo($c,CURLINFO_RESPONSE_CODE);$redirect=curl_getinfo($c,CURLINFO_REDIRECT_URL);if($body===false)throw new RuntimeException(curl_error($c));curl_close($c);payCheck(!preg_match('/Fatal error|Warning:|Notice:/',$body),'Error PHP: '.$path);return[$status,$body,$redirect];
+    $c=testHttpCurl($url, $cookie ?? $cookieJar ?? $cookieFile ?? null);curl_setopt_array($c,[CURLOPT_RETURNTRANSFER=>true,CURLOPT_COOKIEFILE=>$cookie,CURLOPT_COOKIEJAR=>$cookie,CURLOPT_TIMEOUT=>15]);if($post!==null)curl_setopt($c,CURLOPT_POSTFIELDS,http_build_query($post));$body=curl_exec($c);$status=curl_getinfo($c,CURLINFO_RESPONSE_CODE);$redirect=curl_getinfo($c,CURLINFO_REDIRECT_URL);if($body===false)throw new RuntimeException(curl_error($c));curl_close($c);payCheck(!preg_match('/Fatal error|Warning:|Notice:/',$body),'Error PHP: '.$path);return[$status,$body,$redirect];
 }
 function payToken(string $html):string{payCheck(preg_match('/name="csrf" value="([a-f0-9]+)"/',$html,$m)===1,'Falta CSRF.');return$m[1];}
 function payCreated(array $r):int{payCheck($r[0]===303&&preg_match('/id=(\d+)/',$r[2],$m)===1,'Falló una acción: '.strip_tags($r[1]));return(int)$m[1];}

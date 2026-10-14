@@ -27,6 +27,7 @@
                     </div>
 
                     <div class="module-grid" data-module-grid>
+                        <?php if(!$modules): ?><div class="notice contact-full">El acceso operativo de tu grupo se habilitará en la siguiente fase. Puedes consultar <a class="inline-link" href="perfil.php">tu perfil</a> y gestionar tu contraseña.</div><?php endif; ?>
                         <?php foreach ($modules as $key => $module): ?>
                             <a class="module-card" href="modules/<?= htmlspecialchars($key, ENT_QUOTES, 'UTF-8') ?>/index.php" data-module-card data-module-name="<?= htmlspecialchars(mb_strtolower($module['name']), ENT_QUOTES, 'UTF-8') ?>">
                                 <div class="module-card-top">

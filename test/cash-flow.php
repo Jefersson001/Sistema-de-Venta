@@ -1,5 +1,6 @@
 <?php
 declare(strict_types=1);
+require_once __DIR__.'/http-session.php';
 if (PHP_SAPI !== 'cli') { http_response_code(404); exit; }
 require_once dirname(__DIR__).'/php/connection.php';
 require_once dirname(__DIR__).'/php/cash-flow-repository.php';
@@ -8,7 +9,7 @@ require_once dirname(__DIR__).'/php/payments-repository.php';require_once __DIR_
 function flowCheck(bool $condition, string $message): void { if (!$condition) throw new RuntimeException($message); }
 function flowRequest(string $path, ?array $post = null): array
 {
-    $curl=curl_init('http://localhost/project/modules/'.$path);
+    $curl=testHttpCurl('http://localhost/project/modules/'.$path, $cookie ?? $cookieJar ?? $cookieFile ?? null);
     curl_setopt_array($curl,[CURLOPT_RETURNTRANSFER=>true,CURLOPT_TIMEOUT=>15]);
     if ($post !== null) curl_setopt($curl,CURLOPT_POSTFIELDS,http_build_query($post));
     $body=curl_exec($curl); $status=curl_getinfo($curl,CURLINFO_RESPONSE_CODE); curl_close($curl);

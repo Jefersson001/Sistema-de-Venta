@@ -1,10 +1,11 @@
 <?php
 declare(strict_types=1);
+require_once __DIR__.'/http-session.php';
 if(PHP_SAPI!=='cli'){http_response_code(404);exit;}
 require_once dirname(__DIR__).'/php/connection.php';require_once dirname(__DIR__).'/php/payments-repository.php';require_once dirname(__DIR__).'/php/cash-flow-repository.php';require_once dirname(__DIR__).'/php/treasury-schema.php';require_once __DIR__.'/treasury-cleanup.php';
 function trCheck(bool $ok,string $message):void{if(!$ok)throw new RuntimeException($message);}
 function trRequest(string $path,string $cookie,?array $post=null):array{
-    $c=curl_init('http://localhost/project/modules/contabilidad/'.$path);curl_setopt_array($c,[CURLOPT_RETURNTRANSFER=>true,CURLOPT_COOKIEFILE=>$cookie,CURLOPT_COOKIEJAR=>$cookie,CURLOPT_TIMEOUT=>15]);if($post!==null)curl_setopt($c,CURLOPT_POSTFIELDS,http_build_query($post));$body=curl_exec($c);$status=curl_getinfo($c,CURLINFO_RESPONSE_CODE);$redirect=curl_getinfo($c,CURLINFO_REDIRECT_URL);curl_close($c);trCheck(is_string($body)&&!preg_match('/Fatal error|Warning:|Notice:/',$body),'Error PHP en '.$path);return[$status,$body,$redirect];
+    $c=testHttpCurl('http://localhost/project/modules/contabilidad/'.$path, $cookie ?? $cookieJar ?? $cookieFile ?? null);curl_setopt_array($c,[CURLOPT_RETURNTRANSFER=>true,CURLOPT_COOKIEFILE=>$cookie,CURLOPT_COOKIEJAR=>$cookie,CURLOPT_TIMEOUT=>15]);if($post!==null)curl_setopt($c,CURLOPT_POSTFIELDS,http_build_query($post));$body=curl_exec($c);$status=curl_getinfo($c,CURLINFO_RESPONSE_CODE);$redirect=curl_getinfo($c,CURLINFO_REDIRECT_URL);curl_close($c);trCheck(is_string($body)&&!preg_match('/Fatal error|Warning:|Notice:/',$body),'Error PHP en '.$path);return[$status,$body,$redirect];
 }
 function trToken(string $html):string{trCheck(preg_match('/name="csrf" value="([a-f0-9]+)"/',$html,$m)===1,'Falta CSRF.');return$m[1];}
 function trId(array $r):int{trCheck($r[0]===303&&preg_match('/id=(\d+)/',$r[2],$m)===1,'Falló la operación: '.mb_substr(strip_tags($r[1]),-900));return(int)$m[1];}

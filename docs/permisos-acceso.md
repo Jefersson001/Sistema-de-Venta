@@ -1,6 +1,6 @@
 # Grupos y permisos — contrato de la fase 2
 
-Los grupos definen permisos; no son tipos de contacto. Esta fase no crea usuarios ni aplica restricciones a los módulos actuales. La autenticación y su integración se completan en las fases 3 y 4.
+Los grupos definen permisos; no son tipos de contacto. La fase 2 creó el catálogo y su matriz. La fase 3 incorpora Usuarios y autenticación obligatoria: por ahora solo las cuentas del grupo Administrador acceden a los módulos operativos. Las cuentas de otros grupos pueden gestionar su contraseña y consultar su perfil. La fase 4 aplicará los permisos específicos y los alcances Propios/Todos a los procesos y al Dashboard.
 
 ## Catálogo
 
@@ -14,7 +14,7 @@ La matriz distingue:
 - Compras: órdenes e impuestos.
 - Inventario: productos, entregas, recepciones, internos, existencias, movimientos y configuración de categorías/almacenes/ubicaciones.
 - Contabilidad: facturas de clientes/proveedores, pagos de clientes/proveedores, otros ingresos, otros egresos, transferencias, saldos iniciales, historial y configuración financiera.
-- Ajustes: ajustes generales, Empresa, grupos y las operaciones de Usuarios que se habilitarán en la fase 3.
+- Ajustes: ajustes generales, Empresa, grupos y las operaciones de Usuarios.
 
 Generar documentos desde una orden es una acción diferente de editarlos, confirmarlos o cancelarlos. Registrar un pago desde una factura tampoco equivale a confirmarlo. Los costos de producto y la configuración de comisiones tienen permisos separados.
 
@@ -61,7 +61,7 @@ Las compras, recepciones, internos, bancos y demás secciones sin una relación 
 | Contabilidad | Facturas, cobros, pagos, Tesorería, configuración financiera y gestión de comisiones. |
 | Consulta | Lectura operativa de contactos, productos, órdenes e inventario. No trae acceso financiero ni a comisiones por defecto. |
 
-Estos son puntos de partida configurables. Administrador conserva su estado activo y los permisos administrativos mínimos para evitar perder la gestión del sistema. Los demás permisos de ese grupo son editables; no tiene un acceso implícito que ignore casillas quitadas. La protección del último usuario administrador se incorpora en la fase 3.
+Estos son puntos de partida configurables. Administrador conserva su estado activo y los permisos administrativos mínimos para evitar perder la gestión del sistema. Los demás permisos de ese grupo son editables. Cuando se aplique la matriz en la fase 4, no tendrá acceso implícito que ignore casillas quitadas. Durante la fase 3, la pertenencia a Administrador es la condición temporal de entrada a los módulos; las casillas operativas todavía no restringen acciones. La protección del último usuario administrador activo ya está incorporada.
 
 ## Integración pendiente
 
@@ -71,7 +71,7 @@ Un permiso del Dashboard no autoriza datos del negocio por sí solo. Sus indicad
 
 ## Persistencia y migraciones
 
-`access_permissions` conserva el catálogo técnico, `access_groups` la identidad/estado/versión del grupo y `access_group_permissions` los permisos con su alcance. Los usuarios y sus asignaciones aún no se crean.
+`access_permissions` conserva el catálogo técnico, `access_groups` la identidad/estado/versión del grupo y `access_group_permissions` los permisos con su alcance. Desde la fase 3, `auth_users` conserva las cuentas y `auth_user_groups` sus asignaciones. Los tipos de contacto no sustituyen estas relaciones.
 
 El instalador agrega los grupos iniciales que falten y actualiza los textos del catálogo. No restablece grupos modificados o archivados, ni concede nuevos permisos automáticamente a grupos existentes. Nuevas capacidades necesitarán asignación explícita.
 

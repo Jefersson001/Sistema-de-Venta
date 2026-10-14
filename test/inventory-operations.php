@@ -1,5 +1,6 @@
 <?php
 declare(strict_types=1);
+require_once __DIR__.'/http-session.php';
 if (PHP_SAPI !== 'cli') { http_response_code(404); exit; }
 require_once dirname(__DIR__) . '/php/connection.php';
 require_once dirname(__DIR__) . '/php/inventory-operations-repository.php';
@@ -9,7 +10,7 @@ $cookie = tempnam(sys_get_temp_dir(), 'operations-');
 $warehouses = []; $contacts = []; $location = null; $destinationLocation = null; $product = null;
 function checkOperation(bool $condition, string $message): void { if (! $condition) { throw new RuntimeException($message); } }
 function operationRequest(string $query, string $cookie, ?array $post = null): array {
-    $curl = curl_init('http://localhost/project/modules/inventario/operaciones.php?' . $query);
+    $curl = testHttpCurl('http://localhost/project/modules/inventario/operaciones.php?' . $query, $cookie ?? $cookieJar ?? $cookieFile ?? null);
     curl_setopt_array($curl, [CURLOPT_RETURNTRANSFER => true, CURLOPT_COOKIEFILE => $cookie, CURLOPT_COOKIEJAR => $cookie, CURLOPT_TIMEOUT => 10]);
     if ($post !== null) { curl_setopt($curl, CURLOPT_POSTFIELDS, http_build_query($post)); }
     $body = curl_exec($curl); $status = curl_getinfo($curl, CURLINFO_RESPONSE_CODE); $redirect = curl_getinfo($curl, CURLINFO_REDIRECT_URL);
@@ -159,11 +160,11 @@ try {
     $stateQuery->execute([$failedId]); checkOperation($stateQuery->fetchColumn() === 'waiting', 'Una operación sin disponibilidad debe seguir En espera.');
     $query = $db->prepare('SELECT COUNT(*) FROM inventory_stock_moves WHERE operation_id = ?'); $query->execute([$failedId]);
     checkOperation((int) $query->fetchColumn() === 0, 'Una validación fallida dejó movimientos.');
-    $curl = curl_init('http://localhost/project/modules/inventario/index.php?id=' . $product);
+    $curl = testHttpCurl('http://localhost/project/modules/inventario/index.php?id=' . $product, $cookie ?? $cookieJar ?? $cookieFile ?? null);
     curl_setopt($curl, CURLOPT_RETURNTRANSFER, true); $productForm = curl_exec($curl); curl_close($curl);
     checkOperation(is_string($productForm) && str_contains($productForm, '8.125') && str_contains($productForm, 'view=stock&amp;product_id=' . $product) && ! str_contains($productForm, '<h2 class="notebook-page-title">Existencias por ubicación'), 'Cantidad a la mano no abre directamente su informe o la pestaña mantiene el detalle.');
     foreach (['movements', 'stock', 'outgoing', 'incoming'] as $reportView) {
-        $curl = curl_init('http://localhost/project/modules/inventario/informes.php?view=' . $reportView . '&product_id=' . $product);
+        $curl = testHttpCurl('http://localhost/project/modules/inventario/informes.php?view=' . $reportView . '&product_id=' . $product, $cookie ?? $cookieJar ?? $cookieFile ?? null);
         curl_setopt($curl, CURLOPT_RETURNTRANSFER, true); $report = curl_exec($curl); $reportStatus = curl_getinfo($curl, CURLINFO_RESPONSE_CODE); curl_close($curl);
         checkOperation($reportStatus === 200 && is_string($report) && str_contains($report, $prefix) && ! preg_match('/Fatal error|Warning:|Notice:/', $report), 'No se cargó el informe de inventario.');
         $reportDom = new DOMDocument(); libxml_use_internal_errors(true); $reportDom->loadHTML('<?xml encoding="UTF-8">' . $report);
@@ -174,7 +175,7 @@ try {
     [$secondReceiptId, $secondReceiptPost] = $createStockOperation('receipt', '1.000');
     [$status] = $validateStock('receipt', $secondReceiptId, $secondReceiptPost['csrf']); checkOperation($status === 303, 'No se validó la segunda recepción.');
     checkOperation(loadInventoryProductIndicators($db, $product)['incoming'] === '2', 'Las recepciones individuales se agruparon en un solo movimiento.');
-    $curl = curl_init('http://localhost/project/modules/inventario/informes.php?view=incoming&product_id=' . $product);
+    $curl = testHttpCurl('http://localhost/project/modules/inventario/informes.php?view=incoming&product_id=' . $product, $cookie ?? $cookieJar ?? $cookieFile ?? null);
     curl_setopt($curl, CURLOPT_RETURNTRANSFER, true); $twoReceipts = curl_exec($curl); curl_close($curl);
     $historyDom = new DOMDocument(); $historyDom->loadHTML('<?xml encoding="UTF-8">' . $twoReceipts); $historyXpath = new DOMXPath($historyDom);
     checkOperation($historyXpath->query('//table/tbody/tr')->length === 2, 'El historial no muestra una fila por recepción.');

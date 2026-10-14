@@ -2,7 +2,9 @@
 <?php foreach($page['errors'] as $message): ?><p class="notice notice-error" role="alert"><?= $e($message) ?></p><?php endforeach; ?>
 <?php if($page['flash']): ?><p class="notice" role="status"><?= $e($page['flash']) ?></p><?php endif; ?>
 <?php if($page['available']): ?>
-    <?php if($page['area']==='groups'): ?>
+    <?php if($page['area']==='users'): ?>
+        <?php require __DIR__.'/users.php'; ?>
+    <?php elseif($page['area']==='groups'): ?>
         <?php require __DIR__.'/groups.php'; ?>
     <?php elseif($page['area']==='company'): ?>
         <?php require __DIR__.'/company.php'; ?>

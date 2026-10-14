@@ -1,5 +1,6 @@
 <?php
 declare(strict_types=1);
+require_once __DIR__.'/http-session.php';
 if (PHP_SAPI!=='cli') { http_response_code(404); exit; }
 require_once dirname(__DIR__).'/php/connection.php';
 require_once dirname(__DIR__).'/php/settings-schema.php';
@@ -12,7 +13,7 @@ function settingsReject(callable $action): void {
     throw new RuntimeException('Se aceptó una modificación inválida de Empresa.');
 }
 function settingsRequest(string $path, string $cookie, ?array $post=null, string $method='GET'): array {
-    $curl=curl_init('http://localhost/project/'.$path);
+    $curl=testHttpCurl('http://localhost/project/'.$path, $cookie ?? $cookieJar ?? $cookieFile ?? null);
     curl_setopt_array($curl,[CURLOPT_RETURNTRANSFER=>true,CURLOPT_COOKIEFILE=>$cookie,CURLOPT_COOKIEJAR=>$cookie,CURLOPT_TIMEOUT=>15]);
     if($post!==null)curl_setopt($curl,CURLOPT_POSTFIELDS,http_build_query($post));
     elseif($method!=='GET')curl_setopt($curl,CURLOPT_CUSTOMREQUEST,$method);

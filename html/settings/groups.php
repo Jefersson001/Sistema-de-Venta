@@ -4,7 +4,7 @@
         <?php if($page['view']==='form'): ?><a class="overview-link" href="grupos.php">← Grupos de acceso</a><?php endif; ?>
         <p class="eyebrow">AJUSTES</p><h1 id="groups-title"><?= $page['view']==='list'?'Grupos de acceso':$e($record['name']?:'Nuevo grupo') ?></h1>
     </div><?php if($page['view']==='list'): ?><a class="contact-button contact-button-primary" href="grupos.php?new=1">Nuevo</a><?php endif; ?></div>
-    <p class="notice">Los grupos se preparan aquí. Su asignación a usuarios y las restricciones de acceso se activarán en las siguientes fases.</p>
+    <p class="notice">Los grupos ya pueden asignarse a usuarios. El acceso operativo y sus restricciones se integrarán en la siguiente fase.</p>
     <?php if($page['view']==='list'): ?>
         <form class="contact-filters" action="grupos.php"><label>Buscar<input type="search" name="q" maxlength="120" value="<?= $e($page['search']) ?>" placeholder="Nombre o descripción"></label>
             <label>Estado<select name="active" data-auto-submit><option value="all" <?= $page['filter']==='all'?'selected':'' ?>>Todos</option><option value="active" <?= $page['filter']==='active'?'selected':'' ?>>Activos</option><option value="inactive" <?= $page['filter']==='inactive'?'selected':'' ?>>Archivados</option></select></label><button class="contact-button">Buscar</button>

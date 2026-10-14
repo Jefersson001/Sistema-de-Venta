@@ -1,4 +1,4 @@
-# Ajustes — fases 1 y 2
+# Ajustes — fases 1, 2 y 3
 
 Inicio → Ajustes abre las secciones General, Contactos, Ventas, Compras, Inventario y Contabilidad. Los accesos utilizan los catálogos existentes; las monedas se leen de la configuración financiera actual.
 
@@ -16,7 +16,7 @@ Instalación:
 
 También se incluye en `php/install-commerce.php`. La instalación de esta fase se ha aplicado en el entorno local.
 
-Pruebas: `test/business-settings.php`. El guardado, logos, conflictos e instalación repetible se comprueban en una base de datos de prueba aislada que se elimina al terminar. Las comprobaciones HTTP sobre el proyecto se limitan a lecturas e intentos inválidos que no alteran Empresa.
+Pruebas: `test/business-settings.php`. Desde la fase 3, sus comprobaciones HTTP se ejecutan con `test/run-authenticated.php` en un servidor y una base aislados, con un administrador temporal de prueba. El guardado, logos, conflictos e instalación repetible conservan su propia comprobación aislada.
 
 Validación manual:
 
@@ -39,7 +39,7 @@ Los permisos se suman por acción al combinar grupos. Consultar todas las ventas
 
 El instalador `php/install-settings.php` instala también el catálogo y los grupos, y se mantiene incluido en `php/install-commerce.php`. Es repetible y conserva personalizaciones. Guardar utiliza CSRF, transacción, versión y clave de creación. La instalación de la fase 2 se aplicó en el entorno local.
 
-Pruebas: `test/access-groups.php` comprueba combinación, alcances, denegación, administrador protegido e instalación en una base aislada. Sus comprobaciones HTTP crean únicamente un grupo temporal identificado y lo eliminan al finalizar. No modifica los grupos del usuario.
+Pruebas: `test/access-groups.php` comprueba combinación, alcances, denegación, administrador protegido e instalación en una base aislada. Sus comprobaciones HTTP se ejecutan mediante `test/run-authenticated.php`; crean un grupo temporal dentro del entorno aislado y lo eliminan al finalizar. No modifica los grupos del negocio.
 
 Validación manual de la fase 2:
 
@@ -50,4 +50,29 @@ Validación manual de la fase 2:
 5. Archivar un grupo personalizado quitando Activo; localizarlo con el filtro Archivados.
 6. Editar en dos ventanas y comprobar el aviso al guardar una versión antigua.
 
-Esta fase define y guarda permisos. Login, Usuarios y la aplicación a procesos/Dashboard corresponden a las fases 3 y 4 del [plan](../../docs/plan-ajustes.md). La interfaz informa de ello para que preparar grupos no se confunda con tener restricciones activadas.
+La fase 2 define y guarda permisos. La fase 3 incorpora Login y Usuarios; la aplicación por acciones y registros a procesos/Dashboard corresponde a la fase 4 del [plan](../../docs/plan-ajustes.md).
+
+## Fase 3: Usuarios e inicio de sesión
+
+Ajustes → Usuarios tiene listado y formulario separados, búsqueda, filtros y paginación. Cada cuenta tiene nombre, usuario de acceso único, correo opcional, estado, contacto opcional y grupos. Un contacto solo puede estar asociado a una cuenta. Para un vendedor, el contacto relacionado permitirá identificar sus registros al aplicar el alcance Propios en la fase 4.
+
+El administrador elige una contraseña temporal al crear o restablecer una cuenta. Esa cuenta debe cambiarla antes de acceder al sistema. Las contraseñas se almacenan como hash y nunca se muestran después de guardar. Se protegen los formularios con CSRF, versiones y claves de creación para evitar duplicados. No se permite desactivar ni retirar el grupo del último administrador activo.
+
+Todas las entradas del negocio exigen sesión, incluidas las consultas JSON y el logo. En esta etapa, solo el grupo Administrador utiliza los módulos operativos; los demás usuarios acceden a Inicio, su perfil y cambio de contraseña hasta implementar la fase 4. El menú superior muestra la identidad real y permite consultar el perfil, cambiar la contraseña y cerrar sesión.
+
+La instalación ya está aplicada, sin crear cuentas reales. El propietario prepara la primera cuenta ejecutando desde la raíz del proyecto:
+
+```powershell
+& C:\xampp\php\php.exe php/prepare-admin.php
+```
+
+Debe abrir el enlace generado, que vence en 30 minutos, y elegir su nombre, usuario y contraseña. No existe una contraseña predeterminada ni un registro público de usuarios. Repetir el instalador conserva las cuentas y no vuelve a habilitar esa activación.
+
+Pruebas de autenticación y regresión:
+
+```powershell
+& C:\xampp\php\php.exe test/authentication.php
+& C:\xampp\php\php.exe test/run-authenticated.php business-settings access-groups commerce-workflows accounting-payments treasury dashboard
+```
+
+Las pruebas crean bases de datos, cuentas y sesiones aisladas; no copian contraseñas reales ni necesitan las credenciales del propietario. Guía de validación manual y reglas de sesiones en [usuarios-acceso.md](../../docs/usuarios-acceso.md).

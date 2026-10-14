@@ -240,6 +240,28 @@ a:focus-visible, button:focus-visible { outline: 3px solid #5d4fc4; outline-offs
 .contact-sheet .access-permission-options label { display: inline-flex; flex-direction: row; align-items: center; gap: 7px; font-size: 14px; font-weight: 400; cursor: pointer; }
 .contact-sheet .access-permission-options input[type="checkbox"], .contact-sheet .access-active-field input[type="checkbox"] { width: 17px; height: 17px; min-height: 17px; margin: 0; padding: 0; flex-shrink: 0; accent-color: #514397; }
 .access-tab-count { display: inline-block; min-width: 20px; padding: 0 5px; margin-left: 6px; border-radius: 4px; color: #514397; background: #eae5fb; text-align: center; font-size: 12px; }
+.auth-page { display: grid; min-height: 100dvh; place-items: center; padding: 28px 18px; }
+.auth-card { width: min(100%, 470px); }
+.auth-brand { display: flex; align-items: center; gap: 10px; margin-bottom: 24px; }
+.auth-brand strong { font-family: Manrope, sans-serif; font-size: 26px; }
+.auth-brand strong > span { color: var(--purple); }
+.auth-card h1 { margin: 0 0 8px; font-family: Manrope, sans-serif; font-size: 28px; }
+.auth-card form { margin-top: 20px; }
+.auth-submit { width: 100%; }
+.auth-card .auth-help { margin-top: 20px; }
+.auth-exit { text-align: center; }
+.user-menu-summary { display: flex; align-items: center; gap: 9px; color: #e7e9f3; cursor: pointer; list-style: none; font-size: 14px; }
+.user-menu-summary::-webkit-details-marker { display: none; }
+.user-menu-name { max-width: 150px; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
+.user-menu-options { left: auto; right: 0; min-width: 210px; }
+.user-menu-options button { display: block; width: 100%; border: 0; padding: 9px 12px; text-align: left; border-radius: 6px; background: transparent; color: #414b60; cursor: pointer; font: inherit; font-size: 14px; }
+.user-menu-options button:hover { color: #514397; background: #f0edfc; }
+.access-user-groups { display: flex; flex-wrap: wrap; gap: 8px; }
+.access-user-group-options { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(280px,100%),1fr)); gap: 12px; }
+.contact-sheet .access-user-group-options label { flex-direction: row; align-items: flex-start; gap: 10px; padding: 12px; border: 1px solid var(--line); border-radius: 7px; font-weight: 600; }
+.contact-sheet .access-user-group-options input { width: 18px; height: 18px; min-height: 18px; margin: 2px 0 0; flex-shrink: 0; accent-color: #514397; }
+.access-user-group-options small { display: block; margin-top: 4px; }
+@media (max-width: 720px) { .user-menu-name { display: none; } }
 .contact-config-content .contact-sheet { margin: 20px 0; }
 .contact-config-content h2 { font-family: Manrope, sans-serif; font-size: 22px; }
 .catalog-group-title { margin: 24px 0 12px; font-family: Manrope, sans-serif; font-size: 20px; }

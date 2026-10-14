@@ -1,5 +1,6 @@
 <?php
 declare(strict_types=1);
+require_once __DIR__.'/http-session.php';
 if (PHP_SAPI!=='cli') { http_response_code(404);exit; }
 require_once dirname(__DIR__).'/php/connection.php';
 require_once dirname(__DIR__).'/php/commission-repository.php';
@@ -18,7 +19,7 @@ function commissionInvoiceView(string $html, string $amount, string $currency, s
     commissionCheck($xpath->query('//*[@data-invoice-total]/dd[text()="'.$total.'"]')->length===1,'Se sumó nuevamente la comisión al total de la factura.');
 }
 function commissionRequest(string $path,string $cookie,?array $post=null): array {
-    $curl=curl_init('http://localhost/project/modules/'.$path);curl_setopt_array($curl,[CURLOPT_RETURNTRANSFER=>true,CURLOPT_COOKIEFILE=>$cookie,CURLOPT_COOKIEJAR=>$cookie,CURLOPT_TIMEOUT=>15]);
+    $curl=testHttpCurl('http://localhost/project/modules/'.$path, $cookie ?? $cookieJar ?? $cookieFile ?? null);curl_setopt_array($curl,[CURLOPT_RETURNTRANSFER=>true,CURLOPT_COOKIEFILE=>$cookie,CURLOPT_COOKIEJAR=>$cookie,CURLOPT_TIMEOUT=>15]);
     if($post!==null)curl_setopt($curl,CURLOPT_POSTFIELDS,http_build_query($post));$body=curl_exec($curl);$status=curl_getinfo($curl,CURLINFO_RESPONSE_CODE);$location=curl_getinfo($curl,CURLINFO_REDIRECT_URL);curl_close($curl);
     commissionCheck(is_string($body)&&!preg_match('/Fatal error|Warning:|Notice:/',$body),'Error PHP en '.$path);return[$status,$body,$location];
 }

@@ -1,5 +1,6 @@
 <?php
 declare(strict_types=1);
+require_once __DIR__.'/http-session.php';
 if (PHP_SAPI !== 'cli') { http_response_code(404); exit; }
 require_once dirname(__DIR__).'/php/dashboard-repository.php';
 require_once dirname(__DIR__).'/php/cash-flow-repository.php';
@@ -11,7 +12,7 @@ function dashboardCheck(bool $condition, string $message): void
 }
 function dashboardRequest(string $query = '', bool $post = false): array
 {
-    $request = curl_init('http://localhost/project/modules/dashboard/resumen.php'.$query);
+    $request = testHttpCurl('http://localhost/project/modules/dashboard/resumen.php'.$query, $cookie ?? $cookieJar ?? $cookieFile ?? null);
     curl_setopt_array($request, [CURLOPT_RETURNTRANSFER=>true, CURLOPT_TIMEOUT=>15, CURLOPT_HEADER=>true]);
     if ($post) curl_setopt($request, CURLOPT_POSTFIELDS, '');
     $response = curl_exec($request);
@@ -41,7 +42,7 @@ dashboardCheck($status === 422, 'Se aceptó un rango invertido.');
 dashboardCheck($status === 422, 'Se aceptó un período inválido.');
 [$status] = dashboardRequest('', true);
 dashboardCheck($status === 405, 'El endpoint admite escrituras.');
-$html = file_get_contents('http://localhost/project/modules/dashboard/index.php');
+$html = testHttpGet('http://localhost/project/modules/dashboard/index.php');
 dashboardCheck(is_string($html) && !preg_match('/Warning:|Fatal error|Notice:/', $html), 'La vista contiene errores PHP.');
 $dom = new DOMDocument();
 libxml_use_internal_errors(true);

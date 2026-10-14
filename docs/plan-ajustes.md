@@ -42,7 +42,7 @@ Verificación: `test/access-groups.php`, `test/business-settings.php`, `test/com
 
 ## Fase 3 — Usuarios e inicio de sesión
 
-Estado: pendiente.
+Estado: implementada y verificada el 14/10/2026; pendiente de activación de la primera cuenta, validación y push del usuario.
 
 1. Crear Usuarios con listado/formulario, nombre, login único, correo, estado, grupos y contacto relacionado.
 2. Crear el primer administrador mediante una preparación controlada, sin una contraseña pública predeterminada.
@@ -55,6 +55,12 @@ Estado: pendiente.
 Validación del usuario: entrar/salir, crear un usuario, cambiar contraseña, desactivar y comprobar que no entra. Mientras se completan los permisos del negocio en la fase 4, las cuentas sin autorización no reciben acceso general.
 
 Criterio de cierre: autenticación obligatoria y administración protegida. Probar que una dirección directa no evita el login.
+
+Entregado: Usuarios con listado/formulario y grupos, activación única del primer administrador desde el equipo local, login, perfil, cierre de sesión, cambio de contraseña y restablecimiento administrativo con cambio obligatorio. Las sesiones se invalidan al cambiar credenciales, estado, contacto o grupos. No se permite desactivar ni quitar el grupo del último administrador activo. Los archivos internos quedan bloqueados para acceso HTTP.
+
+En esta fase, solamente las cuentas del grupo Administrador acceden a los módulos operativos. Las demás pueden iniciar sesión, cambiar su contraseña y consultar su perfil; la matriz por acciones y registros propios se aplicará en la fase 4. Esta restricción evita dar acceso general mientras esa integración está pendiente.
+
+Verificación: `test/authentication.php` sobre activación, sesiones, contraseñas, CSRF, intentos fallidos, revocación y protección administrativa; pruebas autenticadas de Empresa, grupos, procesos comerciales, pagos, Tesorería y Dashboard en bases aisladas; sintaxis y revisión de Login/Usuarios a 1440 y 390 píxeles. La instalación local conserva los datos del negocio y no ha creado cuentas reales. Instrucciones de activación y validación en [usuarios-acceso.md](usuarios-acceso.md).
 
 ## Fase 4 — Permisos aplicados al negocio y Dashboard
 

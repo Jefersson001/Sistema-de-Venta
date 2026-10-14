@@ -1,0 +1,7 @@
+<IfModule mod_rewrite.c>
+    RewriteEngine On
+    RewriteRule ^(?:\.git|\.codex|\.agents|php|html|test|docs)(?:/|$) - [F,L,NC]
+</IfModule>
+<FilesMatch "(^\.|\.(?:sql|md|env|log|bak|ini|json|txt)$)">
+    Require all denied
+</FilesMatch>

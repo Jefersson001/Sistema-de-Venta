@@ -1,5 +1,6 @@
 <?php
 declare(strict_types=1);
+require_once __DIR__.'/http-session.php';
 if (PHP_SAPI !== 'cli') { http_response_code(404); exit; }
 require_once dirname(__DIR__) . '/php/connection.php';
 require_once dirname(__DIR__) . '/php/inventory-stock-repository.php';
@@ -7,7 +8,7 @@ $db = createDatabaseConnection(); $prefix = 'PI-' . bin2hex(random_bytes(8));
 $product = null; $supplier = null; $orders = [];
 function expectPurchaseIndicator(bool $condition, string $message): void { if (! $condition) { throw new RuntimeException($message); } }
 function purchaseIndicatorPage(string $path): string {
-    $curl = curl_init('http://localhost/project/modules/' . $path); curl_setopt($curl, CURLOPT_RETURNTRANSFER, true);
+    $curl = testHttpCurl('http://localhost/project/modules/' . $path, $cookie ?? $cookieJar ?? $cookieFile ?? null); curl_setopt($curl, CURLOPT_RETURNTRANSFER, true);
     $body = curl_exec($curl); $status = curl_getinfo($curl, CURLINFO_RESPONSE_CODE); curl_close($curl);
     expectPurchaseIndicator($status === 200 && is_string($body) && ! preg_match('/Fatal error|Warning:|Notice:/', $body), 'La consulta falló.'); return $body;
 }

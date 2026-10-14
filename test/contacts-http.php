@@ -1,6 +1,7 @@
 <?php
 
 declare(strict_types=1);
+require_once __DIR__.'/http-session.php';
 
 if (PHP_SAPI !== 'cli') {
     http_response_code(404);
@@ -18,7 +19,7 @@ $created = [];
 
 function contactHttp(string $baseUrl, string $path, string $cookieFile, ?array $post = null): array
 {
-    $curl = curl_init($baseUrl . $path);
+    $curl = testHttpCurl($baseUrl . $path, $cookie ?? $cookieJar ?? $cookieFile ?? null);
     curl_setopt_array($curl, [CURLOPT_RETURNTRANSFER => true, CURLOPT_COOKIEJAR => $cookieFile,
         CURLOPT_COOKIEFILE => $cookieFile, CURLOPT_TIMEOUT => 10]);
     if ($post !== null) {

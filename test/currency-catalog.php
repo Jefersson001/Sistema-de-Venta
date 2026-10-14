@@ -1,5 +1,6 @@
 <?php
 declare(strict_types=1);
+require_once __DIR__.'/http-session.php';
 if (PHP_SAPI !== 'cli') { http_response_code(404); exit; }
 require_once dirname(__DIR__).'/php/connection.php';
 require_once dirname(__DIR__).'/php/currency-schema.php';
@@ -76,7 +77,7 @@ $live=createDatabaseConnection(); $fixture=null; $cookie=tempnam(sys_get_temp_di
 $prefix='Test moneda '.bin2hex(random_bytes(8));
 function currencyHttp(string $path,string $cookie,?array $post=null): array
 {
-    $c=curl_init('http://localhost/project/modules/contabilidad/'.$path);
+    $c=testHttpCurl('http://localhost/project/modules/contabilidad/'.$path, $cookie ?? $cookieJar ?? $cookieFile ?? null);
     curl_setopt_array($c,[CURLOPT_RETURNTRANSFER=>true,CURLOPT_COOKIEFILE=>$cookie,CURLOPT_COOKIEJAR=>$cookie,CURLOPT_TIMEOUT=>10]);
     if ($post!==null) curl_setopt($c,CURLOPT_POSTFIELDS,http_build_query($post));
     $html=curl_exec($c); $status=curl_getinfo($c,CURLINFO_RESPONSE_CODE); $redirect=curl_getinfo($c,CURLINFO_REDIRECT_URL);curl_close($c);

@@ -55,7 +55,7 @@ function accessResources(): array
         ['ajustes','general','Ajustes generales','read',false],
         ['ajustes','company','Empresa','read,edit',false],
         ['ajustes','groups','Grupos de acceso','read,create,edit,archive',false],
-        ['ajustes','users','Usuarios (siguiente fase)','read,create,edit,archive,password,assign_groups',false],
+        ['ajustes','users','Usuarios','read,create,edit,archive,password,assign_groups',false],
     ];
     $result = [];
     foreach ($specs as [$module,$key,$label,$actions,$own]) {

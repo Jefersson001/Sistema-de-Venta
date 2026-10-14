@@ -1,5 +1,6 @@
 <?php
 declare(strict_types=1);
+require_once __DIR__.'/http-session.php';
 if (PHP_SAPI !== 'cli') { http_response_code(404); exit; }
 require_once dirname(__DIR__) . '/php/connection.php';
 require_once dirname(__DIR__) . '/php/sales-repository.php';
@@ -19,7 +20,7 @@ function expectSales(bool $condition, string $message): void
 
 function salesRequest(string $base, string $path, string $cookie, ?array $post = null): array
 {
-    $curl = curl_init($base . $path);
+    $curl = testHttpCurl($base . $path, $cookie ?? $cookieJar ?? $cookieFile ?? null);
     curl_setopt_array($curl, [CURLOPT_RETURNTRANSFER => true, CURLOPT_COOKIEJAR => $cookie, CURLOPT_COOKIEFILE => $cookie, CURLOPT_TIMEOUT => 10]);
     if ($post !== null) { curl_setopt($curl, CURLOPT_POSTFIELDS, http_build_query($post)); }
     $body = curl_exec($curl); $status = curl_getinfo($curl, CURLINFO_RESPONSE_CODE); $redirect = curl_getinfo($curl, CURLINFO_REDIRECT_URL);
