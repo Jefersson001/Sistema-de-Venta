@@ -31,7 +31,7 @@
                             <a class="module-card" href="modules/<?= htmlspecialchars($key, ENT_QUOTES, 'UTF-8') ?>/index.php" data-module-card data-module-name="<?= htmlspecialchars(mb_strtolower($module['name']), ENT_QUOTES, 'UTF-8') ?>">
                                 <div class="module-card-top">
                                     <span class="module-icon icon-<?= htmlspecialchars($module['color'], ENT_QUOTES, 'UTF-8') ?>"><?= htmlspecialchars($module['initials'], ENT_QUOTES, 'UTF-8') ?></span>
-                                    <span class="module-status"><span></span> <?= in_array($key, ['contactos', 'dashboard'], true) ? 'Disponible' : 'En desarrollo' ?></span>
+                                    <span class="module-status"><span></span> <?= in_array($key, ['contactos', 'dashboard', 'ajustes'], true) ? 'Disponible' : 'En desarrollo' ?></span>
                                 </div>
                                 <div class="module-card-copy">
                                     <div class="module-title-row">

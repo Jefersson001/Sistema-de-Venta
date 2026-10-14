@@ -15,7 +15,10 @@
             <div class="page-content module-page">
                 <a class="back-link" href="../../index.php">← Volver al inicio</a>
                 <?php if ($moduleKey !== 'dashboard'): ?><nav class="module-navigation" aria-label="Secciones de <?= htmlspecialchars($module['name'], ENT_QUOTES, 'UTF-8') ?>">
-                    <?php if (in_array($moduleKey, ['ventas', 'compras'], true)): ?>
+                    <?php if ($moduleKey === 'ajustes'): ?>
+                        <a class="module-navigation-link <?= ($modulePageData['area']??'')==='settings'?'module-navigation-active':'' ?>" href="index.php" <?= ($modulePageData['area']??'')==='settings'?'aria-current="page"':'' ?>>Ajustes generales</a>
+                        <a class="module-navigation-link <?= ($modulePageData['area']??'')==='company'?'module-navigation-active':'' ?>" href="empresa.php" <?= ($modulePageData['area']??'')==='company'?'aria-current="page"':'' ?>>Empresa</a>
+                    <?php elseif (in_array($moduleKey, ['ventas', 'compras'], true)): ?>
                         <?php $isOrderArea = !$isConfiguration && !in_array($modulePageData['area']??'', ['commissions','commission_payments'], true); ?>
                         <details class="module-menu"><summary class="module-navigation-link <?= $isOrderArea ? 'module-navigation-active' : '' ?>">Órdenes <span aria-hidden="true">▾</span></summary><div class="module-menu-options"><a href="index.php" <?= $isOrderArea ? 'aria-current="page"' : '' ?>><?= $moduleKey === 'ventas' ? 'Cotizaciones' : 'Solicitudes de cotización' ?></a></div></details>
                         <?php if($moduleKey==='ventas'): ?><details class="module-menu"><summary class="module-navigation-link <?= in_array($modulePageData['area']??'', ['commissions','commission_payments'], true)?'module-navigation-active':'' ?>">Comisiones <span aria-hidden="true">▾</span></summary><div class="module-menu-options"><a href="comisiones.php" <?= ($modulePageData['area']??'')==='commissions'?'aria-current="page"':'' ?>>Comisiones</a><a href="pagos-comisiones.php" <?= ($modulePageData['area']??'')==='commission_payments'?'aria-current="page"':'' ?>>Pagos de comisiones</a></div></details><?php endif; ?>
@@ -33,9 +36,11 @@
                         </div></details>
                         <details class="module-menu"><summary class="module-navigation-link <?= ($modulePageData['area'] ?? '') === 'reports' ? 'module-navigation-active' : '' ?>">Informes <span aria-hidden="true">▾</span></summary><div class="module-menu-options"><a href="informes.php?view=movements">Historial de movimientos</a><a href="informes.php?view=stock">Existencias por ubicación</a></div></details>
                     <?php endif; ?>
-                    <?php if ($moduleKey !== 'dashboard'): ?><a class="module-navigation-link <?= $isConfiguration ? 'module-navigation-active' : '' ?>" href="configuracion.php" <?= $isConfiguration ? 'aria-current="page"' : '' ?>><span aria-hidden="true">⚙</span> Configuración</a><?php endif; ?>
+                    <?php if (!in_array($moduleKey,['dashboard','ajustes'],true)): ?><a class="module-navigation-link <?= $isConfiguration ? 'module-navigation-active' : '' ?>" href="configuracion.php" <?= $isConfiguration ? 'aria-current="page"' : '' ?>><span aria-hidden="true">⚙</span> Configuración</a><?php endif; ?>
                 </nav><?php endif; ?>
-                <?php if ($moduleKey === 'dashboard' && ! $isConfiguration && $modulePageData !== null): ?>
+                <?php if ($moduleKey === 'ajustes' && $modulePageData !== null): ?>
+                    <?php require __DIR__.'/settings/page.php'; ?>
+                <?php elseif ($moduleKey === 'dashboard' && ! $isConfiguration && $modulePageData !== null): ?>
                     <?php require __DIR__ . '/dashboard.php'; ?>
                 <?php elseif ($moduleKey === 'contactos' && $modulePageData !== null): ?>
                     <?php require __DIR__ . '/contacts/page.php'; ?>

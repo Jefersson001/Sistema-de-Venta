@@ -46,9 +46,17 @@ return [
     'contabilidad' => [
         'name' => 'Contabilidad',
         'description' => 'Prepara el control financiero y contable del negocio.',
-        'category' => 'Finanzas',
+        'category' => 'Contabilidad',
         'initials' => 'CT',
         'color' => 'rose',
         'features' => ['Ingresos y gastos', 'Cuentas por cobrar y pagar', 'Reportes financieros'],
+    ],
+    'ajustes' => [
+        'name' => 'Ajustes',
+        'description' => 'Configura tu empresa y las opciones de cada módulo.',
+        'category' => 'Administración',
+        'initials' => 'AJ',
+        'color' => 'blue',
+        'features' => ['Ajustes generales', 'Datos de Empresa'],
     ],
 ];

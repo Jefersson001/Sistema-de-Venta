@@ -225,6 +225,14 @@ a:focus-visible, button:focus-visible { outline: 3px solid #5d4fc4; outline-offs
 .contact-config-nav a { padding: 10px 8px; border-radius: 6px; color: #596579; font-size: 14px; }
 .contact-config-nav a:hover, .contact-config-nav a[aria-current] { color: #514397; background: #f0edfc; }
 .contact-config-content { min-width: 0; }
+.settings-business-summary { display: flex; flex-wrap: wrap; align-items: center; gap: 18px; }
+.settings-business-summary > div { flex: 1; min-width: 0; overflow-wrap: anywhere; }
+.company-logo { width: 96px; height: 96px; flex-shrink: 0; object-fit: contain; border: 1px solid var(--line); border-radius: 8px; background: #fff; }
+.company-logo[hidden] { display: none; }
+.company-logo-fields { display: flex; flex-wrap: wrap; align-items: flex-start; gap: 18px; }
+.company-logo-fields > div { flex: 1; min-width: min(220px, 100%); }
+.contact-sheet .company-logo-remove { flex-direction: row; align-items: center; margin-top: 12px; font-weight: 400; }
+.contact-sheet .company-logo-remove input { width: 18px; min-height: 18px; margin: 0; accent-color: #514397; }
 .contact-config-content .contact-sheet { margin: 20px 0; }
 .contact-config-content h2 { font-family: Manrope, sans-serif; font-size: 22px; }
 .catalog-group-title { margin: 24px 0 12px; font-family: Manrope, sans-serif; font-size: 20px; }
