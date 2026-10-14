@@ -1,6 +1,6 @@
 # Grupos y permisos — contrato de la fase 2
 
-Los grupos definen permisos; no son tipos de contacto. La fase 2 creó el catálogo y su matriz. La fase 3 incorpora Usuarios y autenticación obligatoria: por ahora solo las cuentas del grupo Administrador acceden a los módulos operativos. Las cuentas de otros grupos pueden gestionar su contraseña y consultar su perfil. La fase 4 aplicará los permisos específicos y los alcances Propios/Todos a los procesos y al Dashboard.
+Los grupos definen permisos; no son tipos de contacto. La fase 2 creó el catálogo, la fase 3 agregó Usuarios y autenticación, y la fase 4 aplica la matriz a módulos, vistas, acciones y Dashboard. Cada cuenta recibe únicamente los permisos combinados de sus grupos activos. Administrador conserva sus protecciones administrativas; sus permisos operativos también respetan las casillas seleccionadas.
 
 ## Catálogo
 
@@ -29,13 +29,13 @@ Generar documentos desde una orden es una acción diferente de editarlos, confir
 
 Ejemplo: grupo A concede Consultar todas las ventas; grupo B concede Consultar y Editar ventas propias. La combinación permite consultar todas, pero editar únicamente las propias. Si otro grupo concede Editar todas, la edición se amplía a todas.
 
-`resolveAccessGroupPermissions()` obtiene los permisos combinados de grupos activos. `accessPermissionScope()` calcula el alcance efectivo de una acción y `accessPermissionAllows()` comprueba la relación con el vendedor del usuario. Estas funciones se prueban en esta fase; todavía no se llaman desde las acciones del negocio para restringirlas.
+`resolveAccessGroupPermissions()` obtiene los permisos combinados de grupos activos. `accessPermissionScope()` calcula el alcance efectivo de una acción y `accessPermissionAllows()` comprueba la relación con el vendedor del usuario. `php/permissions.php` utiliza estas reglas antes de atender entradas HTTP; los controladores y repositorios aplican los filtros de registros, y `php/permission-view.php` adapta los enlaces y controles de las vistas.
 
 ## Alcance Propios
 
 Una sección permite Propios únicamente cuando se puede determinar una relación con el vendedor. Cada sección de un grupo tiene un alcance compartido por sus acciones seleccionadas; la combinación entre grupos se resuelve por acción.
 
-La implementación de la fase 4 utilizará estas relaciones:
+La fase 4 utiliza estas relaciones:
 
 | Sección | Relación para registros propios |
 |---|---|
@@ -61,7 +61,7 @@ Las compras, recepciones, internos, bancos y demás secciones sin una relación 
 | Contabilidad | Facturas, cobros, pagos, Tesorería, configuración financiera y gestión de comisiones. |
 | Consulta | Lectura operativa de contactos, productos, órdenes e inventario. No trae acceso financiero ni a comisiones por defecto. |
 
-Estos son puntos de partida configurables. Administrador conserva su estado activo y los permisos administrativos mínimos para evitar perder la gestión del sistema. Los demás permisos de ese grupo son editables. Cuando se aplique la matriz en la fase 4, no tendrá acceso implícito que ignore casillas quitadas. Durante la fase 3, la pertenencia a Administrador es la condición temporal de entrada a los módulos; las casillas operativas todavía no restringen acciones. La protección del último usuario administrador activo ya está incorporada.
+Estos son puntos de partida configurables. Administrador conserva su estado activo y los permisos administrativos mínimos para evitar perder la gestión del sistema. Los demás permisos de ese grupo son editables y no hay acceso implícito que ignore casillas quitadas. La protección del último usuario administrador activo permanece incorporada.
 
 ## Integración pendiente
 

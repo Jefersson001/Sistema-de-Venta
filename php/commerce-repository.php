@@ -33,8 +33,10 @@ function loadPurchaseCatalogs(PDO $db, ?array $existing): array
     $products = $db->query('SELECT id, name, purchase_enabled, purchase_tax_id AS tax_id, cost_price AS price, product_type, invoice_policy, cost_price, currency_code FROM inventory_products ORDER BY name, id')->fetchAll();
     $assigned = array_map(static fn ($line) => (int) $line['product_id'], $existing['lines'] ?? []);
     $products = array_values(array_filter($products, static fn ($product) => $product['purchase_enabled'] || in_array((int) $product['id'], $assigned, true)));
+    if(!permissionHas('inventario.products'))$products=[];
+    if(!permissionHas('inventario.products','view_cost'))foreach($products as &$product){$product['price']='0.00';$product['cost_price']='0.00';}unset($product);
     foreach($products as &$product)$product['sale_price']=$product['price'];unset($product);
-    return ['settings'=>$existing?['primary_code'=>$existing['currency_primary_code'],'alternate_code'=>$existing['currency_alternate_code'],'exchange_rate'=>$existing['exchange_rate']]:accountingCurrencies($db),'customers' => $contacts->fetchAll(), 'products' => $products, 'supplierPrices' => $db->query('SELECT product_id,supplier_id,price FROM product_supplier_prices')->fetchAll(),
+    return ['settings'=>$existing?['primary_code'=>$existing['currency_primary_code'],'alternate_code'=>$existing['currency_alternate_code'],'exchange_rate'=>$existing['exchange_rate']]:accountingCurrencies($db),'customers' => permissionFilterContacts($contacts->fetchAll()), 'products' => $products, 'supplierPrices' => permissionHas('inventario.products','view_cost')?$db->query('SELECT product_id,supplier_id,price FROM product_supplier_prices')->fetchAll():[],
         'taxes' => $db->query("SELECT id, name, rate FROM business_taxes WHERE module_key = 'compras' ORDER BY name, id")->fetchAll(),
         'terms' => $db->query('SELECT id, name FROM accounting_payment_terms ORDER BY name, id')->fetchAll(), 'salespeople' => [], 'storage' => loadStorageRelations($db)];
 }

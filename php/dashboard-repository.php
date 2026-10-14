@@ -11,25 +11,58 @@ function dashboardPendingOrderCondition(string $kind,string $alias='o'): string
 }
 function loadDashboard(PDO $db): array
 {
-    $settings=accountingCurrencies($db);$d=['available'=>true,'settings'=>$settings,'sales'=>0,'purchases'=>0,'receivables'=>[],'payables'=>[],'overdue'=>0,'unallocated'=>[],'alerts'=>[],'alert_count'=>0,'tasks'=>[]];
-    $d['sales']=(int)$db->query("SELECT COUNT(*) FROM sales_quotations o WHERE o.status='sale' AND ".dashboardPendingOrderCondition('sale'))->fetchColumn();
-    $d['purchases']=(int)$db->query("SELECT COUNT(*) FROM purchase_orders o WHERE o.status='purchase' AND ".dashboardPendingOrderCondition('purchase'))->fetchColumn();
-    $q=$db->query("SELECT i.id,i.name,i.invoice_type,i.currency_code,i.total_amount,i.due_date,c.name AS contact_name,
-        COALESCE((SELECT SUM(p.amount) FROM accounting_invoice_payments p WHERE p.invoice_id=i.id AND p.status='settled'),0) AS paid,
-        COALESCE((SELECT SUM(n.total_amount) FROM accounting_invoices n WHERE n.reversal_of_id=i.id AND n.status='posted'),0) AS credited
-        FROM accounting_invoices i JOIN contacts c ON c.id=i.contact_id WHERE i.status='posted' AND i.document_type='invoice' AND i.payment_state!='reversed' ORDER BY i.due_date IS NULL,i.due_date,i.id");
-    $today=commerceToday();
-    foreach($q->fetchAll() as $i){$balance=bcsub(bcsub($i['total_amount'],$i['credited'],2),$i['paid'],2);if(bccomp($balance,'0',2)<=0)continue;$key=$i['invoice_type']==='customer'?'receivables':'payables';$code=$i['currency_code'];$d[$key][$code]=bcadd($d[$key][$code]??'0.00',$balance,2);
-        if($i['due_date']&&$i['due_date']<$today){$d['overdue']++;if(count($d['tasks'])<6)$d['tasks'][]=['label'=>$i['name'].' · '.$i['contact_name'],'detail'=>'Vencida · '.$balance.' '.$code,'href'=>'modules/contabilidad/index.php?type='.$i['invoice_type'].'&id='.$i['id']];}
+    $settings=accountingCurrencies($db);$d=['available'=>true,'settings'=>$settings,'sales'=>0,'purchases'=>0,'receivables'=>[],'payables'=>[],'overdue'=>0,'unallocated'=>[],'alerts'=>[],'alert_count'=>0,'tasks'=>[],'allowed_metrics'=>[]];
+    foreach(['sales'=>['ventas.orders','sales_quotations','sale'],'purchases'=>['compras.orders','purchase_orders','purchase']] as $key=>[$resource,$table,$status]) {
+        $condition=permissionDashboardWhere('dashboard.business',$resource,'o');if($condition==='1=0')continue;
+        $d[$key]=(int)$db->query("SELECT COUNT(*) FROM $table o WHERE o.status='$status' AND ($condition) AND ".dashboardPendingOrderCondition($key==='sales'?'sale':'purchase'))->fetchColumn();
+        $d['allowed_metrics'][]=$key;
     }
-    $q=$db->query("SELECT p.*,p.amount-COALESCE((SELECT SUM(l.payment_amount) FROM accounting_invoice_payments l WHERE l.payment_id=p.id AND l.status!='cancel'),0) AS available FROM accounting_payments p WHERE p.status IN('pending','settled')");
-    foreach($q->fetchAll() as $p)if(bccomp($p['available'],'0',2)>0){$code=$p['currency_code'];$d['unallocated'][$code]=bcadd($d['unallocated'][$code]??'0.00',$p['available'],2);}
-    $q=$db->query("SELECT p.id,p.name,COALESCE((SELECT SUM(s.quantity) FROM inventory_stock s JOIN inventory_locations l ON l.id=s.location_id WHERE s.product_id=p.id AND l.location_type='internal'),0)-COALESCE((SELECT SUM(r.quantity) FROM inventory_reservations r WHERE r.product_id=p.id),0) AS available FROM inventory_products p WHERE p.product_type='goods' AND (p.sale_enabled=1 OR p.purchase_enabled=1) HAVING available<=0 ORDER BY p.name,p.id");
-    $alerts=$q->fetchAll();$d['alert_count']=count($alerts);$d['alerts']=array_slice($alerts,0,5);
-    $q=$db->query("SELECT id,name,operation_type,scheduled_date,status FROM inventory_operations WHERE status IN('draft','waiting','ready') ORDER BY scheduled_date,id LIMIT 6");
-    foreach($q->fetchAll() as $o)if(count($d['tasks'])<10)$d['tasks'][]=['label'=>$o['name'],'detail'=>operationStatuses()[$o['status']].' · '.$o['scheduled_date'],'href'=>'modules/inventario/operaciones.php?type='.$o['operation_type'].'&id='.$o['id']];
-    $codes=accountingCurrencyCodes($settings);foreach(['receivables','payables','unallocated'] as $key)uksort($d[$key],static fn($a,$b)=>(array_search($a,$codes,true)===false?2:array_search($a,$codes,true))<=>(array_search($b,$codes,true)===false?2:array_search($b,$codes,true)));
-    return $d;
+    $today=commerceToday();
+    foreach(['customer'=>'receivables','supplier'=>'payables'] as $type=>$key) {
+        $resource=permissionInvoiceResource($type);$business=permissionDashboardWhere('dashboard.business',$resource,'i');$tasks=permissionDashboardWhere('dashboard.tasks',$resource,'i');
+        if($business==='1=0'&&$tasks==='1=0')continue;if($business!=='1=0')$d['allowed_metrics'][]=$key;
+        $q=$db->query("SELECT i.id,i.name,i.invoice_type,i.currency_code,i.total_amount,i.due_date,c.name AS contact_name, ($business) AS show_business, ($tasks) AS show_task,
+            COALESCE((SELECT SUM(p.amount) FROM accounting_invoice_payments p WHERE p.invoice_id=i.id AND p.status='settled'),0) AS paid,
+            COALESCE((SELECT SUM(n.total_amount) FROM accounting_invoices n WHERE n.reversal_of_id=i.id AND n.status='posted'),0) AS credited
+            FROM accounting_invoices i JOIN contacts c ON c.id=i.contact_id WHERE i.invoice_type='$type' AND (($business) OR ($tasks)) AND i.status='posted' AND i.document_type='invoice' AND i.payment_state!='reversed' ORDER BY i.due_date IS NULL,i.due_date,i.id");
+        foreach($q->fetchAll() as $i) {
+            $balance=bcsub(bcsub($i['total_amount'],$i['credited'],2),$i['paid'],2);if(bccomp($balance,'0',2)<=0)continue;$code=$i['currency_code'];
+            if($i['show_business'])$d[$key][$code]=bcadd($d[$key][$code]??'0.00',$balance,2);
+            if($i['due_date']&&$i['due_date']<$today){if($i['show_business'])$d['overdue']++;if($i['show_task']&&count($d['tasks'])<6)$d['tasks'][]=['label'=>$i['name'].' · '.$i['contact_name'],'detail'=>'Vencida · '.$balance.' '.$code,'href'=>'modules/contabilidad/index.php?type='.$type.'&id='.$i['id']];}
+        }
+    }
+    if(in_array('receivables',$d['allowed_metrics'],true)||in_array('payables',$d['allowed_metrics'],true))$d['allowed_metrics'][]='overdue';
+    foreach(['customer','supplier'] as $type) {
+        if(!permissionHas('dashboard.business')||permissionScope('dashboard.business')==='own'||!permissionHas(permissionPaymentResource($type)))continue;
+        $d['allowed_metrics'][]='unallocated';
+        $q=$db->query("SELECT p.currency_code,p.amount-COALESCE((SELECT SUM(l.payment_amount) FROM accounting_invoice_payments l WHERE l.payment_id=p.id AND l.status!='cancel'),0) AS available FROM accounting_payments p WHERE p.partner_type='$type' AND p.status IN('pending','settled')");
+        foreach($q->fetchAll() as $p)if(bccomp($p['available'],'0',2)>0){$code=$p['currency_code'];$d['unallocated'][$code]=bcadd($d['unallocated'][$code]??'0.00',$p['available'],2);}
+    }
+    if(permissionHas('dashboard.inventory')&&permissionHas('inventario.stock')&&permissionHas('inventario.products')) {
+        $q=$db->query("SELECT p.id,p.name,COALESCE((SELECT SUM(s.quantity) FROM inventory_stock s JOIN inventory_locations l ON l.id=s.location_id WHERE s.product_id=p.id AND l.location_type='internal'),0)-COALESCE((SELECT SUM(r.quantity) FROM inventory_reservations r WHERE r.product_id=p.id),0) AS available FROM inventory_products p WHERE p.product_type='goods' AND (p.sale_enabled=1 OR p.purchase_enabled=1) HAVING available<=0 ORDER BY p.name,p.id");
+        $alerts=$q->fetchAll();$d['alert_count']=count($alerts);$d['alerts']=array_slice($alerts,0,5);
+    }
+    foreach(['delivery','receipt','internal'] as $type) {
+        $condition=permissionDashboardWhere('dashboard.tasks',permissionOperationResource($type),'o');if($condition==='1=0')continue;
+        $q=$db->query("SELECT o.id,o.name,o.operation_type,o.scheduled_date,o.status FROM inventory_operations o WHERE o.operation_type='$type' AND ($condition) AND o.status IN('draft','waiting','ready') ORDER BY o.scheduled_date,o.id LIMIT 6");
+        foreach($q->fetchAll() as $o)if(count($d['tasks'])<10)$d['tasks'][]=['label'=>$o['name'],'detail'=>operationStatuses()[$o['status']].' · '.$o['scheduled_date'],'href'=>'modules/inventario/operaciones.php?type='.$type.'&id='.$o['id']];
+    }
+    $codes=accountingCurrencyCodes($settings);
+    foreach(['receivables','payables','unallocated'] as $key)uksort($d[$key],static fn($a,$b)=>(array_search($a,$codes,true)===false?2:array_search($a,$codes,true))<=>(array_search($b,$codes,true)===false?2:array_search($b,$codes,true)));
+    $d['allowed_metrics']=array_values(array_unique($d['allowed_metrics']));return $d;
+}
+function permissionCashFlowSummary(PDO $db,array $range): array
+{
+    if(permissionHas('dashboard.cash_flow')&&permissionHas('contabilidad.cash_flow'))return loadCashFlowSummary($db,$range);
+    $now=new DateTimeImmutable('now',new DateTimeZone('America/Caracas'));
+    return ['range'=>$range,'currencies'=>[],'count'=>0,'updated_at'=>$now->format(DATE_ATOM),'updated_time'=>$now->format('H:i:s')];
+}
+function permissionDashboardCommissions(PDO $db,array $range): array
+{
+    if(!permissionHas('dashboard.commissions')||!permissionHas('ventas.commissions'))return [];
+    $seller=permissionScope('dashboard.commissions')==='own'?permissionContact():null;if($seller===0)return [];
+    $groups=summarizeSalesCommissions(loadSalesCommissions($db,$range,$seller));
+    foreach($groups as &$group)$group['can_pay']=accessPermissionAllows(permissionMap(),'ventas.commissions.pay',(int)$group['seller_id'],permissionContact())&&permissionHas('ventas.commission_payments')&&permissionHas('contabilidad.expense','create')&&permissionHas('contabilidad.expense','confirm');unset($group);return $groups;
 }
 function dashboardMoney(array $amounts): string
 {

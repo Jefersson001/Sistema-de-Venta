@@ -8,6 +8,7 @@ for (const dashboard of document.querySelectorAll('[data-dashboard]')) {
         return node;
     }
     dashboard.addEventListener('cash-flow:snapshot', event => {
+        if(event.detail.permission_signature && event.detail.permission_signature!==dashboard.dataset.permissionSignature){window.location.reload();return;}
         const data = event.detail.dashboard;
         if (!data?.available) return;
         for (const metric of dashboard.querySelectorAll('[data-dashboard-metric]')) {
@@ -20,8 +21,8 @@ for (const dashboard of document.querySelectorAll('[data-dashboard]')) {
             row.append(link, document.createTextNode(' · Disponible ' + alert.available));
             return row;
         });
-        dashboard.querySelector('[data-dashboard-alerts]').replaceChildren(...alerts);
-        dashboard.querySelector('[data-dashboard-alert-count]').textContent = data.alert_count
+        dashboard.querySelector('[data-dashboard-alerts]')?.replaceChildren(...alerts);
+        const alertCount=dashboard.querySelector('[data-dashboard-alert-count]');if(alertCount)alertCount.textContent = data.alert_count
             ? data.alert_count + ' productos sin cantidad disponible después de reservas.'
             : 'No hay productos sin disponibilidad.';
         const tasks = data.tasks.map(task => {
@@ -32,7 +33,7 @@ for (const dashboard of document.querySelectorAll('[data-dashboard]')) {
             return card;
         });
         if (!tasks.length) tasks.push(element('p', '', 'No hay operaciones pendientes ni facturas vencidas con saldo.'));
-        dashboard.querySelector('[data-dashboard-tasks]').replaceChildren(...tasks);
+        dashboard.querySelector('[data-dashboard-tasks]')?.replaceChildren(...tasks);
         const commissions=dashboard.querySelector('[data-dashboard-commissions]');
         if(commissions){
             const params=new URLSearchParams({period:event.detail.range.period});
@@ -43,7 +44,7 @@ for (const dashboard of document.querySelectorAll('[data-dashboard]')) {
                 for(const key of ['sales_count','sales_amount','commission_generated','commission_earned','commission_paid','commission_pending','commission_overpaid'])row.append(element('td','',group[key]));
                 const action=element('td');const pay=element('a','contact-button','Pagar comisión');
                 pay.href='../ventas/pagos-comisiones.php?'+params.toString()+'&new=1&seller_id='+encodeURIComponent(group.seller_id)+'&commission_currency='+encodeURIComponent(group.currency_code);
-                action.append(pay);row.append(action);
+                if(group.can_pay)action.append(pay);row.append(action);
                 return row;
             });
             if(!rows.length){const row=element('tr');const cell=element('td','contact-empty','No hay comisiones para las facturas de este período.');cell.colSpan=10;row.append(cell);rows.push(row);}
@@ -62,4 +63,28 @@ for (const dashboard of document.querySelectorAll('[data-dashboard]')) {
             updated.textContent = 'No se pudo actualizar. Se conservan los últimos datos disponibles.';
         } else if (event.detail.loading) updated.textContent = 'Actualizando dashboard…';
     });
+    const filter=dashboard.querySelector('[data-dashboard-filter]');
+    if(filter){
+        const period=filter.elements.period,from=filter.elements.date_from,to=filter.elements.date_to,dates=filter.querySelector('[data-dashboard-dates]');
+        let pending=false,debounce=null;let applied=new URLSearchParams(window.location.search);applied.delete('page');
+        const showDates=()=>{dates.hidden=period.value!=='custom';from.required=to.required=!dates.hidden;};showDates();
+        const refresh=async(change=false)=>{
+            if(pending)return;pending=true;
+            dashboard.dispatchEvent(new CustomEvent('cash-flow:refresh-state',{detail:{loading:true}}));
+            try{
+                const response=await fetch('resumen.php?'+applied,{cache:'no-store',signal:AbortSignal.timeout(15000)});const data=await response.json();
+                if(response.status===401&&data.redirect){const login=new URL(data.redirect,window.location.href);login.searchParams.set('next',window.location.pathname+window.location.search);window.location.assign(login);return;}
+                if(response.status===403){window.location.reload();return;}
+                if(!response.ok)throw new Error(data.error||'No se pudo actualizar.');
+                dashboard.dispatchEvent(new CustomEvent('cash-flow:snapshot',{detail:data}));
+                if(change)history.replaceState(null,'','?'+applied);
+            }catch(failure){dashboard.dispatchEvent(new CustomEvent('cash-flow:refresh-state',{detail:{error:failure.message}}));}
+            finally{pending=false;}
+        };
+        const apply=()=>{showDates();if(period.value==='custom'&&(!from.value||!to.value||from.value>to.value||!filter.reportValidity()))return;applied=new URLSearchParams({period:period.value});if(period.value==='custom'){applied.set('date_from',from.value);applied.set('date_to',to.value);}refresh(true);};
+        period.addEventListener('change',apply);for(const input of [from,to])input.addEventListener('input',()=>{clearTimeout(debounce);debounce=setTimeout(apply,400);});
+        filter.addEventListener('submit',event=>{event.preventDefault();apply();});
+        const timer=setInterval(()=>{if(!document.hidden)refresh();},30000);document.addEventListener('visibilitychange',()=>{if(!document.hidden)refresh();});
+        window.addEventListener('pagehide',()=>{clearInterval(timer);clearTimeout(debounce);});
+    }
 }

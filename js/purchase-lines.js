@@ -1,5 +1,5 @@
 const purchaseForm = document.querySelector('[data-order-form]');
-if (purchaseForm) {
+if (purchaseForm && purchaseForm.dataset.permissionReadonly!=='true') {
     const body = purchaseForm.querySelector('[data-order-lines]');
     const template = purchaseForm.querySelector('[data-order-template]');
     const add = purchaseForm.querySelector('[data-order-add]');

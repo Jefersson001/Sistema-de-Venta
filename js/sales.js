@@ -1,6 +1,6 @@
 const quotationForm = document.querySelector('[data-quotation-form]');
 
-if (quotationForm) {
+if (quotationForm && quotationForm.dataset.permissionReadonly!=='true') {
     const customer = quotationForm.querySelector('[data-quotation-customer]');
     const salesperson = quotationForm.querySelector('[data-quotation-salesperson]');
     const lines = quotationForm.querySelector('[data-quotation-lines]');

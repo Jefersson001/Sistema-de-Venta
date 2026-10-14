@@ -1,6 +1,6 @@
 # Usuarios y acceso — fase 3
 
-La fase 3 incorpora autenticación y gestión de usuarios internos para una empresa. Los módulos operativos quedan reservados temporalmente al grupo Administrador. Los permisos por sección, acción y alcance se integrarán en la fase 4; asignar Ventas, Compras, Inventario, Contabilidad o Consulta todavía no concede acceso operativo.
+La fase 3 incorpora autenticación y gestión de usuarios internos para una empresa. La fase 4 ya aplica los permisos por sección, acción y alcance: los usuarios de grupos personalizados pueden utilizar sus módulos autorizados sin pertenecer a Administrador. Para validar esos accesos, consultar [permisos-operativos.md](permisos-operativos.md).
 
 ## Activar la primera cuenta
 
@@ -43,7 +43,7 @@ Un contacto solo puede relacionarse con una cuenta. Se puede conservar un grupo/
 1. Activar tu cuenta, entrar, salir e intentar abrir un módulo desde su dirección directa sin sesión: debe enviarte al login.
 2. Entrar nuevamente y comprobar Empresa, grupos y los procesos habituales como administrador.
 3. Crear una cuenta de prueba del grupo Ventas, asociarla a su contacto y entrar desde otro navegador o ventana privada.
-4. Comprobar que obliga a cambiar la contraseña y después permite consultar el perfil; los módulos operativos indican que requieren la fase 4.
+4. Comprobar que obliga a cambiar la contraseña y después permite consultar el perfil y acceder a los módulos autorizados por sus grupos.
 5. Desactivar esa cuenta desde el administrador y comprobar que pierde acceso en su siguiente solicitud. Reactivarla, entrar y restablecer su contraseña: debe perder la sesión y cambiar la nueva contraseña temporal.
 6. Intentar desactivar tu cuenta cuando es el único administrador: debe rechazarlo sin guardar el cambio.
 7. Revisar Login y Usuarios en escritorio y móvil. Validar esta fase y hacer el commit/push antes de continuar.

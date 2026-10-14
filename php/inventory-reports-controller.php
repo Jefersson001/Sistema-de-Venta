@@ -52,6 +52,7 @@ function renderInventoryReports(): void
                 ? ' FROM purchase_order_lines l JOIN purchase_orders o ON o.id = l.order_id JOIN inventory_products p ON p.id = l.product_id JOIN contacts c ON c.id = o.supplier_id'
                 : ' FROM sales_quotation_lines l JOIN sales_quotations o ON o.id = l.quotation_id JOIN inventory_products p ON p.id = l.product_id JOIN contacts c ON c.id = o.customer_id';
             $where[] = $isPurchase ? "o.status = 'purchase'" : "o.status = 'sale'";
+            $where[]=permissionWhere($isPurchase?'compras.orders':'ventas.orders','o');
             if (! $isPurchase) { $where[] = 'o.order_date >= :since'; $params['since'] = inventorySalesHistorySince(); }
             if ($page['productId']) { $where[] = 'l.product_id = :product'; $params['product'] = $page['productId']; }
             if ($page['search'] !== '') { $where[] = '(p.name LIKE :product_name OR o.name LIKE :reference OR c.name LIKE :contact_name)'; $params['product_name'] = $params['reference'] = $params['contact_name'] = '%' . $page['search'] . '%'; }

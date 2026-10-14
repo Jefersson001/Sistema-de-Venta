@@ -1,4 +1,4 @@
-<?php $dashboard = $modulePageData['dashboard']; ?>
+<?php $dashboard = $modulePageData['dashboard']; $cashFlowRange=$modulePageData['cashFlowRange']; ?>
                 <?php if (! $databaseStatus['connected']): ?>
                     <section class="connection-warning" role="status">
                         <span class="warning-icon" aria-hidden="true">!</span>
@@ -26,7 +26,10 @@
                     
                 </section>
 
-                <div class="dashboard-notebook" data-dashboard data-notebook>
+                <div class="dashboard-notebook" data-dashboard data-notebook data-permission-signature="<?= hash('sha256',json_encode(permissionMap())) ?>">
+                    <?php if(!permissionHas('dashboard.cash_flow')||!permissionHas('contabilidad.cash_flow')): ?>
+                    <form class="contact-filters" data-dashboard-filter><label>Período<select name="period"><?php foreach(cashFlowPeriods() as $value=>$label): ?><option value="<?= $value ?>" <?= $cashFlowRange['period']===$value?'selected':'' ?>><?= htmlspecialchars($label,ENT_QUOTES,'UTF-8') ?></option><?php endforeach; ?></select></label><div data-dashboard-dates <?= $cashFlowRange['period']==='custom'?'':'hidden' ?>><label>Desde<input type="date" name="date_from" value="<?= $cashFlowRange['date_from'] ?>"></label><label>Hasta<input type="date" name="date_to" value="<?= $cashFlowRange['date_to'] ?>"></label></div></form>
+                    <?php endif; ?>
                     <nav class="notebook-tabs dashboard-tabs" data-notebook-tabs aria-label="Secciones del dashboard">
                         <a id="dashboard-tab-income" href="#dashboard-page-income">Ingresos y egresos</a>
                         <a id="dashboard-tab-overview" href="#dashboard-page-overview">Resumen del negocio</a>

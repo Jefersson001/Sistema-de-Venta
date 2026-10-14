@@ -17,8 +17,8 @@ function renderDashboard(): void
             $db = createDatabaseConnection();
             $dashboard = loadDashboard($db);
             if (!$cashFlowPage['cashFlowErrors']) {
-                $cashFlowPage['cashFlow'] = loadCashFlowSummary($db, $cashFlowPage['cashFlowRange']);
-                $cashFlowPage['commissionGroups']=summarizeSalesCommissions(loadSalesCommissions($db,$cashFlowPage['cashFlowRange']));
+                $cashFlowPage['cashFlow'] = permissionCashFlowSummary($db, $cashFlowPage['cashFlowRange']);
+                $cashFlowPage['commissionGroups']=permissionDashboardCommissions($db,$cashFlowPage['cashFlowRange']);
             }
         } catch (PDOException $exception) {
             error_log('Dashboard: ' . $exception->getMessage());
@@ -48,13 +48,14 @@ function renderDashboardSnapshot(): void
         $range = cashFlowRange($_GET);
         $db = createDatabaseConnection();
         $db->beginTransaction();
-        $summary = loadCashFlowSummary($db, $range);
+        $summary = permissionCashFlowSummary($db, $range);
         $dashboard = loadDashboard($db);
         $dashboard['metrics'] = [];
-        foreach (['sales','purchases','overdue'] as $key) $dashboard['metrics'][$key] = (string)$dashboard[$key];
-        foreach (['receivables','payables','unallocated'] as $key) $dashboard['metrics'][$key] = dashboardMoney($dashboard[$key]);
+        foreach (['sales','purchases','overdue'] as $key) {if(in_array($key,$dashboard['allowed_metrics'],true))$dashboard['metrics'][$key]=(string)$dashboard[$key];else unset($dashboard[$key]);}
+        foreach (['receivables','payables','unallocated'] as $key) {if(in_array($key,$dashboard['allowed_metrics'],true))$dashboard['metrics'][$key]=dashboardMoney($dashboard[$key]);else unset($dashboard[$key]);}
         $summary['dashboard'] = $dashboard;
-        $summary['commissions']=summarizeSalesCommissions(loadSalesCommissions($db,$range));
+        $summary['permission_signature']=hash('sha256',json_encode(permissionMap()));
+        $summary['commissions']=permissionDashboardCommissions($db,$range);
         $db->commit();
         echo json_encode($summary, JSON_UNESCAPED_UNICODE | JSON_THROW_ON_ERROR);
     } catch (InvalidArgumentException $exception) {

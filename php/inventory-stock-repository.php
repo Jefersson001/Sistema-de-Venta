@@ -1,5 +1,6 @@
 <?php
 declare(strict_types=1);
+require_once __DIR__.'/permissions.php';
 require_once __DIR__ . '/storage-repository.php';
 require_once __DIR__ . '/workflow-operations.php';
 
@@ -128,7 +129,7 @@ function loadInventoryProductIndicators(PDO $db, int $id): array
         FROM inventory_operation_lines l JOIN inventory_operations o ON o.id = l.operation_id
         JOIN (SELECT line_id, MIN(created_at) AS moved_at FROM inventory_stock_moves GROUP BY line_id) m ON m.line_id = l.id
         WHERE l.product_id = ? AND o.status = 'done' AND o.operation_type IN ('receipt', 'delivery')
-        AND m.moved_at >= DATE_SUB(CURRENT_TIMESTAMP, INTERVAL 1 YEAR)
+        AND ".permissionWhere('inventario.movements','o')." AND m.moved_at >= DATE_SUB(CURRENT_TIMESTAMP, INTERVAL 1 YEAR)
         GROUP BY flow_type");
     $pending->execute([$id]);
     foreach ($pending->fetchAll() as $row) {
@@ -136,11 +137,11 @@ function loadInventoryProductIndicators(PDO $db, int $id): array
     }
     if ($db->query("SHOW TABLES LIKE 'sales_quotation_lines'")->fetch()) {
         $sold = $db->prepare("SELECT COALESCE(SUM(l.quantity), 0.000) FROM sales_quotation_lines l JOIN sales_quotations q ON q.id = l.quotation_id
-            WHERE l.product_id = :product AND q.status = 'sale' AND q.order_date >= :since");
+            WHERE l.product_id = :product AND q.status = 'sale' AND ".permissionWhere('ventas.orders','q')." AND q.order_date >= :since");
         $sold->execute(['product' => $id, 'since' => inventorySalesHistorySince()]); $values['sold'] = (string) $sold->fetchColumn();
     }
     $bought = $db->prepare("SELECT COALESCE(SUM(l.quantity), 0.000) FROM purchase_order_lines l JOIN purchase_orders o ON o.id = l.order_id
-        WHERE l.product_id = :product AND o.status = 'purchase' AND o.approved_date >= :since");
+        WHERE l.product_id = :product AND o.status = 'purchase' AND ".permissionWhere('compras.orders','o')." AND o.approved_date >= :since");
     $bought->execute(['product' => $id, 'since' => (new DateTimeImmutable('now', new DateTimeZone('America/Caracas')))->modify('-1 year')->format('Y-m-d')]);
     $values['purchased'] = (string) $bought->fetchColumn();
     return $values;

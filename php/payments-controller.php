@@ -27,12 +27,12 @@ function renderAccountingPayments(): void
             }catch(InvalidArgumentException $e){$page['errors'][]=$e->getMessage();if(($action??'')==='save_payment')$page['record']=$_POST+$page['record'];}
         }
         if($page['view']==='form'&&$page['available']){
-            $q=$db->prepare("SELECT c.id,c.name FROM contacts c JOIN contact_types t ON t.id=c.type_id WHERE (t.system_key=? AND c.active=1) OR c.id=? ORDER BY c.name,c.id");$q->execute([$type==='customer'?'client':'supplier',$existing['contact_id']??0]);$page['contacts']=$q->fetchAll();
+            $q=$db->prepare("SELECT c.id,c.name,c.salesperson_id FROM contacts c JOIN contact_types t ON t.id=c.type_id WHERE (t.system_key=? AND c.active=1) OR c.id=? ORDER BY c.name,c.id");$q->execute([$type==='customer'?'client':'supplier',$existing['contact_id']??0]);$page['contacts']=permissionFilterContacts($q->fetchAll());
             $page['accounts']=$db->query('SELECT * FROM accounting_payment_accounts ORDER BY name,id')->fetchAll();$page['methods']=$db->query('SELECT * FROM accounting_payment_methods ORDER BY name,id')->fetchAll();$page['candidates']=[];
             $page['concepts']=treasuryConcepts($db);$page['record']['concept_id']??=treasuryDefaultConcept($db,$type,$page['record']['direction']);
             if($existing&&in_array($existing['status'],['pending','settled'],true)&&bccomp($existing['available'],'0',2)>0){
                 $q=$db->prepare("SELECT * FROM accounting_invoices WHERE contact_id=? AND invoice_type=? AND status='posted' AND payment_state!='reversed' ORDER BY invoice_date,id");$q->execute([$existing['contact_id'],$type]);
-                foreach($q->fetchAll() as $i){$inbound=($i['invoice_type']==='customer')===($i['document_type']==='invoice');if(($inbound?'inbound':'outbound')!==$existing['direction'])continue;$details=invoicePaymentDetails($db,(int)$i['id']);$balance=bcsub(paymentInvoiceAmount($db,$i),bcadd($details['settled'],$details['pending'],2),2);if(bccomp($balance,'0',2)<=0)continue;
+                foreach($q->fetchAll() as $i){if(!permissionRecord(permissionInvoiceResource($type),(int)$i['id']))continue;$inbound=($i['invoice_type']==='customer')===($i['document_type']==='invoice');if(($inbound?'inbound':'outbound')!==$existing['direction'])continue;$details=invoicePaymentDetails($db,(int)$i['id']);$balance=bcsub(paymentInvoiceAmount($db,$i),bcadd($details['settled'],$details['pending'],2),2);if(bccomp($balance,'0',2)<=0)continue;
                     try{$maximum=paymentApplicableAmount($existing['available'],$balance,$existing['currency_code'],$i['currency_code'],$existing);}catch(InvalidArgumentException $e){continue;}
                     if(bccomp($maximum,'0',2)<=0||bccomp(accountingConvert($maximum,$existing['currency_code'],$i['currency_code'],$existing),'0',2)<=0)continue;
                     $i['balance']=$balance;$i['maximum']=$maximum;$page['candidates'][]=$i;

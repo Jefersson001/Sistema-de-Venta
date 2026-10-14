@@ -1,4 +1,4 @@
-# Ajustes — fases 1, 2 y 3
+# Ajustes — fases 1, 2, 3 y 4
 
 Inicio → Ajustes abre las secciones General, Contactos, Ventas, Compras, Inventario y Contabilidad. Los accesos utilizan los catálogos existentes; las monedas se leen de la configuración financiera actual.
 
@@ -58,7 +58,7 @@ Ajustes → Usuarios tiene listado y formulario separados, búsqueda, filtros y 
 
 El administrador elige una contraseña temporal al crear o restablecer una cuenta. Esa cuenta debe cambiarla antes de acceder al sistema. Las contraseñas se almacenan como hash y nunca se muestran después de guardar. Se protegen los formularios con CSRF, versiones y claves de creación para evitar duplicados. No se permite desactivar ni retirar el grupo del último administrador activo.
 
-Todas las entradas del negocio exigen sesión, incluidas las consultas JSON y el logo. En esta etapa, solo el grupo Administrador utiliza los módulos operativos; los demás usuarios acceden a Inicio, su perfil y cambio de contraseña hasta implementar la fase 4. El menú superior muestra la identidad real y permite consultar el perfil, cambiar la contraseña y cerrar sesión.
+Todas las entradas del negocio exigen sesión, incluidas las consultas JSON y el logo. Desde la fase 4, los usuarios utilizan los módulos autorizados por sus grupos activos, sin necesitar el grupo Administrador. El menú superior muestra la identidad real y permite consultar el perfil, cambiar la contraseña y cerrar sesión.
 
 La instalación ya está aplicada, sin crear cuentas reales. El propietario prepara la primera cuenta ejecutando desde la raíz del proyecto:
 
@@ -76,3 +76,13 @@ Pruebas de autenticación y regresión:
 ```
 
 Las pruebas crean bases de datos, cuentas y sesiones aisladas; no copian contraseñas reales ni necesitan las credenciales del propietario. Guía de validación manual y reglas de sesiones en [usuarios-acceso.md](../../docs/usuarios-acceso.md).
+
+## Fase 4: Permisos operativos
+
+Inicio, enlaces, botones, formularios y consultas JSON respetan los grupos y permisos. Consultar, crear, editar, confirmar, cancelar, validar, generar documentos, pagar y revertir son acciones diferentes. Los listados y fichas aplican el alcance Propios/Todos por vendedor, y la combinación de grupos conserva el alcance de cada acción. Los grupos archivados no conceden acceso.
+
+Administrador mantiene las protecciones administrativas y la regla del último administrador activo, pero también respeta los permisos operativos que se desmarquen. La administración de usuarios puede delegarse mediante permisos explícitos de Usuarios; asignar grupos, archivar y restablecer contraseñas mantienen sus permisos separados.
+
+Dashboard muestra solo las secciones y fuentes autorizadas, incluyendo filtros de fecha y actualización automática para cuentas sin acceso financiero global. Costos y configuración de comisiones tienen sus permisos propios. No se modificaron datos ni asignaciones reales durante las pruebas y no se necesita una migración nueva.
+
+Pruebas específicas: `test/permissions.php`. Guía de comprobación de grupos personalizados, documentos relacionados y Dashboard en [permisos-operativos.md](../../docs/permisos-operativos.md). La fase 5 validará los circuitos completos con responsabilidades separadas antes del cierre final.

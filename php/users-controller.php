@@ -5,7 +5,7 @@ require_once __DIR__.'/auth.php';
 
 function renderAuthUsers(): void
 {
-    $actor=authRequireStageAdministrator();$_SESSION['settings_csrf']??=bin2hex(random_bytes(32));
+    $actor=authRequireLogin();permissionRequire('ajustes.users');$_SESSION['settings_csrf']??=bin2hex(random_bytes(32));
     $page=['area'=>'users','available'=>true,'errors'=>[],'databaseStatus'=>getDatabaseStatus(),'csrf'=>$_SESSION['settings_csrf'],
         'flash'=>$_SESSION['settings_flash']??null,'view'=>'list','record'=>['name'=>'','login'=>'','email'=>'','contact_id'=>null,
         'active'=>1,'version'=>0,'must_change_password'=>1,'last_login_at'=>null,'group_ids'=>[]]];unset($_SESSION['settings_flash']);

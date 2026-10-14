@@ -4,6 +4,7 @@ require_once __DIR__ . '/workflow-repository.php';
 require_once __DIR__.'/currency-repository.php';
 require_once __DIR__ . '/storage-repository.php';
 require_once __DIR__.'/commission-math.php';
+require_once __DIR__.'/permissions.php';
 
 function salesEscape(mixed $value): string
 {
@@ -77,7 +78,7 @@ function loadSalesCatalogs(PDO $db, ?array $existing): array
         LEFT JOIN contact_states state ON state.id = c.state_id LEFT JOIN contact_cities city ON city.id = c.city_id
         WHERE (t.system_key = 'client' AND c.active = 1) OR c.id = :current ORDER BY c.name, c.id");
     $customers->execute(['current' => $existing['customer_id'] ?? null]);
-    $customerRecords = $customers->fetchAll();
+    $customerRecords = permissionFilterContacts($customers->fetchAll());
     $sellers = $db->prepare("SELECT c.id, c.name, c.active, c.warehouse_id, c.location_id FROM contacts c JOIN contact_types t ON t.id = c.type_id
         WHERE (t.system_key = 'salesperson' AND (c.active = 1 OR c.id IN (
             SELECT assigned.salesperson_id FROM contacts assigned JOIN contact_types assigned_type ON assigned_type.id = assigned.type_id
@@ -85,6 +86,7 @@ function loadSalesCatalogs(PDO $db, ?array $existing): array
         ))) OR c.id = :current ORDER BY c.name, c.id");
     $sellers->execute(['current' => $existing['salesperson_id'] ?? null]);
     $sellerRecords = $sellers->fetchAll();
+    if(permissionScope('ventas.orders',$existing?'edit':'create')==='own')$sellerRecords=array_values(array_filter($sellerRecords,static fn($r)=>(int)$r['id']===permissionContact()));
     $storage = loadStorageRelations($db);
     foreach ($sellerRecords as &$seller) {
         $seller['storage_label'] = storageLabel($storage, salesId($seller['warehouse_id']), salesId($seller['location_id']));
@@ -93,6 +95,7 @@ function loadSalesCatalogs(PDO $db, ?array $existing): array
     $assignedProducts = array_map(static fn ($line) => (int) $line['product_id'], $existing['lines'] ?? []);
     $products = $db->query('SELECT id, name, sale_price, sale_tax_id, sale_enabled, product_type, invoice_policy, cost_price, currency_code,commission_type,commission_value FROM inventory_products ORDER BY name, id')->fetchAll();
     $products = array_values(array_filter($products, static fn ($product) => $product['sale_enabled'] || in_array((int) $product['id'], $assignedProducts, true)));
+    if(!permissionHas('inventario.products'))$products=[];
     $taxes = $db->query("SELECT id, name, rate FROM business_taxes WHERE module_key = 'ventas' ORDER BY name, id")->fetchAll();
     $terms = $db->query('SELECT id, name FROM accounting_payment_terms ORDER BY name, id')->fetchAll();
     return ['settings'=>$existing?['primary_code'=>$existing['currency_primary_code'],'alternate_code'=>$existing['currency_alternate_code'],'exchange_rate'=>$existing['exchange_rate']]:accountingCurrencies($db),'customers' => $customerRecords, 'salespeople' => $sellerRecords,

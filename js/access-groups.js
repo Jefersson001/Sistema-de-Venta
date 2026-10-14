@@ -6,7 +6,7 @@ for(const form of document.querySelectorAll('[data-access-group-form]')) {
             const checks=[...row.querySelectorAll('[data-access-permission]')];
             const read=checks.find(input=>input.dataset.accessPermission==='read');
             const scope=row.querySelector('[data-access-scope]');
-            if(scope)scope.disabled=!read?.checked;
+            if(scope)scope.disabled=form.dataset.permissionReadonly==='true'||!read?.checked;
             counts[row.dataset.accessModule]=(counts[row.dataset.accessModule]??0)+checks.filter(input=>input.checked).length;
         }
         for(const count of form.querySelectorAll('[data-access-count]'))count.textContent=String(counts[count.dataset.accessCount]??0);

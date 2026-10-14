@@ -33,9 +33,10 @@ function authLockState(PDO $db): array
     if(!$state)throw new RuntimeException('Autenticación no instalada.');return $state;
 }
 
-function authRequireAdminActor(PDO $db,int $actor): void
+function authRequireAdminActor(PDO $db,int $actor,string $action='edit'): void
 {
-    if(!authUserIsAdministrator($db,$actor))throw new InvalidArgumentException('La cuenta ya no tiene autorización para administrar usuarios.',403);
+    $user=loadAuthUser($db,$actor);
+    if(!$user||!$user['active']||!accessPermissionAllows(resolveAccessGroupPermissions($db,$user['group_ids']),'ajustes.users.'.$action))throw new InvalidArgumentException('La cuenta ya no tiene autorización para administrar usuarios.',403);
 }
 
 function validateAuthUser(PDO $db,array $input,?array $existing=null): array
@@ -75,7 +76,7 @@ function saveAuthUser(PDO $db,array $input,?int $id,?int $version,int $actor,?st
     if(!$id&&(!$creationKey||!preg_match('/^[a-f0-9]{64}$/D',$creationKey)))throw new InvalidArgumentException('La solicitud de creación no es válida.');
     $db->beginTransaction();
     try {
-        authLockState($db);authRequireAdminActor($db,$actor);
+        authLockState($db);authRequireAdminActor($db,$actor,$id?'edit':'create');
         if(!$id) {
             $query=$db->prepare('SELECT id FROM auth_users WHERE creation_key=?');$query->execute([$creationKey]);
             if($old=$query->fetchColumn()){$db->commit();return (int)$old;}
@@ -149,7 +150,7 @@ function resetAuthUserPassword(PDO $db,int $id,int $version,int $actor,mixed $pa
     $password=authPassword($password);if(!is_string($confirmation)||!hash_equals($password,$confirmation))throw new InvalidArgumentException('Las contraseñas no coinciden.');
     $db->beginTransaction();
     try {
-        authLockState($db);authRequireAdminActor($db,$actor);
+        authLockState($db);authRequireAdminActor($db,$actor,'password');
         $query=$db->prepare('UPDATE auth_users SET password_hash=?,must_change_password=1,auth_version=auth_version+1,version=version+1 WHERE id=? AND version=?');
         $query->execute([password_hash($password,PASSWORD_DEFAULT),$id,$version]);
         if($query->rowCount()!==1)throw new InvalidArgumentException('El usuario cambió en otra ventana. Recarga antes de restablecer la contraseña.',409);

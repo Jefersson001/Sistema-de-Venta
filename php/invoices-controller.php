@@ -103,7 +103,7 @@ function renderAccountingInvoices(): void
             $page['settings']=accountingCurrencies($db);$page['paymentAccounts']=$db->query('SELECT * FROM accounting_payment_accounts ORDER BY name,id')->fetchAll();$page['paymentMethods']=$db->query('SELECT * FROM accounting_payment_methods ORDER BY name,id')->fetchAll();$page['availablePayments']=[];
             $page['paymentConcepts']=treasuryConcepts($db);
             $page['defaultPaymentConcept']=treasuryDefaultConcept($db,$type,(($type==='customer')===($page['record']['document_type']==='invoice'))?'inbound':'outbound');
-            if($page['record']['status']==='posted'&&$page['record']['payment_state']!=='reversed'){
+            if(permissionHas(permissionPaymentResource($type),'allocate')&&permissionHas(permissionInvoiceResource($type),'register_payment')&&$page['record']['status']==='posted'&&$page['record']['payment_state']!=='reversed'){
                 $inbound=($type==='customer')===($page['record']['document_type']==='invoice');$q=$db->prepare("SELECT id FROM accounting_payments WHERE contact_id=? AND partner_type=? AND direction=? AND status IN('pending','settled') ORDER BY payment_date,id");$q->execute([$page['record']['contact_id'],$type,$inbound?'inbound':'outbound']);
                 $d=$page['paymentDetails'];$balance=bcsub(paymentInvoiceAmount($db,$page['record']),bcadd($d['pending'],$d['settled'],2),2);
                 foreach($q->fetchAll(PDO::FETCH_COLUMN) as $paymentId){$p=loadAccountingPayment($db,(int)$paymentId);if(bccomp($p['available'],'0',2)<=0)continue;try{$p['maximum']=paymentApplicableAmount($p['available'],$balance,$p['currency_code'],$page['record']['currency_code'],$p);}catch(InvalidArgumentException $e){continue;}if(bccomp($p['maximum'],'0',2)>0&&bccomp(accountingConvert($p['maximum'],$p['currency_code'],$page['record']['currency_code'],$p),'0',2)>0)$page['availablePayments'][]=$p;}
@@ -112,7 +112,7 @@ function renderAccountingInvoices(): void
         } elseif ($page['available']) {
             $page['search'] = is_string($_GET['q'] ?? null) ? mb_substr(trim($_GET['q']), 0, 160) : '';
             $page['statusFilter'] = is_string($_GET['status'] ?? null) && isset(invoiceFilterStates()[$_GET['status']]) ? $_GET['status'] : 'all';
-            $params = ['type' => $type]; $where = ' WHERE i.invoice_type = :type';
+            $params = ['type' => $type]; $where = ' WHERE i.invoice_type = :type AND '.permissionWhere(permissionInvoiceResource($type),'i');
             foreach(['sale_id','purchase_id'] as $key) if($filterId=salesId($_GET[$key]??null)) { $where.=' AND i.'.$key.' = :'.$key; $params[$key]=$filterId; }
             if ($page['search'] !== '') { $where .= ' AND (i.name LIKE :reference OR c.name LIKE :contact)'; $params['reference'] = $params['contact'] = '%' . $page['search'] . '%'; }
             if (isset(invoiceStatuses()[$page['statusFilter']])) { $where .= ' AND i.status = :status'; $params['status'] = $page['statusFilter']; }

@@ -47,9 +47,9 @@ function renderInventoryOperations(): void
                 $page['sourceOrder'] = loadPurchaseOrder($db, (int) $existing['purchase_order_id']);
                 if ($page['sourceOrder']) { $page['documentKind'] = 'purchase'; $page['links'] = commerceLinks($db, 'purchase', (int) $existing['purchase_order_id']); }
             }
-            $query = $db->prepare('SELECT c.id, c.name, c.active, c.partner_location_id FROM contacts c JOIN contact_types t ON t.id = c.type_id
+            $query = $db->prepare('SELECT c.id, c.name, c.active, c.partner_location_id,c.salesperson_id FROM contacts c JOIN contact_types t ON t.id = c.type_id
                 WHERE t.system_key = ? AND (c.active = 1 OR c.id = ?) ORDER BY c.name, c.id');
-            $query->execute([$page['definition']['role'], $existing['contact_id'] ?? null]); $page['contacts'] = $query->fetchAll();
+            $query->execute([$page['definition']['role'], $existing['contact_id'] ?? null]); $page['contacts'] = permissionFilterContacts($query->fetchAll());
             $page['externalLocationLabel'] = '';
             if ($type !== 'internal') {
                 $locationType = $type === 'receipt' ? 'supplier' : 'customer';
@@ -64,8 +64,8 @@ function renderInventoryOperations(): void
                     if ($externalLocation) { $page['externalLocationLabel'] = $externalLocation['name']; }
                 }
             }
-            $page['products'] = $db->query("SELECT id, name FROM inventory_products WHERE product_type='goods' ORDER BY name, id")->fetchAll();
-            $page['stock'] = $db->query('SELECT product_id, location_id, quantity FROM inventory_stock')->fetchAll();
+            $page['products'] = permissionHas('inventario.products')?$db->query("SELECT id, name FROM inventory_products WHERE product_type='goods' ORDER BY name, id")->fetchAll():[];
+            $page['stock'] = permissionHas('inventario.stock')?$db->query('SELECT product_id, location_id, quantity FROM inventory_stock')->fetchAll():[];
         }
         if ($_SERVER['REQUEST_METHOD'] === 'POST' && $page['available']) {
             $token = $_POST['csrf'] ?? null;
@@ -78,7 +78,7 @@ function renderInventoryOperations(): void
                 else {
                     try {
                         $invoiceId = createCommerceInvoice($db, $page['documentKind'], (int) $page['sourceOrder']['id']);
-                        header('Location: ../contabilidad/index.php?type=' . ($page['documentKind'] === 'sale' ? 'customer' : 'supplier') . '&id=' . $invoiceId, true, 303); exit;
+                        permissionRedirectDocument(authBasePath().'/modules/contabilidad/index.php?type='.($page['documentKind']==='sale'?'customer':'supplier').'&id='.$invoiceId,'operaciones.php?type='.$type.'&id='.$id,'inventory_flash');
                     } catch (InvalidArgumentException $exception) { $page['errors'][] = $exception->getMessage(); }
                 }
             } elseif ($id && in_array($_POST['action'] ?? '', ['create_return','cancel_operation'], true)) {
@@ -131,7 +131,7 @@ function renderInventoryOperations(): void
         }
         if ($page['view'] === 'list' && $page['available']) {
             $page['search'] = is_string($_GET['q'] ?? null) ? mb_substr(trim($_GET['q']), 0, 160) : '';
-            $params = ['type' => $type]; $where = ' WHERE o.operation_type = :type';
+            $params = ['type' => $type]; $where = ' WHERE o.operation_type = :type AND '.permissionWhere(permissionOperationResource($type),'o');
             foreach(['sale_id'=>'quotation_id','purchase_id'=>'purchase_order_id'] as $key=>$column) if($filterId=inventoryId($_GET[$key]??null)) { $where.=' AND o.'.$column.' = :'.$key; $params[$key]=$filterId; }
             if ($page['search'] !== '') { $where .= ' AND (o.name LIKE :reference OR c.name LIKE :contact)'; $params['reference'] = $params['contact'] = '%' . $page['search'] . '%'; }
             $from = ' FROM inventory_operations o LEFT JOIN contacts c ON c.id = o.contact_id';

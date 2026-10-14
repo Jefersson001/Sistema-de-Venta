@@ -46,6 +46,7 @@ function renderSalesCommissions(): void
             $page['methods']=$db->query('SELECT id,name FROM accounting_payment_methods ORDER BY name,id')->fetchAll();
         } else {
             $page['sellers']=$db->query("SELECT c.id,c.name FROM contacts c JOIN contact_types t ON t.id=c.type_id WHERE t.system_key='salesperson' OR EXISTS(SELECT 1 FROM accounting_invoices i WHERE i.salesperson_id=c.id) ORDER BY c.name,c.id")->fetchAll();
+        if(permissionScope('ventas.commissions')==='own')$page['sellers']=array_values(array_filter($page['sellers'],static fn($r)=>(int)$r['id']===permissionContact()));
             if ($page['sellerId']) { $page['seller']=salesRecord($page['sellers'],$page['sellerId']);if (!$page['seller']) { http_response_code(404);throw new InvalidArgumentException('El vendedor solicitado no existe.'); } }
             if (!$rangeState['cashFlowErrors']) $page['rows']=loadSalesCommissions($db,$page['range'],$page['sellerId']);
             if ($page['saleId']) $page['rows']=array_values(array_filter($page['rows'],static fn($r)=>(int)$r['sale_id']===$page['saleId']));

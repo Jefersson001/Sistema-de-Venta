@@ -41,6 +41,7 @@ function renderTreasury(): void
         }else{
             $page['kindFilter']=is_string($_GET['kind']??null)&&isset(treasuryKinds()[$_GET['kind']])?$_GET['kind']:'';
             $page['search']=is_string($_GET['q']??null)?mb_substr(trim($_GET['q']),0,160):'';$where=' WHERE (d.name LIKE ? OR a.name LIKE ? OR d.reference LIKE ?)';$params=array_fill(0,3,'%'.$page['search'].'%');
+            $where.=' AND '.permissionTreasuryWhere('d');
             if($page['kindFilter']!==''){$where.=' AND d.kind=?';$params[]=$page['kindFilter'];}
             $from=' FROM accounting_treasury_documents d JOIN accounting_payment_accounts a ON a.id=d.account_id';$q=$db->prepare('SELECT COUNT(*)'.$from.$where);$q->execute($params);$page['total']=(int)$q->fetchColumn();
             $page['pages']=max(1,(int)ceil($page['total']/20));$page['currentPage']=min(accountingId($_GET['page']??null)??1,$page['pages']);

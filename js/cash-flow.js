@@ -65,7 +65,7 @@ for (const widget of document.querySelectorAll('[data-cash-flow]')) {
             amounts.replaceChildren(...rows);
         }
         rangeLabel.textContent = data.range.label;
-        link.href = '../contabilidad/ingresos-egresos.php?' + applied.toString();
+        if(link)link.href = '../contabilidad/ingresos-egresos.php?' + applied.toString();
         const accountGrid=widget.querySelector('[data-cash-flow-account-grid]');
         if(accountGrid){
             const element=(tag,className,value)=>{const node=document.createElement(tag);node.className=className;if(value!==undefined)node.textContent=value;return node;};
@@ -98,6 +98,8 @@ for (const widget of document.querySelectorAll('[data-cash-flow]')) {
             const response = await fetch(endpoint + '?' + applied.toString(), { cache: 'no-store', signal: current.signal, headers: { Accept: 'application/json' } });
             const data = await response.json();
             if (number !== requestNumber) return;
+            if(response.status===401&&data.redirect){const login=new URL(data.redirect,window.location.href);login.searchParams.set('next',window.location.pathname+window.location.search);window.location.assign(login);return;}
+            if(response.status===403){window.location.reload();return;}
             if (!response.ok) throw new Error(data.error || 'No se pudo actualizar el resumen.');
             render(data);
             if (changeUrl) {

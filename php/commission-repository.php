@@ -40,7 +40,7 @@ function invoiceCommissionSummary(PDO $db, array $invoice): array
 
 function loadSalesCommissions(PDO $db, ?array $range = null, ?int $sellerId = null, ?int $invoiceId = null): array
 {
-    $where = " WHERE i.invoice_type='customer' AND i.document_type='invoice' AND i.salesperson_id IS NOT NULL
+    $where = " WHERE ".permissionWhere('ventas.commissions','i')." AND i.invoice_type='customer' AND i.document_type='invoice' AND i.salesperson_id IS NOT NULL
         AND (EXISTS(SELECT 1 FROM accounting_invoice_lines x WHERE x.invoice_id=i.id AND (x.commission_unit_amount>0 OR (x.commission_unit_amount IS NULL AND x.commission_reference_price IS NOT NULL AND x.unit_price>x.commission_reference_price)))
         OR EXISTS(SELECT 1 FROM sales_commission_payments x WHERE x.invoice_id=i.id))";
     $params = [];
@@ -114,7 +114,7 @@ function summarizeSalesCommissions(array $rows): array
 
 function salesCommissionPaymentHistory(PDO $db, ?array $range, ?int $sellerId = null, ?int $paymentId = null, int $page = 1): array
 {
-    $where = []; $params = [];
+    $where = [permissionWhere('ventas.commission_payments','p')]; $params = [];
     if ($paymentId) { $where[] = 'p.id=?'; $params[] = $paymentId; }
     else {
         if ($range) { $where[] = 'd.movement_date BETWEEN ? AND ?'; $params[] = $range['date_from']; $params[] = $range['date_to']; }

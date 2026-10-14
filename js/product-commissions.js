@@ -22,10 +22,11 @@ if(typeof document!=='undefined'&&document.querySelectorAll)for(const form of do
     const currency=form.querySelector('[name="currency_code"]');
     const unit=form.querySelector('[data-product-commission-unit]');
     const price=form.querySelector('[data-product-seller-price]');
+    const locked=type.disabled||form.dataset.permissionReadonly==='true';
     function update() {
         const none=type.value==='none';
         form.querySelector('[data-product-commission-value-field]').hidden=none;
-        value.disabled=none;value.required=!none;
+        value.disabled=none||locked;value.required=!none&&!locked;
         form.querySelector('[data-product-commission-label]').textContent=type.value==='percent'?'Comisión (%)':'Comisión fija por unidad ('+currency.value+')';
         try {
             const result=productCommissionPricing(form.querySelector('[name="sale_price"]').value,type.value,value.value);

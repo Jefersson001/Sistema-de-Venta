@@ -24,6 +24,7 @@ function renderSalesCommissionPayments(): void
         $page['sellers'] = $db->query("SELECT c.id,c.name FROM contacts c JOIN contact_types t ON t.id=c.type_id
             WHERE t.system_key='salesperson' OR EXISTS(SELECT 1 FROM accounting_invoices i WHERE i.salesperson_id=c.id)
             ORDER BY c.name,c.id")->fetchAll();
+        if(permissionScope('ventas.commission_payments')==='own')$page['sellers']=array_values(array_filter($page['sellers'],static fn($r)=>(int)$r['id']===permissionContact()));
         if ($page['sellerId']) {
             $page['seller'] = salesRecord($page['sellers'],$page['sellerId']);
             if (!$page['seller']) { http_response_code(404); throw new InvalidArgumentException('El vendedor solicitado no existe.'); }

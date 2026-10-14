@@ -69,8 +69,8 @@ try {
     saveAuthUser($db,$staffInput,$staff,(int)loadAuthUser($db,$staff)['version'],$admin);
     [, $staffLoginForm]=authTestRequest($server,'/login.php',$staffCookie);
     [$code]=authTestRequest($server,'/login.php',$staffCookie,['csrf'=>authTestToken($staffLoginForm),'login'=>$staffLogin,'password'=>$personal]);authAssert($code===303,'No se recupera acceso con los grupos actualizados.');
-    [$code,$staffHome]=authTestRequest($server,'/index.php',$staffCookie);authAssert($code===200&&!str_contains($staffHome,'data-module-card'),'Una cuenta sin administración recibe acceso operativo prematuro.');
-    foreach(['/modules/ajustes/usuarios.php','/modules/ajustes/grupos.php','/modules/ventas/index.php','/modules/dashboard/resumen.php'] as $path){[$code]=authTestRequest($server,$path,$staffCookie);authAssert($code===403,'Un usuario normal puede abrir una operación reservada.');}
+    [$code,$staffHome]=authTestRequest($server,'/index.php',$staffCookie);authAssert($code===200&&str_contains($staffHome,'/modules/ventas/index.php')&&!str_contains($staffHome,'/modules/ajustes/index.php'),'Inicio no respeta los permisos del usuario.');
+    foreach(['/modules/ajustes/usuarios.php','/modules/ajustes/grupos.php','/modules/contabilidad/index.php?type=supplier','/modules/dashboard/ingresos-egresos.php'] as $path){[$code]=authTestRequest($server,$path,$staffCookie);authAssert($code===403,'Un usuario normal puede abrir una operación no autorizada.');}
     $before=loadAuthUser($db,$staff);authReject(fn()=>saveAuthUser($db,$staffInput,$staff,(int)$before['version'],$staff));
     [, $view]=authTestRequest($server,'/modules/ajustes/usuarios.php?id='.$staff,$adminCookie);$settingsCsrf=authTestToken($view);
     $edit=['csrf'=>$settingsCsrf,'action'=>'save_user','version'=>(string)$before['version'],'name'=>$before['name'],'login'=>$staffLogin,'email'=>'venta@example.com','active'=>'0','groups'=>[$sales]];

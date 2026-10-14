@@ -64,7 +64,7 @@ Verificación: `test/authentication.php` sobre activación, sesiones, contraseñ
 
 ## Fase 4 — Permisos aplicados al negocio y Dashboard
 
-Estado: pendiente.
+Estado: implementada y verificada el 14/10/2026; pendiente de validación y push del usuario.
 
 1. Aplicar permisos antes de consultar datos o ejecutar acciones, además de ajustar menús, enlaces y botones.
 2. Proteger Contactos, productos, almacenes, operaciones, ventas, compras, facturas, pagos, Tesorería y comisiones.
@@ -77,6 +77,12 @@ Estado: pendiente.
 Validación del usuario: probar cuentas de Ventas, Compras, Inventario, Contabilidad y Consulta; intentar también acceder por direcciones directas y confirmar acciones sin permiso.
 
 Criterio de cierre: acceso coherente en servidor y vistas, sin exponer datos por el Dashboard ni los endpoints.
+
+Entregado: Inicio muestra los módulos de los grupos activos y abre la primera sección autorizada. Una política compartida protege las entradas HTTP, sus acciones y las vistas. Los listados, fichas, selectores y reportes aplican Propios/Todos; no existe una excepción operativa para Administrador. Costos y configuración de comisiones mantienen permisos separados. Generar un documento desde otro módulo utiliza el permiso de origen y ofrece su enlace solamente si se puede consultar el destino.
+
+Dashboard limita pestañas, indicadores, tareas, comisiones y consultas JSON a las fuentes autorizadas. Conserva la actualización automática y los filtros de fechas aun cuando el usuario no tenga acceso a Ingresos y egresos. Cambiar o archivar un grupo se refleja en la siguiente solicitud; los cambios de asignación del usuario conservan la revocación de sesiones de la fase 3.
+
+Verificación: `test/permissions.php`, `test/authentication.php` y regresiones autenticadas de procesos comerciales, Dashboard, pagos, Tesorería y comisiones en bases aisladas. Las pruebas de vistas inspeccionan enlaces, botones, formularios, selectores y pestañas. No se modificaron cuentas, grupos ni documentos reales. Guía de validación en [permisos-operativos.md](permisos-operativos.md). La revisión final de los circuitos completos con usuarios separados corresponde a la fase 5.
 
 ## Fase 5 — Validación completa y cierre
 

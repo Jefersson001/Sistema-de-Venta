@@ -27,9 +27,9 @@
                     </div>
 
                     <div class="module-grid" data-module-grid>
-                        <?php if(!$modules): ?><div class="notice contact-full">El acceso operativo de tu grupo se habilitará en la siguiente fase. Puedes consultar <a class="inline-link" href="perfil.php">tu perfil</a> y gestionar tu contraseña.</div><?php endif; ?>
+                        <?php if(!$modules): ?><div class="notice contact-full">No tienes módulos autorizados. Solicita al administrador que revise tus grupos de acceso. Puedes consultar <a class="inline-link" href="perfil.php">tu perfil</a> y gestionar tu contraseña.</div><?php endif; ?>
                         <?php foreach ($modules as $key => $module): ?>
-                            <a class="module-card" href="modules/<?= htmlspecialchars($key, ENT_QUOTES, 'UTF-8') ?>/index.php" data-module-card data-module-name="<?= htmlspecialchars(mb_strtolower($module['name']), ENT_QUOTES, 'UTF-8') ?>">
+                            <a class="module-card" href="<?= htmlspecialchars($module['url'], ENT_QUOTES, 'UTF-8') ?>" data-module-card data-module-name="<?= htmlspecialchars(mb_strtolower($module['name']), ENT_QUOTES, 'UTF-8') ?>">
                                 <div class="module-card-top">
                                     <span class="module-icon icon-<?= htmlspecialchars($module['color'], ENT_QUOTES, 'UTF-8') ?>"><?= htmlspecialchars($module['initials'], ENT_QUOTES, 'UTF-8') ?></span>
                                     <span class="module-status"><span></span> <?= in_array($key, ['contactos', 'dashboard', 'ajustes'], true) ? 'Disponible' : 'En desarrollo' ?></span>

@@ -1,5 +1,5 @@
 const operationForm = document.querySelector('[data-operation-form]');
-if (operationForm) {
+if (operationForm && operationForm.dataset.permissionReadonly!=='true') {
     const body = operationForm.querySelector('[data-operation-lines]');
     const template = operationForm.querySelector('[data-operation-template]');
     const add = operationForm.querySelector('[data-operation-add]');

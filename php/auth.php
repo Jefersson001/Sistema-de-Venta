@@ -94,10 +94,3 @@ function authRequireLogin(bool $json=false,bool $allowPasswordChange=false): arr
     }
     return $user;
 }
-
-function authRequireStageAdministrator(bool $json=false): array
-{
-    $user=authRequireLogin($json);
-    if(!$user['administrator'])authStop(403,'El acceso operativo de tu grupo se habilitará al completar la siguiente fase. Puedes gestionar tu contraseña desde tu perfil.',$json,authBasePath().'/perfil.php');
-    return $user;
-}

@@ -52,7 +52,7 @@ function renderInventoryProducts(): void
             $page['categories'] = loadInventoryCategories($db);
             $page['purchaseTaxes'] = loadBusinessTaxes($db, 'compras');
             $page['saleTaxes'] = loadBusinessTaxes($db, 'ventas');
-            $page['productStock'] = $id ? loadInventoryProductStock($db, $id) : ['total' => '0.000', 'locations' => []];
+            $page['productStock'] = $id && permissionHas('inventario.stock') ? loadInventoryProductStock($db, $id) : ['total' => null, 'reserved'=>null,'available'=>null,'locations' => []];
             $page['productIndicators'] = $id ? loadInventoryProductIndicators($db, $id) : ['incoming' => '0', 'outgoing' => '0', 'sold' => '0.000', 'purchased' => '0.000'];
             $page['storage'] = loadStorageRelations($db);
             $page['suppliers']=$db->query("SELECT c.id,c.name FROM contacts c JOIN contact_types t ON t.id=c.type_id WHERE t.system_key='supplier' AND c.active=1 ORDER BY c.name")->fetchAll();
@@ -85,8 +85,10 @@ function renderInventoryProducts(): void
                             $supplierRows[]=[$supplier,$price];$seen[$supplier]=true;
                         }
                         $db->beginTransaction(); $saved=saveInventoryProduct($db,$data,$id);
-                        $db->prepare('DELETE FROM product_supplier_prices WHERE product_id=?')->execute([$saved]);
-                        foreach($supplierRows as [$supplier,$price])$db->prepare('INSERT INTO product_supplier_prices (product_id,supplier_id,price) VALUES (?,?,?)')->execute([$saved,$supplier,$price]);
+                        if(permissionHas('inventario.products','view_cost')){
+                            $db->prepare('DELETE FROM product_supplier_prices WHERE product_id=?')->execute([$saved]);
+                            foreach($supplierRows as [$supplier,$price])$db->prepare('INSERT INTO product_supplier_prices (product_id,supplier_id,price) VALUES (?,?,?)')->execute([$saved,$supplier,$price]);
+                        }
                         $db->commit();
                     } catch (InvalidArgumentException $e) { if($db->inTransaction())$db->rollBack();$page['errors'][]=$e->getMessage(); }
                     catch (Throwable $e) { if($db->inTransaction())$db->rollBack();throw $e; }

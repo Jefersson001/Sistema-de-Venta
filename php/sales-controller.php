@@ -27,6 +27,7 @@ function renderSalesQuotations(): void
             'order_date' => (new DateTimeImmutable('now', new DateTimeZone('America/Caracas')))->format('Y-m-d')];
         if ($page['view'] === 'form' && $page['available']) {
             $page['catalogs'] = loadSalesCatalogs($db, $existing);
+            if(!$existing&&permissionScope('ventas.orders','create')==='own')$page['record']['salesperson_id']=permissionContact();
             if(!$existing)$page['record']['currency_code']=$page['catalogs']['settings']['primary_code'];
             $page['delivery'] = $id ? loadSalesDelivery($db, $id) : null;
             $page['documentKind'] = 'sale'; $page['links'] = $id ? commerceLinks($db, 'sale', $id) : null;
@@ -41,12 +42,12 @@ function renderSalesQuotations(): void
             } elseif ($action === 'create_invoice' && $id) {
                 try {
                     $invoiceId = createCommerceInvoice($db, 'sale', $id);
-                    header('Location: ../contabilidad/index.php?type=customer&id=' . $invoiceId, true, 303); exit;
+                    permissionRedirectDocument(authBasePath().'/modules/contabilidad/index.php?type=customer&id='.$invoiceId,'index.php?id='.$id,'sales_flash');
                 } catch (InvalidArgumentException $exception) { $page['errors'][] = $exception->getMessage(); }
             } elseif ($action === 'create_delivery' && $id) {
                 try {
                     $deliveryId = createSalesDelivery($db, $id);
-                    header('Location: ../inventario/operaciones.php?type=delivery&id=' . $deliveryId, true, 303); exit;
+                    permissionRedirectDocument(authBasePath().'/modules/inventario/operaciones.php?type=delivery&id='.$deliveryId,'index.php?id='.$id,'sales_flash');
                 } catch (InvalidArgumentException $exception) { $page['errors'][] = $exception->getMessage(); }
             } elseif ($action === 'save_quotation') {
                 [$data, $lines, $page['errors']] = validateSalesQuotation($_POST, $page['catalogs'], $existing);
@@ -70,7 +71,7 @@ function renderSalesQuotations(): void
             $page['search'] = is_string($_GET['q'] ?? null) ? mb_substr(trim($_GET['q']), 0, 160, 'UTF-8') : '';
             $status = $_GET['status'] ?? 'all';
             $page['statusFilter'] = is_string($status) && in_array($status, ['quotations', 'all', 'draft', 'sent', 'sale', 'cancel'], true) ? $status : 'all';
-            $where = []; $params = [];
+            $where = [permissionWhere('ventas.orders','q')]; $params = [];
             if ($page['statusFilter'] === 'quotations') { $where[] = "q.status IN ('draft', 'sent')"; }
             elseif ($page['statusFilter'] !== 'all') { $where[] = 'q.status = :status'; $params['status'] = $page['statusFilter']; }
             if ($page['search'] !== '') { $where[] = '(q.name LIKE :reference OR c.name LIKE :customer)'; $params['reference'] = '%' . $page['search'] . '%'; $params['customer'] = $params['reference']; }

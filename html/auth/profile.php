@@ -6,5 +6,5 @@
     <div class="contact-sheet"><div class="contact-form-grid"><label>Nombre<input readonly value="<?= authEscape($user['name']) ?>"></label><label>Usuario<input readonly value="<?= authEscape($user['login']) ?>"></label><label>Correo<input readonly value="<?= authEscape($user['email']) ?>"></label></div>
         <h2 class="catalog-group-title">Grupos asignados</h2><div class="access-user-groups"><?php foreach($user['groups'] as $group): ?><span class="contact-tag"><?= authEscape($group['name']) ?><?= $group['active']?'':' · Archivado' ?></span><?php endforeach; ?><?php if(!$user['groups']): ?><p class="section-subtitle">Sin grupos asignados.</p><?php endif; ?></div>
     </div>
-    <?php if(!$user['administrator']): ?><p class="notice">El acceso operativo de los grupos se habilitará en la siguiente fase. Tu cuenta y el cambio de contraseña ya están disponibles.</p><?php endif; ?>
+    <?php if(!$user['administrator']): ?><p class="notice">Tus módulos, vistas y acciones disponibles dependen de los permisos de tus grupos activos.</p><?php endif; ?>
 </div></main></div></body></html>

@@ -75,6 +75,7 @@ function renderContactsPage(bool $isConfiguration = false): void
         if (! $isConfiguration && $page['view'] === 'form' && $page['available']) {
             $page['storage'] = loadStorageRelations($db);
             $page['salespeople'] = loadContactSalespeople($db, contactId($page['record']['salesperson_id'] ?? null), $id);
+            if(permissionScope('contactos.contacts',$id?'edit':'create')==='own'){$page['salespeople']=array_values(array_filter($page['salespeople'],static fn($r)=>(int)$r['id']===permissionContact()));if(!$id)$page['record']['salesperson_id']=permissionContact();}
         }
         if ($_SERVER['REQUEST_METHOD'] === 'POST' && $page['available']) {
             $token = $_POST['csrf'] ?? null;
@@ -121,7 +122,7 @@ function renderContactsPage(bool $isConfiguration = false): void
             $page['search'] = is_string($_GET['q'] ?? null) ? mb_substr(trim($_GET['q']), 0, 160, 'UTF-8') : '';
             $page['typeFilter'] = contactId($_GET['type'] ?? null);
             $page['statusFilter'] = ($_GET['status'] ?? '') === 'archived' ? 'archived' : 'active';
-            $where = ['c.active = :active'];
+            $where = ['c.active = :active',permissionWhere('contactos.contacts','c')];
             $params = ['active' => $page['statusFilter'] === 'active' ? 1 : 0];
             if ($page['search'] !== '') {
                 $where[] = '(c.name LIKE :name OR c.tax_id LIKE :tax OR c.email LIKE :email OR CONCAT(d.code, \'-\', c.tax_id) LIKE :document)';

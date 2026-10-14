@@ -39,9 +39,9 @@ function renderPurchaseOrders(): void
                         $_SESSION['purchase_flash'] = match ($action) { 'mark_sent' => 'Solicitud marcada como enviada.', 'cancel_purchase' => 'Orden de compra cancelada.', default => 'Orden de compra confirmada.' };
                         header('Location: index.php?id=' . $id, true, 303); exit;
                     } elseif ($id && $action === 'create_receipt') {
-                        $operationId = createPurchaseReceipt($db, $id); header('Location: ../inventario/operaciones.php?type=receipt&id=' . $operationId, true, 303); exit;
+                        $operationId = createPurchaseReceipt($db, $id);permissionRedirectDocument(authBasePath().'/modules/inventario/operaciones.php?type=receipt&id='.$operationId,'index.php?id='.$id,'purchase_flash');
                     } elseif ($id && $action === 'create_invoice') {
-                        $invoiceId = createCommerceInvoice($db, 'purchase', $id); header('Location: ../contabilidad/index.php?type=supplier&id=' . $invoiceId, true, 303); exit;
+                        $invoiceId = createCommerceInvoice($db, 'purchase', $id);permissionRedirectDocument(authBasePath().'/modules/contabilidad/index.php?type=supplier&id='.$invoiceId,'index.php?id='.$id,'purchase_flash');
                     } else { http_response_code(400); $page['errors'][] = 'La operación solicitada no es válida.'; }
                 } catch (InvalidArgumentException $exception) { $page['errors'][] = $exception->getMessage(); }
             }
