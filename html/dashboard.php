@@ -13,16 +13,17 @@
                 <section class="quick-actions" aria-labelledby="actions-title">
                     <div>
                         <h2 id="actions-title">Acciones rápidas</h2>
+                        <div class="action-buttons">
+                            <a class="action-button" href="../contactos/index.php">Contactos <span aria-hidden="true">→</span></a>
+                            <a class="action-button" href="../inventario/index.php">Productos <span aria-hidden="true">→</span></a>
+                            <a class="action-button action-primary" href="../ventas/index.php?status=all">Ventas <span aria-hidden="true">→</span></a>
+                            <a class="action-button" href="../contabilidad/index.php?type=customer&amp;status=all">Facturas <span aria-hidden="true">→</span></a>
+                            <a class="action-button" href="../contabilidad/pagos.php?type=customer&amp;status=all">Pagos <span aria-hidden="true">→</span></a>
+                            <a class="action-button" href="../inventario/operaciones.php?type=receipt">Recepciones <span aria-hidden="true">→</span></a>
+                            <a class="action-button" href="../inventario/operaciones.php?type=internal">Interno <span aria-hidden="true">→</span></a>
+                        </div>
                     </div>
-                    <div class="action-buttons">
-                        <a class="action-button" href="../contactos/index.php">Contactos <span aria-hidden="true">→</span></a>
-                        <a class="action-button" href="../inventario/index.php">Productos <span aria-hidden="true">→</span></a>
-                        <a class="action-button action-primary" href="../ventas/index.php?status=all">Ventas <span aria-hidden="true">→</span></a>
-                        <a class="action-button" href="../contabilidad/index.php?type=customer&amp;status=all">Facturas <span aria-hidden="true">→</span></a>
-                        <a class="action-button" href="../contabilidad/pagos.php?type=customer&amp;status=all">Pagos <span aria-hidden="true">→</span></a>
-                        <a class="action-button" href="../inventario/operaciones.php?type=receipt">Recepciones <span aria-hidden="true">→</span></a>
-                        <a class="action-button" href="../inventario/operaciones.php?type=internal">Interno <span aria-hidden="true">→</span></a>
-                    </div>
+                    
                 </section>
 
                 <div class="dashboard-notebook" data-dashboard data-notebook>
