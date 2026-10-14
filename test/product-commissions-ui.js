@@ -1,0 +1,11 @@
+const assert=require('node:assert/strict');
+const {productCommissionPricing}=require('../js/product-commissions.js');
+assert.deepEqual(productCommissionPricing('5.00','fixed','2.00'),{price:'5.00',commission:'2.00',sellerPrice:'7.00'});
+assert.deepEqual(productCommissionPricing('5.00','percent','40'),{price:'5.00',commission:'2.00',sellerPrice:'7.00'});
+assert.equal(productCommissionPricing('5.55','percent','12.5').commission,'0.69');
+assert.equal(productCommissionPricing('5.55','percent','12.5').sellerPrice,'6.24');
+assert.equal(productCommissionPricing('5.00','fixed','0.00').commission,'0.00');
+assert.equal(productCommissionPricing('5.00','none','ignored').commission,null);
+assert.equal(productCommissionPricing('5,00','fixed','2,25').sellerPrice,'7.25');
+for(const args of [['5','fixed','-2'],['5','percent','1001'],['5','fixed','2.123'],['5','percent','40.12345'],['9999999999.99','fixed','0.01']])assert.throws(()=>productCommissionPricing(...args));
+console.log('PASS: comisión fija y porcentual, redondeo exacto, valores cero, comas, máximos y validaciones.');

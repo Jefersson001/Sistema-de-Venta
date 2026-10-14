@@ -67,7 +67,7 @@ function treasuryInsertDocument(PDO $db,array $data): int
     $db->prepare('INSERT INTO accounting_treasury_documents('.implode(',',array_keys($data)).') VALUES (:'.implode(',:',array_keys($data)).')')->execute($data);
     $id=(int)$db->lastInsertId();$db->prepare('UPDATE accounting_treasury_documents SET name=? WHERE id=?')->execute(['TES/'.str_pad((string)$id,5,'0',STR_PAD_LEFT),$id]);return $id;
 }
-function validateTreasuryDocument(PDO $db,array $input,?array $existing=null): array
+function validateTreasuryDocument(PDO $db,array $input,?array $existing=null,bool $commissionPayment=false): array
 {
     $kind=$input['kind']??'';if(!in_array($kind,['opening','transfer','income','expense'],true))throw new InvalidArgumentException('Selecciona un tipo de movimiento válido.');
     $account=salesId($input['account_id']??null);$destination=$kind==='transfer'?salesId($input['destination_account_id']??null):null;
@@ -89,6 +89,7 @@ function validateTreasuryDocument(PDO $db,array $input,?array $existing=null): a
     $method=$kind==='opening'?null:salesId($input['method_id']??null);
     if($kind!=='opening'){$q=$db->prepare('SELECT id FROM accounting_payment_methods WHERE id=?');$q->execute([$method]);if(!$q->fetchColumn())throw new InvalidArgumentException('Selecciona un medio de pago válido.');}
     $concept=in_array($kind,['income','expense'],true)?treasuryConcept($db,salesId($input['concept_id']??null),$kind==='income'?'inbound':'outbound',salesId($existing['concept_id']??null)):null;
+    if($concept&&!$commissionPayment){$q=$db->prepare('SELECT system_key FROM accounting_cash_concepts WHERE id=?');$q->execute([$concept]);if($q->fetchColumn()==='sales_commission')throw new InvalidArgumentException('Registra el pago desde Ventas → Comisiones para aplicarlo al vendedor y a su factura.');}
     $contact=salesId($input['contact_id']??null);
     if(isset($input['contact_id'])&&$input['contact_id']!==''&&!$contact)throw new InvalidArgumentException('Selecciona un contacto válido o deja el campo vacío.');
     if($contact){$q=$db->prepare('SELECT id FROM contacts WHERE id=?');$q->execute([$contact]);if(!$q->fetchColumn())throw new InvalidArgumentException('El contacto no existe.');}

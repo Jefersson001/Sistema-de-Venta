@@ -31,6 +31,7 @@
                         <a id="dashboard-tab-overview" href="#dashboard-page-overview">Resumen del negocio</a>
                         <a id="dashboard-tab-alerts" href="#dashboard-page-alerts">Alertas de inventario</a>
                         <a id="dashboard-tab-tasks" href="#dashboard-page-tasks">Tareas pendientes</a>
+                        <a id="dashboard-tab-commissions" href="#dashboard-page-commissions">Comisiones</a>
                     </nav>
                     <p class="section-subtitle dashboard-updated" data-dashboard-updated role="status"><?= $dashboard['available'] && $modulePageData['cashFlow'] ? 'Actualizado '.$modulePageData['cashFlow']['updated_time'].' · Se actualiza cada 30 s' : 'Esperando datos del dashboard.' ?></p>
                     <p class="cash-flow-error" data-dashboard-error role="alert" <?= !$modulePageData['cashFlowErrors'] ? 'hidden' : '' ?>><?= htmlspecialchars(implode(' ', $modulePageData['cashFlowErrors']), ENT_QUOTES, 'UTF-8') ?></p>
@@ -89,6 +90,11 @@
                     <section class="notebook-page" id="dashboard-page-tasks" data-notebook-page aria-labelledby="dashboard-tab-tasks">
                         <div class="section-heading"><h2>Tareas pendientes</h2></div>
                         <div class="overview-grid" data-dashboard-tasks><?php if($dashboard['available']): ?><?php foreach($dashboard['tasks'] as $task): ?><article class="overview-card"><a class="overview-link" href="<?= htmlspecialchars('../../' . $task['href'],ENT_QUOTES,'UTF-8') ?>"><?= htmlspecialchars($task['label'],ENT_QUOTES,'UTF-8') ?></a><p><?= htmlspecialchars($task['detail'],ENT_QUOTES,'UTF-8') ?></p></article><?php endforeach; ?><?php if(!$dashboard['tasks']): ?><p>No hay operaciones pendientes ni facturas vencidas con saldo.</p><?php endif; ?><?php else: ?><p>No se pudieron consultar las tareas pendientes.</p><?php endif; ?></div>
+                    </section>
+                    <section class="notebook-page" id="dashboard-page-commissions" data-notebook-page aria-labelledby="dashboard-tab-commissions">
+                        <div class="section-heading"><div><h2>Comisiones por vendedor</h2><p class="section-subtitle">Fecha de factura · <span data-dashboard-commission-range><?= htmlspecialchars($cashFlowRange['label'],ENT_QUOTES,'UTF-8') ?></span></p></div><a class="overview-link" data-dashboard-commission-history href="../ventas/comisiones.php?<?= htmlspecialchars(cashFlowQuery($cashFlowRange),ENT_QUOTES,'UTF-8') ?>">Ver detalle y filtros →</a></div>
+                        <p class="section-subtitle">Las comisiones se configuran en Producto → Ventas, como importe fijo o porcentaje. Solo los cobros confirmados habilitan su pago; el pago al vendedor se registra como egreso.</p>
+                        <?php $commissionGroups=$modulePageData['commissionGroups'];$commissionRange=$cashFlowRange;$commissionPrefix='../ventas/';$commissionLive=true;require __DIR__.'/sales/commission-summary.php'; ?>
                     </section>
                 </div>
                 <script src="../../js/dashboard.js?v=<?= filemtime(dirname(__DIR__).'/js/dashboard.js') ?>" defer></script>

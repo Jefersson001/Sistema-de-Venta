@@ -58,7 +58,7 @@ try {
     $pages = $xpath->query('//*[@data-notebook-page]');
     expectProduct($pages->length === 6, 'Faltan páginas del notebook.');
     foreach ($pages as $page) {
-        if (!in_array($page->getAttribute('id'),['product-page-general','product-page-purchases'],true)) {
+        if (!in_array($page->getAttribute('id'),['product-page-general','product-page-sales','product-page-purchases'],true)) {
             expectProduct(trim($page->textContent) === '' && $page->childNodes->length === 0, 'Una pestaña pendiente no está vacía.');
         }
     }

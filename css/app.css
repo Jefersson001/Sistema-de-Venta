@@ -109,6 +109,8 @@ a:focus-visible, button:focus-visible { outline: 3px solid #5d4fc4; outline-offs
 .dashboard-updated { margin: 12px 0 0; }
 .dashboard-tabs { overflow-x: auto; }
 .dashboard-tabs a { flex-shrink: 0; }
+.commission-detail-title { margin: 24px 0 14px; font-size: 18px; }
+.invoice-wizard[data-commission-payment] { padding: 0; }
 .dashboard-notebook .cash-flow-updated { display: none; }
 .dashboard-notebook .inventory-alert { margin-top: 0; }
 .dashboard-notebook .inventory-alert li .overview-link { margin: 0; }
@@ -246,7 +248,7 @@ a:focus-visible, button:focus-visible { outline: 3px solid #5d4fc4; outline-offs
 .quotation-status li:last-child { border-radius: 0 9px 9px 0; }
 .quotation-status li[aria-current], .invoice-status li.is-active { border-color: #514397; color: #514397; background: #f0edfc; }
 .invoice-toolbar { align-items: flex-start; flex-direction: column; }
-.invoice-status-wrap { width: 100%; min-width: 0; overflow-x: auto; padding-bottom: 4px; }
+.invoice-status-wrap { position: relative; width: 100%; min-width: 0; overflow-x: auto; padding-bottom: 4px; }
 .invoice-status { flex-wrap: nowrap; width: max-content; }
 .invoice-status li { flex-shrink: 0; white-space: nowrap; }
 .quotation-state-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin-bottom: 16px; }
@@ -356,6 +358,7 @@ a.product-stat-button:hover { border-color: #514397; background: #f0edff; }
 .notebook-page .section-subtitle { margin-top: 12px; }
 .notebook-page[hidden], [data-salesperson-field][hidden], [data-salesperson-help][hidden] { display: none; }
 [data-storage-seller-field][hidden] { display: none; }
+[data-product-commission-value-field][hidden] { display: none; }
 [data-partner-location-field][hidden] { display: none; }
 @media (max-width: 720px) {
     .notebook-tabs a { min-height: 44px; padding: 10px 12px; }

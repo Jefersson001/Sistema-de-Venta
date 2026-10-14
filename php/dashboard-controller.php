@@ -4,18 +4,21 @@ declare(strict_types=1);
 require_once __DIR__ . '/module-page.php';
 require_once __DIR__ . '/dashboard-repository.php';
 require_once __DIR__ . '/cash-flow-controller.php';
+require_once __DIR__.'/commission-repository.php';
 
 function renderDashboard(): void
 {
     $databaseStatus = getDatabaseStatus();
     $dashboard = ['available' => false];
     $cashFlowPage = cashFlowPageState($_GET);
+    $cashFlowPage['commissionGroups']=[];
     if ($databaseStatus['connected']) {
         try {
             $db = createDatabaseConnection();
             $dashboard = loadDashboard($db);
             if (!$cashFlowPage['cashFlowErrors']) {
                 $cashFlowPage['cashFlow'] = loadCashFlowSummary($db, $cashFlowPage['cashFlowRange']);
+                $cashFlowPage['commissionGroups']=summarizeSalesCommissions(loadSalesCommissions($db,$cashFlowPage['cashFlowRange']));
             }
         } catch (PDOException $exception) {
             error_log('Dashboard: ' . $exception->getMessage());
@@ -51,6 +54,7 @@ function renderDashboardSnapshot(): void
         foreach (['sales','purchases','overdue'] as $key) $dashboard['metrics'][$key] = (string)$dashboard[$key];
         foreach (['receivables','payables','unallocated'] as $key) $dashboard['metrics'][$key] = dashboardMoney($dashboard[$key]);
         $summary['dashboard'] = $dashboard;
+        $summary['commissions']=summarizeSalesCommissions(loadSalesCommissions($db,$range));
         $db->commit();
         echo json_encode($summary, JSON_UNESCAPED_UNICODE | JSON_THROW_ON_ERROR);
     } catch (InvalidArgumentException $exception) {

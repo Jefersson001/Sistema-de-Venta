@@ -1,6 +1,7 @@
 <?php
 
 declare(strict_types=1);
+require_once __DIR__.'/commission-math.php';
 
 function inventoryConfigurationDefinitions(): array
 {
@@ -137,11 +138,26 @@ function validateInventoryProduct(array $input, array $categories = [], array $p
     if(!preg_match('/^[0-9]{1,10}(\.[0-9]{1,2})?$/',$cost)) { $errors[]='Indica un costo válido con hasta dos decimales.'; $cost='0'; }
     $data['cost_price']=$cost;
     $currency=$input['currency_code']??'USD';if(!is_string($currency)||!preg_match('/^[A-Z]{3}$/',$currency)){$errors[]='Selecciona una moneda válida.';$currency='USD';}$data['currency_code']=$currency;
+    $type=$input['commission_type']??'none';
+    if (!is_string($type)||!in_array($type,['none','fixed','percent'],true)) { $errors[]='Selecciona Sin comisión automática, Importe fijo o Porcentaje.';$type='none'; }
+    $value=is_string($input['commission_value']??null)?str_replace(',','.',trim($input['commission_value'])):'0';
+    if ($type!=='none'&&isset($input['commission_value'])&&!is_string($input['commission_value'])) $errors[]='Indica un valor de comisión válido.';
+    if ($type==='none') $value='0';
+    if ($type==='fixed') $value=preg_replace('/(\.\d{2})0+$/','$1',$value);
+    $valid=$type==='percent' ? preg_match('/^[0-9]{1,4}(\.[0-9]{1,4})?$/',$value)&&bccomp($value,'1000',4)<=0
+        : preg_match('/^[0-9]{1,10}(\.[0-9]{1,2})?$/',$value);
+    if (!$valid) { $errors[]=$type==='percent'?'El porcentaje debe estar entre 0 y 1000, con hasta cuatro decimales.':'La comisión fija debe ser un importe no negativo con hasta dos decimales.';$value='0'; }
+    $data['commission_type']=$type;$data['commission_value']=bcadd($value,'0',4);
+    if (!$errors) {
+        $commission=productCommissionUnit($data['sale_price'],$type,$value)??'0.00';
+        if (bccomp(bcadd($data['sale_price'],$commission,2),'9999999999.99',2)>0) $errors[]='El precio para vendedor supera el máximo permitido.';
+    }
     return [$data, $errors];
 }
 
 function saveInventoryProduct(PDO $db, array $data, ?int $id): int
 {
+    $data+=['commission_type'=>'none','commission_value'=>'0.0000'];
     if ($id && $data['product_type']==='service') {
         $q=$db->prepare('SELECT COUNT(*) FROM inventory_operation_lines WHERE product_id=?');$q->execute([$id]);
         if($q->fetchColumn())throw new InvalidArgumentException('Un producto con movimientos de inventario debe conservar el tipo Mercancía.');
@@ -149,10 +165,10 @@ function saveInventoryProduct(PDO $db, array $data, ?int $id): int
     if ($id) {
         $data['id'] = $id;
         $sql = 'UPDATE inventory_products SET name = :name, sale_enabled = :sale_enabled, purchase_enabled = :purchase_enabled,
-            sale_price = :sale_price, category_id = :category_id, purchase_tax_id = :purchase_tax_id, sale_tax_id = :sale_tax_id, product_type=:product_type, invoice_policy=:invoice_policy, cost_price=:cost_price, currency_code=:currency_code WHERE id = :id';
+            sale_price = :sale_price, category_id = :category_id, purchase_tax_id = :purchase_tax_id, sale_tax_id = :sale_tax_id, product_type=:product_type, invoice_policy=:invoice_policy, cost_price=:cost_price, currency_code=:currency_code, commission_type=:commission_type, commission_value=:commission_value WHERE id = :id';
     } else {
-        $sql = 'INSERT INTO inventory_products (name, sale_enabled, purchase_enabled, sale_price, category_id, purchase_tax_id, sale_tax_id, product_type, invoice_policy, cost_price, currency_code)
-            VALUES (:name, :sale_enabled, :purchase_enabled, :sale_price, :category_id, :purchase_tax_id, :sale_tax_id, :product_type, :invoice_policy, :cost_price, :currency_code)';
+        $sql = 'INSERT INTO inventory_products (name, sale_enabled, purchase_enabled, sale_price, category_id, purchase_tax_id, sale_tax_id, product_type, invoice_policy, cost_price, currency_code,commission_type,commission_value)
+            VALUES (:name, :sale_enabled, :purchase_enabled, :sale_price, :category_id, :purchase_tax_id, :sale_tax_id, :product_type, :invoice_policy, :cost_price, :currency_code,:commission_type,:commission_value)';
     }
     $db->prepare($sql)->execute($data);
     return $id ?? (int) $db->lastInsertId();

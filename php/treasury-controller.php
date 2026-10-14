@@ -36,6 +36,8 @@ function renderTreasury(): void
             $page['concepts']=treasuryConcepts($db);$page['contacts']=$db->query('SELECT id,name FROM contacts ORDER BY name,id')->fetchAll();
             $page['entries']=[];if($id){$q=$db->prepare('SELECT e.*,a.name AS account_name FROM accounting_treasury_entries e JOIN accounting_payment_accounts a ON a.id=e.account_id WHERE e.document_id=? ORDER BY e.id');$q->execute([$id]);$page['entries']=$q->fetchAll();}
             $page['originPayment']=!empty($page['record']['payment_id'])?loadAccountingPayment($db,(int)$page['record']['payment_id']):null;
+            $page['commissionInvoiceId']=null;
+            if($id){$q=$db->prepare('SELECT invoice_id FROM sales_commission_payments WHERE treasury_document_id=? LIMIT 1');$q->execute([$page['record']['reversal_of_id']??$id]);$page['commissionInvoiceId']=$q->fetchColumn()?:null;}
         }else{
             $page['kindFilter']=is_string($_GET['kind']??null)&&isset(treasuryKinds()[$_GET['kind']])?$_GET['kind']:'';
             $page['search']=is_string($_GET['q']??null)?mb_substr(trim($_GET['q']),0,160):'';$where=' WHERE (d.name LIKE ? OR a.name LIKE ? OR d.reference LIKE ?)';$params=array_fill(0,3,'%'.$page['search'].'%');

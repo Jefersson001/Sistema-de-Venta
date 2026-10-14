@@ -3,10 +3,25 @@ declare(strict_types=1);
 require_once __DIR__ . '/workflow-repository.php';
 require_once __DIR__.'/currency-repository.php';
 require_once __DIR__ . '/storage-repository.php';
+require_once __DIR__.'/commission-math.php';
 
 function salesEscape(mixed $value): string
 {
     return htmlspecialchars((string) ($value ?? ''), ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
+}
+
+function salesTaxBreakdown(array $lines): array
+{
+    $groups=[];
+    foreach ($lines as $line) {
+        if (empty($line['tax_id'])) continue;
+        $name=(string)($line['tax_name']??'Impuesto');
+        $rate=bcadd((string)($line['tax_rate']??'0'),'0',4);
+        $key=$line['tax_id'].'/'.$rate.'/'.$name;
+        $groups[$key]??=['name'=>$name,'rate'=>rtrim(rtrim($rate,'0'),'.'),'amount'=>'0.00'];
+        $groups[$key]['amount']=bcadd($groups[$key]['amount'],(string)($line['tax_amount']??'0'),2);
+    }
+    return array_values($groups);
 }
 
 function salesStatuses(): array
@@ -45,6 +60,12 @@ function loadSalesQuotation(PDO $db, int $id): ?array
     if (! $record) { return null; }
     $lines = $db->prepare('SELECT * FROM sales_quotation_lines WHERE quotation_id = ? ORDER BY position, id');
     $lines->execute([$id]); $record['lines'] = $lines->fetchAll();
+    $record['commission_estimated']='0.00';
+    foreach ($record['lines'] as &$line) {
+        $line['commission_amount'] = !empty($record['salesperson_id']) ? salesCommissionAmount($line['quantity'],$line['unit_price'],$line['commission_reference_price']??null,$line['commission_unit_amount']??null) : '0.00';
+        $record['commission_estimated']=bcadd($record['commission_estimated'],$line['commission_amount'],2);
+    }
+    unset($line);
     return $record;
 }
 
@@ -70,12 +91,12 @@ function loadSalesCatalogs(PDO $db, ?array $existing): array
     }
     unset($seller);
     $assignedProducts = array_map(static fn ($line) => (int) $line['product_id'], $existing['lines'] ?? []);
-    $products = $db->query('SELECT id, name, sale_price, sale_tax_id, sale_enabled, product_type, invoice_policy, cost_price, currency_code FROM inventory_products ORDER BY name, id')->fetchAll();
+    $products = $db->query('SELECT id, name, sale_price, sale_tax_id, sale_enabled, product_type, invoice_policy, cost_price, currency_code,commission_type,commission_value FROM inventory_products ORDER BY name, id')->fetchAll();
     $products = array_values(array_filter($products, static fn ($product) => $product['sale_enabled'] || in_array((int) $product['id'], $assignedProducts, true)));
     $taxes = $db->query("SELECT id, name, rate FROM business_taxes WHERE module_key = 'ventas' ORDER BY name, id")->fetchAll();
     $terms = $db->query('SELECT id, name FROM accounting_payment_terms ORDER BY name, id')->fetchAll();
     return ['settings'=>$existing?['primary_code'=>$existing['currency_primary_code'],'alternate_code'=>$existing['currency_alternate_code'],'exchange_rate'=>$existing['exchange_rate']]:accountingCurrencies($db),'customers' => $customerRecords, 'salespeople' => $sellerRecords,
-        'products' => $products, 'taxes' => $taxes, 'terms' => $terms];
+        'products' => $products, 'taxes' => $taxes, 'terms' => $terms, 'commission_enabled'=>true];
 }
 
 function salesDecimal(mixed $value, int $integerDigits, int $scale): ?string
@@ -106,7 +127,7 @@ function validateSalesQuotation(array $input, array $catalogs, ?array $existing 
     $termId = salesId($input['payment_term_id'] ?? null);
     if (($input['payment_term_id'] ?? '') !== '' && ! salesRecord($catalogs['terms'], $termId)) { $errors[] = 'Selecciona un término de pago válido.'; }
     $sellerInput = $input['salesperson_id'] ?? '';
-    $sellerId = salesId($sellerInput === '' ? ($customer['salesperson_id'] ?? null) : $sellerInput);
+    $sellerId = $sellerInput===''&&($input['salesperson_explicit']??null)!=='1' ? salesId($customer['salesperson_id']??null) : salesId($sellerInput);
     if ($sellerId && ! salesRecord($catalogs['salespeople'], $sellerId)) { $errors[] = 'Selecciona un vendedor válido.'; }
     if (($input['salesperson_id'] ?? '') !== '' && ! $sellerId) { $errors[] = 'Selecciona un vendedor válido.'; }
     $sameCustomer = $existing && (int) $existing['customer_id'] === $customerId;
@@ -133,14 +154,29 @@ function validateSalesQuotation(array $input, array $catalogs, ?array $existing 
         $product = salesRecord($catalogs['products'], $productId);
         if (! $product) { $errors[] = 'Línea ' . $number . ': selecciona un producto habilitado para Venta.'; }
         $quantity = salesDecimal($raw['quantity'] ?? '1', 9, 3);
-        $price = salesDecimal($raw['unit_price'] ?? ($product['sale_price'] ?? '0'), 10, 2);
+        $oldLine = isset($raw['line_id']) ? salesRecord($existing['lines']??[],salesId($raw['line_id'])) : ($existing['lines'][$position] ?? null);
+        $sameProduct = $oldLine && (int)$oldLine['product_id'] === $productId;
+        $reference=null;$commissionUnit=null;$defaultPrice=$product['sale_price']??'0';
+        if (!empty($catalogs['commission_enabled'])) {
+            try {
+                $preserve=$sameProduct && isset($oldLine['commission_reference_price']);
+                $reference=$preserve
+                    ? accountingConvert($oldLine['commission_reference_price'],$existing['currency_code']??$currency,$currency,$settings)
+                    : accountingConvert($product['sale_price']??'0.00',$product['currency_code']??$settings['primary_code'],$currency,$settings);
+                $commissionUnit=$preserve ? ($oldLine['commission_unit_amount']??null)
+                    : productCommissionUnit($product['sale_price']??'0.00',$product['commission_type']??'none',$product['commission_value']??'0');
+                if ($commissionUnit!==null) $commissionUnit=accountingConvert($commissionUnit,$preserve?($existing['currency_code']??$currency):($product['currency_code']??$settings['primary_code']),$currency,$settings);
+                $defaultPrice=bcadd($reference,$sellerId?($commissionUnit??'0.00'):'0.00',2);
+                if (salesDecimal($reference,10,2)===null||($commissionUnit!==null&&salesDecimal($commissionUnit,10,2)===null)) throw new InvalidArgumentException('El precio o la comisión convertidos exceden el máximo permitido.');
+            } catch (InvalidArgumentException $exception) { $errors[]=$exception->getMessage(); }
+        }
+        $price = salesDecimal($raw['unit_price'] ?? $defaultPrice, 10, 2);
         if ($quantity === null || bccomp($quantity, '0', 3) <= 0) { $errors[] = 'Línea ' . $number . ': la cantidad debe ser positiva, con hasta tres decimales.'; }
         if ($price === null) { $errors[] = 'Línea ' . $number . ': el precio unitario debe ser un importe no negativo con hasta dos decimales.'; }
-        $taxId = salesId($raw['tax_id'] ?? null);
+        $taxInput=$raw['tax_id']??(!empty($catalogs['commission_enabled'])?($sameProduct?($oldLine['tax_id']??''):($product['sale_tax_id']??'')):'');
+        $taxId = salesId($taxInput);
         $tax = salesRecord($catalogs['taxes'], $taxId);
-        if (($raw['tax_id'] ?? '') !== '' && ! $tax) { $errors[] = 'Línea ' . $number . ': selecciona un impuesto de Ventas.'; }
-        $oldLine = $existing['lines'][$position] ?? null;
-        $sameProduct = $oldLine && (int)$oldLine['product_id'] === $productId;
+        if ($taxInput !== '' && $taxInput!==null && ! $tax) { $errors[] = 'Línea ' . $number . ': selecciona un impuesto de Ventas.'; }
         $rate = $oldLine && (int)($oldLine['tax_id'] ?? 0) === (int)$taxId ? ($oldLine['tax_rate'] ?? '0') : ($tax['rate'] ?? '0');
         $amounts = commerceAmounts($quantity ?? '0', $price ?? '0', $rate);
         $base = $amounts['base_amount'];
@@ -154,6 +190,11 @@ function validateSalesQuotation(array $input, array $catalogs, ?array $existing 
             'product_type' => $sameProduct ? ($oldLine['product_type'] ?? 'goods') : ($product['product_type'] ?? 'goods'),
             'invoice_policy' => $orderType === 'invoice' ? 'ordered' : ($sameProduct ? ($oldLine['invoice_policy'] ?? 'delivered') : ($product['invoice_policy'] ?? 'delivered')),
             'unit_cost' => $cost];
+        if (!empty($catalogs['commission_enabled'])) {
+            $lines[array_key_last($lines)]['line_id']=(int)($oldLine['id']??0);
+            $lines[array_key_last($lines)]['commission_reference_price']=$reference;
+            $lines[array_key_last($lines)]['commission_unit_amount']=$commissionUnit;
+        }
     }
     if (bccomp($total, '9999999999999999.99', 2) > 0) { $errors[] = 'El importe de la cotización excede el máximo permitido.'; }
     $data['base_amount'] = $baseTotal; $data['tax_amount'] = $taxTotal;
@@ -181,9 +222,9 @@ function saveSalesQuotation(PDO $db, array $data, array $lines, ?int $id, ?int $
             $id = (int) $db->lastInsertId();
             $db->prepare('UPDATE sales_quotations SET name = ? WHERE id = ?')->execute(['S' . str_pad((string) $id, 5, '0', STR_PAD_LEFT), $id]);
         }
-        $insert = $db->prepare('INSERT INTO sales_quotation_lines (quotation_id, position, product_id, product_name, quantity, unit_price, tax_id, tax_name, tax_rate, tax_amount, product_type, invoice_policy, unit_cost, base_amount, total_amount)
-            VALUES (:quotation_id, :position, :product_id, :product_name, :quantity, :unit_price, :tax_id, :tax_name, :tax_rate, :tax_amount, :product_type, :invoice_policy, :unit_cost, :base_amount, :total_amount)');
-        foreach ($lines as $position => $line) { $insert->execute($line + ['quotation_id' => $id, 'position' => $position]); }
+        $insert = $db->prepare('INSERT INTO sales_quotation_lines (quotation_id, position, product_id, product_name, quantity, unit_price, tax_id, tax_name, tax_rate, tax_amount, product_type, invoice_policy, unit_cost, base_amount, total_amount, commission_reference_price,commission_unit_amount)
+            VALUES (:quotation_id, :position, :product_id, :product_name, :quantity, :unit_price, :tax_id, :tax_name, :tax_rate, :tax_amount, :product_type, :invoice_policy, :unit_cost, :base_amount, :total_amount, :commission_reference_price,:commission_unit_amount)');
+        foreach ($lines as $position => $line) { unset($line['line_id']);$insert->execute($line + ['quotation_id' => $id, 'position' => $position,'commission_reference_price'=>null,'commission_unit_amount'=>null]); }
         $db->commit(); return $id;
     } catch (Throwable $exception) { $db->rollBack(); throw $exception; }
 }

@@ -3,6 +3,7 @@ declare(strict_types=1);
 require_once __DIR__ . '/accounting-controller.php';
 require_once __DIR__ . '/commerce-repository.php';
 require_once __DIR__ . '/invoice-status-repository.php';
+require_once __DIR__ . '/commission-repository.php';
 
 function renderAccountingInvoices(): void
 {
@@ -87,7 +88,15 @@ function renderAccountingInvoices(): void
             }
         }
         if ($page['view'] === 'form' && $page['available']) {
-            $query = $db->prepare('SELECT * FROM accounting_invoice_lines WHERE invoice_id = ? ORDER BY position, id'); $query->execute([$id]); $page['lines'] = $query->fetchAll();
+            $page['showCommission'] = $type === 'customer' && $page['record']['document_type'] === 'invoice';
+            if ($page['showCommission']) {
+                $commission = invoiceCommissionSummary($db, $page['record']);
+                $page['lines'] = $commission['lines'];
+                $page['commissionTotal'] = $commission['total'];
+            } else {
+                $query = $db->prepare('SELECT * FROM accounting_invoice_lines WHERE invoice_id = ? ORDER BY position, id');
+                $query->execute([$id]); $page['lines'] = $query->fetchAll();
+            }
             $page['documentKind'] = $type === 'customer' ? 'sale' : 'purchase';
             $page['links'] = commerceLinks($db, $page['documentKind'], (int) $page['record'][$type === 'customer' ? 'sale_id' : 'purchase_id']);
             $page['paymentDetails'] = invoicePaymentDetails($db, $id);

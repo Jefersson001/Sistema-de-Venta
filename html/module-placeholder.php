@@ -17,6 +17,7 @@
                 <?php if ($moduleKey !== 'dashboard'): ?><nav class="module-navigation" aria-label="Secciones de <?= htmlspecialchars($module['name'], ENT_QUOTES, 'UTF-8') ?>">
                     <?php if (in_array($moduleKey, ['ventas', 'compras'], true)): ?>
                         <details class="module-menu"><summary class="module-navigation-link <?= ! $isConfiguration ? 'module-navigation-active' : '' ?>">Órdenes <span aria-hidden="true">▾</span></summary><div class="module-menu-options"><a href="index.php" <?= ! $isConfiguration ? 'aria-current="page"' : '' ?>><?= $moduleKey === 'ventas' ? 'Cotizaciones' : 'Solicitudes de cotización' ?></a></div></details>
+                        <?php if($moduleKey==='ventas'): ?><a class="module-navigation-link <?= ($modulePageData['area']??'')==='commissions'?'module-navigation-active':'' ?>" href="comisiones.php">Comisiones</a><?php endif; ?>
                     <?php elseif ($moduleKey === 'contabilidad'): ?>
                         <?php foreach (['customer' => 'Clientes', 'supplier' => 'Proveedores'] as $invoiceType => $invoiceLabel): ?><details class="module-menu"><summary class="module-navigation-link <?= ! $isConfiguration && ($modulePageData['type'] ?? '') === $invoiceType ? 'module-navigation-active' : '' ?>"><?= $invoiceLabel ?> <span aria-hidden="true">▾</span></summary><div class="module-menu-options"><a href="index.php?type=<?= $invoiceType ?>">Facturas</a><a href="pagos.php?type=<?= $invoiceType ?>">Pagos</a></div></details><?php endforeach; ?>
                         <details class="module-menu"><summary class="module-navigation-link <?= ($modulePageData['area'] ?? '') === 'cash_flow' ? 'module-navigation-active' : '' ?>">Informes <span aria-hidden="true">▾</span></summary><div class="module-menu-options"><a href="ingresos-egresos.php" <?= ($modulePageData['area'] ?? '') === 'cash_flow' ? 'aria-current="page"' : '' ?>>Ingresos y egresos</a></div></details>
@@ -40,7 +41,7 @@
                 <?php elseif ($moduleKey === 'inventario' && $modulePageData !== null): ?>
                     <?php require __DIR__ . ($isConfiguration ? '/inventory/configuration.php' : (match ($modulePageData['area'] ?? '') { 'operations' => '/inventory/operations.php', 'reports' => '/inventory/reports.php', default => '/inventory/products.php' })); ?>
                 <?php elseif ($moduleKey === 'ventas' && ! $isConfiguration && $modulePageData !== null): ?>
-                    <?php require __DIR__ . '/sales/page.php'; ?>
+                    <?php require __DIR__ . (($modulePageData['area']??'')==='commissions' ? '/sales/commissions.php' : '/sales/page.php'); ?>
                 <?php elseif ($moduleKey === 'contabilidad' && $isConfiguration && $modulePageData !== null): ?>
                     <?php require __DIR__ . (match ($modulePageData['area'] ?? '') { 'currencies' => '/accounting/currencies.php', 'payment_configuration' => '/accounting/payment-configuration.php', default => '/accounting/configuration.php' }); ?>
                 <?php elseif ($moduleKey === 'contabilidad' && ! $isConfiguration && $modulePageData !== null): ?>

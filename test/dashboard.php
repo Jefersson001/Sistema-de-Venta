@@ -47,7 +47,7 @@ $dom = new DOMDocument();
 libxml_use_internal_errors(true);
 $dom->loadHTML('<?xml encoding="UTF-8">'.$html);
 $xpath = new DOMXPath($dom);
-dashboardCheck($xpath->query('//*[@data-dashboard]//*[@data-notebook-page]')->length === 4, 'Faltan pestañas del dashboard.');
+dashboardCheck($xpath->query('//*[@data-dashboard]//*[@data-notebook-page]')->length === 5, 'Faltan pestañas del dashboard.');
 dashboardCheck($xpath->query('//*[@data-dashboard-metric]')->length === 6, 'Faltan indicadores actualizables.');
 dashboardCheck($xpath->query('//*[@data-cash-flow-account-grid]')->length === 0, 'Volvieron las cuentas al dashboard.');
 dashboardCheck($xpath->query('//*[@data-cash-flow-endpoint="resumen.php"]')->length === 1, 'La actualización no consulta el dashboard completo.');

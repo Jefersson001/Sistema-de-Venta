@@ -5,7 +5,7 @@ const orderCurrencySettings=JSON.parse(document.querySelector('[data-currency-se
 for(const form of document.querySelectorAll('[data-quotation-form],[data-order-form]')){
     const currency=form.querySelector('[data-order-currency]');if(!currency||!orderCurrencySettings)continue;let previous=currency.value;
     currency.addEventListener('change',()=>{
-        const prices=[...form.querySelectorAll('[data-line-price],[data-order-price]')];
+        const prices=[...form.querySelectorAll('[data-line-price],[data-order-price],[data-line-reference],[data-line-commission-unit]')].filter(p=>p.value!=='');
         try{const converted=prices.map(p=>convertOrderMoney(p.value,previous,currency.value,{...orderCurrencySettings,exchange_rate:form.querySelector('[data-order-exchange]')?.value||orderCurrencySettings.exchange_rate}));prices.forEach((p,i)=>{p.value=converted[i];});previous=currency.value;form.dispatchEvent(new Event('input',{bubbles:true}));}
         catch(error){currency.value=previous;window.alert(error.message);}
     });

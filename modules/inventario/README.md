@@ -1,5 +1,9 @@
 # Inventario
 
+Producto → Ventas incluye la comisión configurable: Sin comisión automática, Importe fijo por unidad o Porcentaje. El importe fijo usa la moneda del producto y admite dos decimales; el porcentaje se aplica al precio de venta en tienda y admite cuatro decimales, de 0 a 1000 %. La ficha muestra comisión por unidad y precio para vendedor calculados al cambiar precio, tipo o valor. El precio resultante debe caber en el límite de precios del producto. El formulario mantiene el notebook y el diseño compacto existentes.
+
+Al agregar el producto a una venta con vendedor asignado se suma la comisión al precio en tienda; sin vendedor se conserva el precio de tienda. La venta y la factura guardan los importes de referencia para que los cambios posteriores del producto no alteren comisiones anteriores. La comisión se paga desde Ventas → Comisiones y su pago produce un egreso en Tesorería. Actualización: php/install-commissions.php; php/install-inventory.php también instala los campos de configuración del producto. Pruebas: test/sales-commissions.php y test/product-commissions-ui.js.
+
 ## Operaciones
 
 Ubicaciones admite los tipos Interna, Cliente y Proveedor. Solo las internas requieren almacén y forman parte de Cantidad a la mano. Se crean Clientes y Proveedores como ubicaciones externas predeterminadas. Cada cliente o proveedor puede elegir su ubicación externa en Contactos → Inventario; si no elige una, se usa la predeterminada. Las operaciones toman automáticamente esa relación y registran los dos extremos al validar. Los saldos externos sirven para trazabilidad, no representan existencias propias ni el inventario completo del proveedor. El historial muestra las ubicaciones externas y el contacto correspondiente. Los movimientos históricos anteriores conservan sus registros originales.

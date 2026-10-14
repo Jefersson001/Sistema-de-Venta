@@ -3,6 +3,7 @@ declare(strict_types=1);
 require_once __DIR__ . '/status-schema.php';
 require_once __DIR__ . '/workflow-schema.php';
 require_once __DIR__.'/payments-schema.php';
+require_once __DIR__.'/commission-schema.php';
 
 function installCommerceDocuments(PDO $db): void
 {
@@ -41,4 +42,5 @@ function installCommerceDocuments(PDO $db): void
     installDocumentStatuses($db);
     installCommerceWorkflow($db);
     installAccountingPayments($db);
+    installSalesCommissions($db);
 }

@@ -1,6 +1,8 @@
 <?php
 $record = $page['record'];
 $editing = isset($record['id']);
+$commissionPreviewPrice=preg_match('/^[0-9]{1,10}(\.[0-9]{1,2})?$/',(string)($record['sale_price']??'0')) ? (string)($record['sale_price']??'0') : '0';
+$commissionPreviewUnit=productCommissionUnit($commissionPreviewPrice,$record['commission_type']??'none',$record['commission_value']??'0')??'0.00';
 $tabs = ['general' => 'Información general', 'variants' => 'Variantes', 'sales' => 'Ventas',
     'purchases' => 'Compras', 'inventory' => 'Inventario', 'accounting' => 'Contabilidad'];
 $indicatorHelp = ['on-hand' => 'Existencias actuales en todas las ubicaciones.',
@@ -12,7 +14,7 @@ $indicatorViews = ['on-hand' => 'stock', 'sold' => 'sold', 'purchased' => 'purch
 ?>
 <section aria-labelledby="product-title">
     <div class="contact-toolbar"><div><a class="overview-link" href="index.php">← Productos</a><h1 id="product-title"><?= $editing ? 'Editar producto' : 'Nuevo producto' ?></h1></div></div>
-    <form class="contact-sheet" method="post" action="index.php?<?= $editing ? 'id=' . (int) $record['id'] : 'new=1' ?>">
+    <form class="contact-sheet" method="post" action="index.php?<?= $editing ? 'id=' . (int) $record['id'] : 'new=1' ?>" data-product-commission-form>
         <input type="hidden" name="csrf" value="<?= inventoryEscape($page['csrf']) ?>"><input type="hidden" name="action" value="save_product">
         <div class="product-stat-buttons" role="group" aria-label="Estadísticas del producto" aria-describedby="product-stats-help">
             <?php foreach (['on-hand' => 'Cantidad a la mano', 'sold' => 'Vendido', 'purchased' => 'Comprado'] as $key => $label): ?>
@@ -59,6 +61,15 @@ $indicatorViews = ['on-hand' => 'stock', 'sold' => 'sold', 'purchased' => 'purch
                             <select name="category_id"><option value="">Sin categoría</option><?php foreach ($page['categories'] as $category): ?><option value="<?= (int) $category['id'] ?>" <?= (int) ($record['category_id'] ?? 0) === (int) $category['id'] ? 'selected' : '' ?>><?= inventoryEscape(inventoryCategoryPath($page['categories'], $category)) ?></option><?php endforeach; ?></select>
                         </label>
                     </div>
+                <?php elseif ($key==='sales'): ?>
+                    <h2 class="notebook-page-title">Comisión del vendedor</h2>
+                    <div class="contact-form-grid">
+                        <label>Tipo de comisión<select name="commission_type" data-product-commission-type><?php foreach(['none'=>'Sin comisión automática','fixed'=>'Importe fijo por unidad','percent'=>'Porcentaje'] as $value=>$label): ?><option value="<?= $value ?>" <?= ($record['commission_type']??'none')===$value?'selected':'' ?>><?= $label ?></option><?php endforeach; ?></select></label>
+                        <label data-product-commission-value-field><span data-product-commission-label>Valor de comisión</span><input name="commission_value" inputmode="decimal" maxlength="15" data-product-commission-value value="<?= inventoryEscape(($record['commission_type']??'none')==='fixed'?bcadd($record['commission_value']??'0','0',2):($record['commission_value']??'0')) ?>"></label>
+                        <label>Comisión por unidad<input readonly data-product-commission-unit value="<?= inventoryEscape($commissionPreviewUnit) ?>"></label>
+                        <label>Precio para vendedor<input readonly data-product-seller-price value="<?= inventoryEscape(bcadd($commissionPreviewPrice,$commissionPreviewUnit,2)) ?>"></label>
+                    </div>
+                    <p class="section-subtitle">El importe fijo usa la moneda del producto. El porcentaje se calcula sobre su precio de venta en tienda. Con vendedor asignado, la comisión se suma al precio al agregar el producto a la venta.</p>
                 <?php elseif ($key==='purchases'): ?>
                     <h2 class="notebook-page-title">Precios por proveedor</h2>
                     <div class="contact-table-wrap"><table class="contact-table"><thead><tr><th>Proveedor</th><th>Precio de compra</th></tr></thead><tbody>
@@ -70,3 +81,4 @@ $indicatorViews = ['on-hand' => 'stock', 'sold' => 'sold', 'purchased' => 'purch
         <div class="contact-form-actions"><button class="contact-button contact-button-primary" type="submit">Guardar producto</button><a class="contact-button" href="index.php">Volver al listado</a></div>
     </form>
 </section>
+<script src="../../js/product-commissions.js?v=<?= filemtime(dirname(__DIR__,2).'/js/product-commissions.js') ?>" defer></script>

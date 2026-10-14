@@ -38,7 +38,7 @@ function renderInventoryProducts(): void
             $page['errors'][] = 'El producto solicitado no existe.';
         }
         if ($id) {
-            $statement = $db->prepare('SELECT id, name, sale_enabled, purchase_enabled, sale_price, category_id, purchase_tax_id, sale_tax_id, product_type, invoice_policy, cost_price, currency_code FROM inventory_products WHERE id = ?');
+            $statement = $db->prepare('SELECT id, name, sale_enabled, purchase_enabled, sale_price, category_id, purchase_tax_id, sale_tax_id, product_type, invoice_policy, cost_price, currency_code, commission_type, commission_value FROM inventory_products WHERE id = ?');
             $statement->execute([$id]);
             $page['record'] = $statement->fetch() ?: [];
             if (! $page['record']) {
@@ -68,6 +68,8 @@ function renderInventoryProducts(): void
                 $page['errors'][] = 'La operación solicitada no es válida.';
             } else {
                 $input=$_POST;$input['currency_code']??=$page['record']['currency_code']??$page['settings']['primary_code'];
+                $input['commission_type']??=$page['record']['commission_type']??'none';
+                $input['commission_value']??=$page['record']['commission_value']??'0.0000';
                 if(!in_array($input['currency_code'],array_merge(accountingCurrencyCodes($page['settings']),[$page['record']['currency_code']??null]),true)){$page['errors'][]='Selecciona una moneda configurada.';}
                 [$data, $productErrors] = validateInventoryProduct($input, $page['categories'], $page['purchaseTaxes'], $page['saleTaxes']);
                 $page['errors']=array_merge($page['errors'],$productErrors);

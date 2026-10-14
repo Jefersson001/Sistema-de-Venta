@@ -1,7 +1,7 @@
 <?php
 $record = $page['record']; $editing = isset($record['id']); $confirmed = $record['status'] === 'sale'; $cancelled = $record['status'] === 'cancel'; $locked = $confirmed || $cancelled;
 $selectedCustomer = salesRecord($page['catalogs']['customers'], salesId($record['customer_id'] ?? null));
-$relatedSellerId = salesId($record['salesperson_id'] ?? null) ?? salesId($selectedCustomer['salesperson_id'] ?? null);
+$relatedSellerId = array_key_exists('salesperson_id',$record) ? salesId($record['salesperson_id']) : salesId($selectedCustomer['salesperson_id']??null);
 $selectedSeller = salesRecord($page['catalogs']['salespeople'], $relatedSellerId);
 $storageDisplay = $locked ? ($record['storage_label'] ?? '') : ($selectedSeller['storage_label'] ?? '');
 ?>
@@ -26,7 +26,8 @@ $storageDisplay = $locked ? ($record['storage_label'] ?? '') : ($selectedSeller[
     <?php endif; ?>
     </div><?php endif; ?>
     <?php if ($confirmed): ?><p class="notice" role="status">Orden de venta confirmada.</p><?php endif; ?>
-    <form class="contact-sheet quotation-sheet" method="post" action="index.php?<?= $editing ? 'id=' . (int) $record['id'] : 'new=1' ?>" data-quotation-form>
+    <form class="contact-sheet quotation-sheet" method="post" action="index.php?<?= $editing ? 'id=' . (int) $record['id'] : 'new=1' ?>" data-quotation-form data-product-endpoint="producto.php" data-salesperson-initialized="<?= array_key_exists('salesperson_id',$record)?'true':'false' ?>">
+        <input type="hidden" name="salesperson_explicit" value="1">
         <input type="hidden" name="csrf" value="<?= salesEscape($page['csrf']) ?>"><input type="hidden" name="action" value="save_quotation"><input type="hidden" name="version" value="<?= (int) ($record['version'] ?? 0) ?>">
         <fieldset <?= $locked ? 'disabled' : '' ?> class="quotation-fields">
             <div class="contact-form-grid">
@@ -43,7 +44,9 @@ $storageDisplay = $locked ? ($record['storage_label'] ?? '') : ($selectedSeller[
             <div class="contact-notebook" data-notebook>
                 <nav class="notebook-tabs" data-notebook-tabs aria-label="Información de la cotización"><a id="quotation-tab-lines" href="#quotation-page-lines">Líneas de orden</a><a id="quotation-tab-other" href="#quotation-page-other">Otra información</a></nav>
                 <section class="notebook-page" id="quotation-page-lines" data-notebook-page aria-labelledby="quotation-tab-lines">
-                    <div class="contact-table-wrap" role="region" aria-label="Líneas de orden" tabindex="0"><table class="contact-table quotation-lines"><thead><tr><th scope="col">Producto</th><th scope="col">Cantidad</th><th scope="col">Precio unitario</th><th scope="col">Impuesto</th><th scope="col">Base imponible</th><th scope="col">Total</th><?php if (! $locked): ?><th scope="col"><span class="visually-hidden">Acción</span></th><?php endif; ?></tr></thead><tbody data-quotation-lines>
+                    <p class="section-subtitle" data-quotation-pricing-status role="status" hidden></p>
+                    <p class="section-subtitle" data-quotation-commission-help hidden>Selecciona un vendedor en <button type="button" class="contact-button contact-button-link" data-pick-quotation-salesperson>Otra información</button> para aplicar la comisión configurada del producto.</p>
+                    <div class="contact-table-wrap" role="region" aria-label="Líneas de orden" tabindex="0"><table class="contact-table quotation-lines"><thead><tr><th scope="col">Producto</th><th scope="col">Cantidad</th><th scope="col">Precio unitario</th><th scope="col">Precio en tienda</th><th scope="col">Comisión</th><th scope="col">Impuesto</th><th scope="col">Base imponible</th><th scope="col">Total</th><?php if (! $locked): ?><th scope="col"><span class="visually-hidden">Acción</span></th><?php endif; ?></tr></thead><tbody data-quotation-lines>
                         <?php $displayLines = $record['lines'] ?: ($locked ? [] : [[]]); foreach ($displayLines as $lineKey => $line): ?><?php require __DIR__ . '/line.php'; ?><?php endforeach; ?>
                     </tbody></table></div>
                     <?php if (! $locked): ?>
@@ -51,7 +54,10 @@ $storageDisplay = $locked ? ($record['storage_label'] ?? '') : ($selectedSeller[
                         <template data-quotation-line-template><?php $lineKey = '__INDEX__'; $line = []; require __DIR__ . '/line.php'; ?></template>
                     <?php endif; ?>
                     <p class="section-subtitle quotation-tax-note">Base imponible: cantidad × precio. El total incluye los impuestos de las líneas.</p>
-                    <dl class="quotation-totals" aria-live="polite"><div><dt>Base imponible</dt><dd data-quotation-base><?= salesEscape($record['base_amount']) ?></dd></div><div><dt>Total</dt><dd data-quotation-total><?= salesEscape($record['total_amount']) ?></dd></div></dl>
+                    <p class="section-subtitle">Con vendedor asignado se aplica la comisión fija o porcentual configurada en el producto. El precio y la comisión por unidad se conservan al guardar; los impuestos no forman parte de la comisión. Sin configuración automática se calcula la diferencia positiva respecto al precio en tienda.</p>
+                    <dl class="quotation-totals" aria-live="polite"><div><dt>Base imponible</dt><dd data-quotation-base><?= salesEscape($record['base_amount']) ?></dd></div><?php foreach(salesTaxBreakdown($record['lines']) as $taxGroup): ?><div data-quotation-tax-group><dt><?= salesEscape($taxGroup['name'].' ('.$taxGroup['rate'].' %)') ?></dt><dd><?= salesEscape($taxGroup['amount']) ?></dd></div><?php endforeach; ?><div data-quotation-total-row><dt>Total</dt><dd data-quotation-total><?= salesEscape($record['total_amount']) ?></dd></div></dl>
+                    <dl class="quotation-totals"><div><dt>Comisión estimada</dt><dd data-quotation-commission><?= salesEscape($record['commission_estimated']??'0.00') ?></dd></div></dl>
+                    <?php if($confirmed && $relatedSellerId): ?><a class="overview-link" href="comisiones.php?seller_id=<?= $relatedSellerId ?>&amp;sale_id=<?= (int)$record['id'] ?>&amp;period=custom&amp;date_from=1000-01-01&amp;date_to=9999-12-31">Consultar comisiones y pagos de esta venta →</a><?php endif; ?>
                 </section>
                 <section class="notebook-page" id="quotation-page-other" data-notebook-page aria-labelledby="quotation-tab-other">
                     <div class="contact-form-grid">
@@ -64,4 +70,4 @@ $storageDisplay = $locked ? ($record['storage_label'] ?? '') : ($selectedSeller[
         <div class="contact-form-actions"><?php if (! $locked): ?><button class="contact-button contact-button-primary" type="submit">Guardar cotización</button><?php endif; ?><a class="contact-button" href="index.php">Volver al listado</a></div>
     </form>
 </section>
-<script type="application/json" data-currency-settings><?= json_encode($page['catalogs']['settings'],JSON_HEX_TAG|JSON_HEX_AMP|JSON_HEX_APOS|JSON_HEX_QUOT) ?></script><script src="../../js/currency.js" defer></script><script src="../../js/sales.js" defer></script>
+<script type="application/json" data-currency-settings><?= json_encode($page['catalogs']['settings'],JSON_HEX_TAG|JSON_HEX_AMP|JSON_HEX_APOS|JSON_HEX_QUOT) ?></script><script src="../../js/product-commissions.js?v=<?= filemtime(dirname(__DIR__,2).'/js/product-commissions.js') ?>" defer></script><script src="../../js/currency.js" defer></script><script src="../../js/sales.js?v=<?= filemtime(dirname(__DIR__,2).'/js/sales.js') ?>" defer></script>

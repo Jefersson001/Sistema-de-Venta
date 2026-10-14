@@ -35,7 +35,8 @@ const metrics = ['sales','purchases','receivables','payables','overdue','unalloc
     const node = element(); node.dataset.dashboardMetric = key; return node;
 });
 const alerts = element(), tasks = element(), count = element();
-dashboard.selectors = {'[data-dashboard-updated]':globalUpdated,'[data-dashboard-error]':globalError,'[data-dashboard-alerts]':alerts,'[data-dashboard-alert-count]':count,'[data-dashboard-tasks]':tasks};
+const commissions=element(),commissionRange=element(),commissionHistory=element();
+dashboard.selectors = {'[data-dashboard-updated]':globalUpdated,'[data-dashboard-error]':globalError,'[data-dashboard-alerts]':alerts,'[data-dashboard-alert-count]':count,'[data-dashboard-tasks]':tasks,'[data-dashboard-commissions]':commissions,'[data-dashboard-commission-range]':commissionRange,'[data-dashboard-commission-history]':commissionHistory};
 dashboard.querySelectorAll = () => metrics;
 const document = element();
 document.hidden = false;
@@ -56,7 +57,7 @@ const context = {
     async fetch(url) {
         requests.push(url);
         if (reject) throw new Error('Fallo simulado');
-        return {ok:true, async json(){ return snapshot; }};
+        return {ok:true, async json(){ return {...snapshot,commissions:snapshot.commissions??[{seller_id:4,seller_name:'Vendedor <script>',currency_code:'USD',sales_count:5,sales_amount:'100.00',commission_generated:'20.00',commission_earned:'20.00',commission_paid:'8.00',commission_pending:'12.00',commission_overpaid:'0.00'}]}; }};
     }
 };
 vm.createContext(context);
@@ -75,6 +76,10 @@ const settle = () => new Promise(resolve => setImmediate(resolve));
     assert.equal(alerts.children[0].children[0].children.length, 0, 'Los nombres deben mostrarse como texto.');
     assert.equal(tasks.children[0].children[0].href, '../../modules/inventario/operaciones.php?type=receipt&id=8');
     assert.match(globalUpdated.textContent, /14:30:00/);
+    assert.equal(commissions.children[0].children.length,9);
+    assert.equal(commissions.children[0].children[0].children[0].textContent,'Vendedor <script>');
+    assert.equal(commissions.children[0].children[7].textContent,'12.00');
+    assert.match(commissionHistory.href,/comisiones.php\?period=today/);
 
     period.value = 'custom'; from.value = ''; period.dispatchEvent({type:'change'});
     snapshot = data('8'); poll(); await settle();
