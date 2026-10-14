@@ -53,6 +53,12 @@ Para instalar únicamente los catálogos de impuestos en otra base:
 
 ## Comisiones por producto
 
+El menú Comisiones contiene Comisiones y Pagos de comisiones. El primero muestra el seguimiento por factura y vendedor; el segundo tiene su listado y ficha de pagos realizados, incluyendo los revertidos, con filtros por vendedor y fecha del pago. No crea otra caja ni otro registro de dinero: consulta las aplicaciones existentes de los egresos de Tesorería. Cada ficha enlaza comisión, factura, venta, movimiento de dinero y reversión.
+
+Pagar comisión en cada fila del Dashboard abre Pagos de comisiones → Nuevo con vendedor, moneda y período de facturas conservados. Se elige la factura a pagar y se precarga su pendiente; el importe puede reducirse para un pago parcial. La confirmación utiliza las mismas validaciones y bloqueos del asistente existente y abre la ficha del pago registrado. Los ajustes por recuperar del vendedor, incluso en facturas fuera del período, impiden confirmar nuevos pagos. Los períodos en Comisiones y el formulario Nuevo filtran fecha de factura; el listado de pagos filtra fecha del egreso.
+
+Disponible por cobros es la comisión habilitada por los cobros confirmados antes de descontar pagos al vendedor. Pendiente de pago es lo que queda tras descontarlos. Ajuste por recuperar es lo pagado que supera la comisión habilitada luego de devoluciones o cambios en los cobros; es un aviso de saldo por resolver y no registra automáticamente una devolución de dinero.
+
 Ventas → Comisiones conserva listado y ficha separados. Producto → Ventas permite elegir Importe fijo por unidad o Porcentaje. El importe fijo se expresa en la moneda del producto; el porcentaje se calcula sobre su Precio de venta en tienda. Por ejemplo, precio 5.00 y comisión fija 2.00, o porcentaje 40 %, cargan un precio unitario de 7.00 al seleccionar el producto con vendedor asignado. Una venta sin vendedor carga el precio en tienda y no genera comisión. Los impuestos y el costo de compra no forman parte de este cálculo.
 
 La comisión configurada se conserva por unidad aunque se edite manualmente el precio cobrado. Cambiar entre venta con vendedor y venta de tienda recalcula el precio automático; cambiar entre dos vendedores mantiene el precio editado. El modo Sin comisión automática conserva el cálculo manual por diferencia positiva para productos y documentos anteriores. El usuario puede volver a seleccionar el producto para traer su configuración vigente; un cambio del catálogo no modifica silenciosamente líneas ya guardadas.

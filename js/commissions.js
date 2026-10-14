@@ -1,7 +1,8 @@
 const commissionDialog = document.querySelector('[data-commission-payment]');
-if (commissionDialog) {
+const commissionPaymentForm = document.querySelector('[data-commission-payment-form]');
+if (commissionPaymentForm) {
     const settings=JSON.parse(document.querySelector('[data-commission-settings]').textContent);
-    const form=commissionDialog.querySelector('form');
+    const form=commissionPaymentForm;
     const account=form.querySelector('[data-commission-account]');
     const currency=form.querySelector('[data-commission-currency]');
     const preview=form.querySelector('[data-commission-preview]');
@@ -18,8 +19,10 @@ if (commissionDialog) {
         updatePreview();
     });
     form.addEventListener('input',updatePreview);form.addEventListener('change',updatePreview);
-    document.querySelector('[data-open-commission-payment]')?.addEventListener('click',()=>commissionDialog.showModal());
-    for(const button of commissionDialog.querySelectorAll('[data-close-commission-payment]'))button.addEventListener('click',()=>commissionDialog.close());
-    if(commissionDialog.hasAttribute('data-reopen'))commissionDialog.showModal();
+    if(commissionDialog) {
+        document.querySelector('[data-open-commission-payment]')?.addEventListener('click',()=>commissionDialog.showModal());
+        for(const button of commissionDialog.querySelectorAll('[data-close-commission-payment]'))button.addEventListener('click',()=>commissionDialog.close());
+        if(commissionDialog.hasAttribute('data-reopen'))commissionDialog.showModal();
+    }
     updatePreview();
 }

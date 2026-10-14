@@ -112,6 +112,30 @@ function summarizeSalesCommissions(array $rows): array
     unset($group); return array_values($groups);
 }
 
+function salesCommissionPaymentHistory(PDO $db, ?array $range, ?int $sellerId = null, ?int $paymentId = null, int $page = 1): array
+{
+    $where = []; $params = [];
+    if ($paymentId) { $where[] = 'p.id=?'; $params[] = $paymentId; }
+    else {
+        if ($range) { $where[] = 'd.movement_date BETWEEN ? AND ?'; $params[] = $range['date_from']; $params[] = $range['date_to']; }
+        if ($sellerId) { $where[] = 'i.salesperson_id=?'; $params[] = $sellerId; }
+    }
+    $from = ' FROM sales_commission_payments p JOIN accounting_treasury_documents d ON d.id=p.treasury_document_id
+        JOIN accounting_invoices i ON i.id=p.invoice_id JOIN contacts s ON s.id=i.salesperson_id
+        JOIN contacts c ON c.id=i.contact_id JOIN accounting_payment_accounts a ON a.id=d.account_id
+        JOIN accounting_payment_methods m ON m.id=d.method_id LEFT JOIN sales_quotations o ON o.id=i.sale_id
+        LEFT JOIN accounting_treasury_documents r ON r.reversal_of_id=d.id';
+    if ($where) $from .= ' WHERE '.implode(' AND ', $where);
+    $query = $db->prepare('SELECT COUNT(*)'.$from); $query->execute($params); $total = (int) $query->fetchColumn();
+    $pages = max(1, (int) ceil($total/20)); $page = min(max($page,1),$pages);
+    $query = $db->prepare('SELECT p.*,d.name,d.movement_date,d.amount AS payment_amount,d.currency_code,d.exchange_rate,
+        d.reference,d.status,a.name AS account_name,m.name AS method_name,s.name AS seller_name,i.salesperson_id,
+        c.name AS customer_name,i.name AS invoice_name,i.currency_code AS invoice_currency,i.sale_id,o.name AS sale_name,
+        r.id AS reversed_by_id,r.name AS reversal_name'.$from.' ORDER BY d.movement_date DESC,p.id DESC LIMIT 20 OFFSET '.(($page-1)*20));
+    $query->execute($params);
+    return ['rows'=>$query->fetchAll(),'total'=>$total,'pages'=>$pages,'currentPage'=>$page];
+}
+
 function loadSalesCommissionPayments(PDO $db,int $invoiceId): array
 {
     $q=$db->prepare('SELECT p.*,d.name,d.movement_date,d.amount AS payment_amount,d.currency_code,a.name AS account_name,m.name AS method_name,r.id AS reversed_by_id
