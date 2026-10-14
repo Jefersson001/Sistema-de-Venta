@@ -1,4 +1,4 @@
-# Ajustes — fase 1
+# Ajustes — fases 1 y 2
 
 Inicio → Ajustes abre las secciones General, Contactos, Ventas, Compras, Inventario y Contabilidad. Los accesos utilizan los catálogos existentes; las monedas se leen de la configuración financiera actual.
 
@@ -27,4 +27,27 @@ Validación manual:
 5. Editar Empresa en dos ventanas: guardar la primera y comprobar el aviso de conflicto al guardar la segunda.
 6. Abrir los accesos de configuración de cada módulo y revisar la vista móvil.
 
-Esta fase prepara Ajustes y Empresa. Login, Usuarios, Grupos y restricciones de acceso corresponden a las fases siguientes, según [el plan](../../docs/plan-ajustes.md). Los datos de Empresa se muestran en Ajustes; su utilización en documentos futuros se integrará cuando se revise la presentación de esos documentos, sin modificar registros históricos.
+La fase 1 prepara Ajustes y Empresa. Los datos de Empresa se muestran en Ajustes; su utilización en documentos futuros se integrará cuando se revise la presentación de esos documentos, sin modificar registros históricos.
+
+## Fase 2: Grupos de acceso
+
+Ajustes → Grupos de acceso mantiene listado y formulario separados, búsqueda, filtro por estado y paginación. Nuevo crea un grupo; cada ficha tiene nombre, descripción, estado y una matriz organizada en pestañas por módulo. El alcance Propios/Todos aparece donde existe relación con el vendedor.
+
+Los grupos iniciales son Administrador, Ventas, Compras, Inventario, Contabilidad y Consulta. Son configurables; Administrador conserva activo el acceso a la administración de Ajustes, Empresa, grupos y usuarios. Consultar se marca al seleccionar una acción y quitar Consultar desmarca las acciones de esa sección. El servidor también valida esta dependencia.
+
+Los permisos se suman por acción al combinar grupos. Consultar todas las ventas y Editar ventas propias conserva la edición limitada a las propias. Los grupos archivados no aportan permisos. La matriz y las reglas de combinación están explicadas en [permisos-acceso.md](../../docs/permisos-acceso.md).
+
+El instalador `php/install-settings.php` instala también el catálogo y los grupos, y se mantiene incluido en `php/install-commerce.php`. Es repetible y conserva personalizaciones. Guardar utiliza CSRF, transacción, versión y clave de creación. La instalación de la fase 2 se aplicó en el entorno local.
+
+Pruebas: `test/access-groups.php` comprueba combinación, alcances, denegación, administrador protegido e instalación en una base aislada. Sus comprobaciones HTTP crean únicamente un grupo temporal identificado y lo eliminan al finalizar. No modifica los grupos del usuario.
+
+Validación manual de la fase 2:
+
+1. Abrir Ajustes → Grupos de acceso y revisar los seis grupos iniciales.
+2. Crear un grupo con nombre y seleccionar permisos en las pestañas de los módulos.
+3. Probar que Editar activa Consultar y que quitar Consultar desmarca las acciones de la sección.
+4. Elegir Propios o Todos en Ventas, guardar y reabrir para comprobar que se conserva.
+5. Archivar un grupo personalizado quitando Activo; localizarlo con el filtro Archivados.
+6. Editar en dos ventanas y comprobar el aviso al guardar una versión antigua.
+
+Esta fase define y guarda permisos. Login, Usuarios y la aplicación a procesos/Dashboard corresponden a las fases 3 y 4 del [plan](../../docs/plan-ajustes.md). La interfaz informa de ello para que preparar grupos no se confunda con tener restricciones activadas.

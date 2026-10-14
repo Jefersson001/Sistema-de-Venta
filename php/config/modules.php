@@ -57,6 +57,6 @@ return [
         'category' => 'Administración',
         'initials' => 'AJ',
         'color' => 'blue',
-        'features' => ['Ajustes generales', 'Datos de Empresa'],
+        'features' => ['Ajustes generales', 'Datos de Empresa', 'Grupos de acceso'],
     ],
 ];

@@ -23,7 +23,7 @@ Verificación realizada: `test/business-settings.php`, `test/commerce-workflows.
 
 ## Fase 2 — Grupos y definición de permisos
 
-Estado: pendiente de validación de la fase 1.
+Estado: implementada y verificada el 14/10/2026; pendiente de validación y push del usuario.
 
 1. Crear Grupos de acceso con listado y formulario.
 2. Definir un catálogo de permisos por módulo, sección, operación y alcance de registros.
@@ -35,6 +35,10 @@ Estado: pendiente de validación de la fase 1.
 Validación del usuario: crear/editar un grupo y revisar su matriz de permisos. Los permisos aún no se consideran operativos hasta su aplicación en las fases 3 y 4.
 
 Criterio de cierre: matriz documentada y comprobada, sin confundir tipos de contacto con grupos de acceso.
+
+Entregado: Grupos de acceso con listado/formulario, catálogo por módulo/sección/acción, seis grupos iniciales, alcances Propios/Todos, combinación por acción y protección de permisos administrativos. Las reglas y relaciones para su aplicación se documentan en [permisos-acceso.md](permisos-acceso.md).
+
+Verificación: `test/access-groups.php`, `test/business-settings.php`, `test/commerce-workflows.php`, sintaxis PHP/JavaScript y revisión de matriz/controles en navegador a 1440 y 390 píxeles. El instalador `php/install-settings.php` se ejecutó en el proyecto. No se activó aún la autenticación ni la aplicación de permisos a los módulos.
 
 ## Fase 3 — Usuarios e inicio de sesión
 

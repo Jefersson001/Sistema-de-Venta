@@ -18,6 +18,7 @@
                     <?php if ($moduleKey === 'ajustes'): ?>
                         <a class="module-navigation-link <?= ($modulePageData['area']??'')==='settings'?'module-navigation-active':'' ?>" href="index.php" <?= ($modulePageData['area']??'')==='settings'?'aria-current="page"':'' ?>>Ajustes generales</a>
                         <a class="module-navigation-link <?= ($modulePageData['area']??'')==='company'?'module-navigation-active':'' ?>" href="empresa.php" <?= ($modulePageData['area']??'')==='company'?'aria-current="page"':'' ?>>Empresa</a>
+                        <a class="module-navigation-link <?= ($modulePageData['area']??'')==='groups'?'module-navigation-active':'' ?>" href="grupos.php" <?= ($modulePageData['area']??'')==='groups'?'aria-current="page"':'' ?>>Grupos de acceso</a>
                     <?php elseif (in_array($moduleKey, ['ventas', 'compras'], true)): ?>
                         <?php $isOrderArea = !$isConfiguration && !in_array($modulePageData['area']??'', ['commissions','commission_payments'], true); ?>
                         <details class="module-menu"><summary class="module-navigation-link <?= $isOrderArea ? 'module-navigation-active' : '' ?>">Órdenes <span aria-hidden="true">▾</span></summary><div class="module-menu-options"><a href="index.php" <?= $isOrderArea ? 'aria-current="page"' : '' ?>><?= $moduleKey === 'ventas' ? 'Cotizaciones' : 'Solicitudes de cotización' ?></a></div></details>
