@@ -57,7 +57,7 @@ const context = {
     async fetch(url) {
         requests.push(url);
         if (reject) throw new Error('Fallo simulado');
-        return {ok:true, async json(){ return {...snapshot,commissions:snapshot.commissions??[{seller_id:4,seller_name:'Vendedor <script>',currency_code:'USD',sales_count:5,sales_amount:'100.00',commission_generated:'20.00',commission_earned:'20.00',commission_paid:'8.00',commission_pending:'12.00',commission_overpaid:'0.00'}]}; }};
+        return {ok:true, async json(){ return {...snapshot,commissions:snapshot.commissions??[{seller_id:4,seller_name:'Vendedor <script>',currency_code:'USD',sales_count:5,sales_amount:'100.00',commission_generated:'20.00',commission_earned:'20.00',commission_paid:'8.00',commission_pending:'12.00',commission_overpaid:'0.00',can_pay:true}]}; }};
     }
 };
 vm.createContext(context);
@@ -112,5 +112,8 @@ const settle = () => new Promise(resolve => setImmediate(resolve));
     assert.match(requests.at(-1), /period=custom&date_from=2026-10-01&date_to=2026-10-13/);
     assert.match(window.location.href, /period=custom/);
     assert.match(commissions.children[0].children.at(-1).children[0].href, /period=custom&date_from=2026-10-01&date_to=2026-10-13&new=1&seller_id=4&commission_currency=USD/);
+    snapshot.commissions = [{seller_id:4,seller_name:'Consulta',currency_code:'USD',can_pay:false}];
+    poll(); await settle();
+    assert.equal(commissions.children[0].children.at(-1).children.length, 0, 'Consulta no debe mostrar Pagar comisión.');
     console.log('PASS: todas las secciones se actualizan automáticamente; fechas en edición, errores, recuperación y texto seguro.');
 })().catch(error => { console.error(error); process.exitCode = 1; });

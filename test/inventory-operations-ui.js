@@ -13,6 +13,7 @@ const validation = {
 const row = { querySelector: () => null };
 const body = { children: [row], querySelectorAll: () => [row] };
 const form = {
+    dataset: {},
     querySelector(selector) {
         if (selector === '[data-operation-lines]') return body;
         if (selector === '[name="source_location_id"]') return { value: '1' };
@@ -33,4 +34,9 @@ assert.equal(help.hidden, false);
 submitButton.disabled = false;
 events['validate:submit']();
 assert.equal(submitButton.disabled, true);
+const readonlyEvents = {};
+form.dataset.permissionReadonly = 'true';
+form.addEventListener = (event, handler) => { readonlyEvents[event] = handler; };
+vm.runInNewContext(fs.readFileSync(path.join(__dirname, '../js/inventory-operations.js'), 'utf8'), { document });
+assert.deepEqual(readonlyEvents, {}, 'La ficha de consulta no debe habilitar edición de operaciones.');
 console.log('PASS: delivery without availability cell, dirty protection and submit handler.');
