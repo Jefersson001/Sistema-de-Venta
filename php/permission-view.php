@@ -12,6 +12,11 @@ function permissionFormActionAllowed(string $url,string $action): bool
 {
     $path=parse_url($url,PHP_URL_PATH);parse_str(parse_url($url,PHP_URL_QUERY)??'',$query);
     if($path===authBasePath().'/logout.php')return true;
+    if($path===authBasePath().'/empresas.php')return true;
+    if($path===authBasePath().'/modules/ajustes/empresa.php') {
+        if(in_array($action,['save_company_users','delete_company'],true))return (bool)permissionUser()['administrator'];
+        if($action==='save_company')return permissionHas('ajustes.company','edit')&&(!isset($query['new'])||permissionUser()['administrator']);
+    }
     $resource=permissionRoute($path??'', $query);if(!$resource)return false;
     $id=accessId($query['id']??null);
     if($resource==='ventas.commission_payments'){$resource='ventas.commissions';$id=accessId($query['invoice_id']??null);}
@@ -48,6 +53,10 @@ function permissionRenderHtml(string $html): string
     }
     foreach(iterator_to_array($xpath->query('//img[@src]')) as $image)if(!permissionUrlAllowed(permissionAbsoluteUrl($image->getAttribute('src'),$current)))$image->parentNode?->removeChild($image);
     foreach(iterator_to_array($xpath->query('//form[translate(@method,"POST","post")="post"]')) as $form) {
+        if(isset($GLOBALS['company_context'])) {
+            $scopeInput=$dom->createElement('input');$scopeInput->setAttribute('type','hidden');
+            $scopeInput->setAttribute('name','company_scope');$scopeInput->setAttribute('value',companyScopeToken());$form->appendChild($scopeInput);
+        }
         $url=permissionAbsoluteUrl($form->getAttribute('action')?:$current,$current);
         $hidden=$xpath->query('.//input[@name="action"]',$form)->item(0);
         foreach(iterator_to_array($xpath->query('.//button[@name="action"]',$form)) as $button)if(!permissionFormActionAllowed($url,$button->getAttribute('value')))$button->parentNode?->removeChild($button);
@@ -75,6 +84,7 @@ function permissionRenderHtml(string $html): string
         if(!permissionHas('contactos.contacts'))foreach($xpath->query('//select[@name="contact_id"]') as $node)$node->setAttribute('disabled','disabled');
     }
     if($resource==='ajustes.groups'&&isset($_GET['id'])&&!permissionHas($resource,'archive'))foreach($xpath->query('//input[@name="active"]') as $node)$node->setAttribute('disabled','disabled');
+    require_once __DIR__.'/company-view.php';companyDecorateView($dom,$xpath,$current);
     foreach(iterator_to_array($dom->childNodes) as $node)if($node->nodeType===XML_PI_NODE)$dom->removeChild($node);
     return "<!DOCTYPE html>\n".$dom->saveHTML($dom->documentElement);
 }

@@ -1,5 +1,4 @@
 <?php
 declare(strict_types=1);
-require_once dirname(__DIR__,2).'/php/auth-bootstrap.php';
-require_once dirname(__DIR__,2).'/php/settings-controller.php';
-renderBusinessSettings(true);
+require_once dirname(__DIR__,2).'/php/company-controller.php';
+renderCompanies();

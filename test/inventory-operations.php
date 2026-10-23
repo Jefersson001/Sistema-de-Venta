@@ -179,7 +179,15 @@ try {
     curl_setopt($curl, CURLOPT_RETURNTRANSFER, true); $twoReceipts = curl_exec($curl); curl_close($curl);
     $historyDom = new DOMDocument(); $historyDom->loadHTML('<?xml encoding="UTF-8">' . $twoReceipts); $historyXpath = new DOMXPath($historyDom);
     checkOperation($historyXpath->query('//table/tbody/tr')->length === 2, 'El historial no muestra una fila por recepción.');
-    $db->prepare('UPDATE inventory_stock_moves SET created_at = DATE_SUB(CURRENT_TIMESTAMP, INTERVAL 2 YEAR) WHERE operation_id = ?')->execute([$secondReceiptId]);
+    // This fixture represents a movement imported from before the audit
+    // migration. Normal application updates must preserve its creation date.
+    $auditTrigger=(bool)$db->query("SELECT 1 FROM information_schema.TRIGGERS WHERE TRIGGER_SCHEMA=DATABASE() AND TRIGGER_NAME='mc_inventory_stock_moves_update'")->fetchColumn();
+    if($auditTrigger) {
+        checkOperation((bool)preg_match('/^nexo_auth_test_[a-f0-9]{16}$/D',(string)$db->query('SELECT DATABASE()')->fetchColumn()),'El ajuste histórico requiere una base aislada.');
+        $db->exec('DROP TRIGGER mc_inventory_stock_moves_update');
+    }
+    try {$db->prepare('UPDATE inventory_stock_moves SET created_at = DATE_SUB(CURRENT_TIMESTAMP, INTERVAL 2 YEAR) WHERE operation_id = ?')->execute([$secondReceiptId]);}
+    finally {if($auditTrigger){require_once dirname(__DIR__).'/php/company-schema.php';installCompanyTriggers($db,'inventory_stock_moves',companyTables());}}
     checkOperation(loadInventoryProductIndicators($db, $product)['incoming'] === '1', 'Entrada incluye movimientos anteriores a 12 meses.');
     [$invalidLines, $errors] = validateInventoryOperationLines([['product_id' => $product, 'demand' => '1', 'quantity' => '-1']], [['id' => $product]]);
     checkOperation(count($errors) > 0, 'Se aceptó una cantidad negativa.');

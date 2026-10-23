@@ -3,6 +3,7 @@ declare(strict_types=1);
 require_once dirname(__DIR__).'/php/connection.php';
 require_once dirname(__DIR__).'/php/auth-schema.php';
 require_once dirname(__DIR__).'/php/auth-repository.php';
+require_once dirname(__DIR__).'/php/company-schema.php';
 
 function startAuthTestServer(): array
 {
@@ -16,9 +17,22 @@ function startAuthTestServer(): array
             if(!preg_match('/^[a-zA-Z0-9_]+$/D',$table))throw new RuntimeException('Tabla inválida.');
             $sql=$db->query('SHOW CREATE TABLE `'.$source.'`.`'.$table.'`')->fetch(PDO::FETCH_NUM)[1];$db->exec($sql);
             // No copiar credenciales, sesiones de activación ni límites de cuentas reales.
-            if(!str_starts_with($table,'auth_'))$db->exec('INSERT INTO `'.$table.'` SELECT * FROM `'.$source.'`.`'.$table.'`');
+            if(!str_starts_with($table,'auth_')&&$table!=='company_user_access') {
+                $fields=[];$values=[];$companyOwned=false;
+                foreach($db->query('SHOW COLUMNS FROM `'.$table.'`')->fetchAll() as $column) {
+                    if(str_contains($column['Extra'],'GENERATED'))continue;
+                    $field=$column['Field'];if(!preg_match('/^[a-zA-Z0-9_]+$/D',$field))throw new RuntimeException('Columna de prueba inválida.');
+                    $fields[]='`'.$field.'`';$values[]=in_array($field,['created_by','updated_by'],true)?'NULL':'`'.$field.'`';
+                    if($field==='company_id')$companyOwned=true;
+                }
+                $where=$table==='business_company'?' WHERE id=1':($companyOwned?' WHERE company_id=1':'');
+                $db->exec('INSERT INTO `'.$table.'`('.implode(',',$fields).') SELECT '.implode(',',$values).' FROM `'.$source.'`.`'.$table.'`'.$where);
+            }
         }
-        $db->exec('SET FOREIGN_KEY_CHECKS=1');installAuthentication($db);
+        $seedCompany=!$db->query('SELECT id FROM business_company WHERE id=1')->fetchColumn();
+        if($seedCompany)$db->exec("INSERT INTO business_company(id,name) VALUES(1,'Empresa inicial de pruebas')");
+        $db->exec('SET FOREIGN_KEY_CHECKS=1');installAuthentication($db);installMultiCompany($db);
+        if($seedCompany){require_once dirname(__DIR__).'/php/company-repository.php';companySeedDefaults($db,1);}
         $socket=stream_socket_server('tcp://127.0.0.1:0',$errno,$error);if(!$socket)throw new RuntimeException('No se pudo reservar un puerto de prueba.');
         $port=(int)substr(strrchr(stream_socket_get_name($socket,false),':'),1);fclose($socket);
         $server['url']='http://127.0.0.1:'.$port.'/project';$server['log']=tempnam(__DIR__,'.auth-server-log-');
@@ -50,13 +64,16 @@ function stopAuthTestServer(array $server): void
 
 function authTestRequest(array $server,string $path,string $cookie,?array $post=null,string $method='GET'): array
 {
+    static $companyScopes=[];
+    if($post!==null&&!array_key_exists('company_scope',$post)&&isset($companyScopes[$cookie]))$post['company_scope']=$companyScopes[$cookie];
     if(getenv('NEXO_AUTH_TRACE'))fwrite(STDERR,($post===null?$method:'POST').' '.parse_url($path,PHP_URL_PATH)."\n");
     $curl=curl_init($server['url'].$path);$headers=[];
     curl_setopt_array($curl,[CURLOPT_RETURNTRANSFER=>true,CURLOPT_COOKIEFILE=>$cookie,CURLOPT_COOKIEJAR=>$cookie,CURLOPT_TIMEOUT=>15,
         CURLOPT_HEADERFUNCTION=>static function($curl,$line)use(&$headers){$headers[]=$line;return strlen($line);}]);
     if($post!==null)curl_setopt($curl,CURLOPT_POSTFIELDS,http_build_query($post));elseif($method!=='GET')curl_setopt($curl,CURLOPT_CUSTOMREQUEST,$method);
     $body=curl_exec($curl);$code=curl_getinfo($curl,CURLINFO_RESPONSE_CODE);$location=curl_getinfo($curl,CURLINFO_REDIRECT_URL);curl_close($curl);
-    if(!is_string($body)||preg_match('/Fatal error|Warning(?:<\/b>)?:|Notice(?:<\/b>)?:/',$body))throw new RuntimeException('Error en la consulta de prueba '.$path);
+    foreach($headers as $header)if(preg_match('/^X-Nexo-Company-Scope:\s*([a-f0-9]+)/i',$header,$m))$companyScopes[$cookie]=$m[1];
+    if(!is_string($body)||preg_match('/Fatal error|Warning(?:<\/b>)?:|Notice(?:<\/b>)?:/',$body))throw new RuntimeException('Error en la consulta de prueba '.$path.' '.mb_substr(strip_tags((string)$body),-1800));
     if(getenv('NEXO_AUTH_TRACE'))fwrite(STDERR,'HTTP '.$code."\n");
     return [$code,$body,$location,$headers];
 }

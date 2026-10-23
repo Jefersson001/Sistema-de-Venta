@@ -84,13 +84,13 @@ try {
     [$status,$html]=settingsRequest('modules/ajustes/empresa.php',$cookie);
     settingsCheck($status===200&&str_contains($html,'<table')&&!str_contains($html,'data-company-form'),'No se separan listado y formulario de Empresa.');
     [$status,$html]=settingsRequest('modules/ajustes/empresa.php?id=1',$cookie);
-    settingsCheck($status===200&&str_contains($html,'data-company-form')&&!str_contains($html,'<table'),'No se abre la ficha de Empresa.');
+    settingsCheck($status===200&&str_contains($html,'data-company-form')&&str_contains($html,'Usuarios autorizados'),'No se abre la ficha de Empresa con sus accesos.');
     preg_match('/name="csrf" value="([a-f0-9]+)"/',$html,$token); settingsCheck(!empty($token[1]),'No hay protección del formulario.');
     [$status]=settingsRequest('modules/ajustes/empresa.php?id=1',$cookie,['action'=>'save_company','csrf'=>'wrong','version'=>(string)$before['version'],'name'=>'No guardar']);
     settingsCheck($status===403,'Se acepta un guardado sin CSRF.');
     [$status,$html]=settingsRequest('modules/ajustes/empresa.php?id=1',$cookie,['action'=>'save_company','csrf'=>$token[1],'version'=>(string)$before['version'],'name'=>'No guardar','website'=>'javascript:alert(1)']);
     settingsCheck($status===200&&str_contains($html,'notice-error'),'No se rechazan datos inválidos.');
-    foreach(['modules/ajustes/empresa.php?id[]=1','modules/ajustes/empresa.php?id=2','modules/ajustes/empresa.php?new=1','modules/ajustes/index.php?section[]=general','modules/ajustes/index.php?section=invalid'] as $path) {
+    foreach(['modules/ajustes/empresa.php?id[]=1','modules/ajustes/empresa.php?id=2','modules/ajustes/index.php?section[]=general','modules/ajustes/index.php?section=invalid'] as $path) {
         [$status]=settingsRequest($path,$cookie); settingsCheck($status===404,'Se acepta la ruta inválida '.$path);
     }
     [$status]=settingsRequest('modules/ajustes/index.php',$cookie,[]); settingsCheck($status===405,'Ajustes generales admite escrituras.');

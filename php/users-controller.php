@@ -8,7 +8,8 @@ function renderAuthUsers(): void
     $actor=authRequireLogin();permissionRequire('ajustes.users');$_SESSION['settings_csrf']??=bin2hex(random_bytes(32));
     $page=['area'=>'users','available'=>true,'errors'=>[],'databaseStatus'=>getDatabaseStatus(),'csrf'=>$_SESSION['settings_csrf'],
         'flash'=>$_SESSION['settings_flash']??null,'view'=>'list','record'=>['name'=>'','login'=>'','email'=>'','contact_id'=>null,
-        'active'=>1,'version'=>0,'must_change_password'=>1,'last_login_at'=>null,'group_ids'=>[]]];unset($_SESSION['settings_flash']);
+        'active'=>1,'version'=>0,'must_change_password'=>1,'last_login_at'=>null,'group_ids'=>[]],
+        'companyRows'=>[],'userCompanyIds'=>[companyActiveId()],'canAssignCompanies'=>(bool)$actor['administrator']];unset($_SESSION['settings_flash']);
     try {
         $method=$_SERVER['REQUEST_METHOD'];if(!in_array($method,['GET','POST'],true)){header('Allow: GET, POST');http_response_code(405);throw new InvalidArgumentException('El método solicitado no está disponible.');}
         $id=accessId($_GET['id']??null);
@@ -17,6 +18,10 @@ function renderAuthUsers(): void
         }
         $db=createDatabaseConnection();$page['view']=$id||isset($_GET['new'])?'form':'list';
         if($id){$page['record']=loadAuthUser($db,$id);if(!$page['record']){http_response_code(404);throw new InvalidArgumentException('El usuario solicitado no existe.');}}
+        if($page['view']==='form') {
+            $page['companyRows']=companyAvailable($db,$actor);
+            if($id){$q=$db->prepare('SELECT company_id FROM company_user_access WHERE user_id=?');$q->execute([$id]);$page['userCompanyIds']=array_map('intval',$q->fetchAll(PDO::FETCH_COLUMN));}
+        }
         if($page['view']==='form'&&!$id) {
             $key=is_string($_POST['creation_key']??null)?$_POST['creation_key']:bin2hex(random_bytes(32));
             if($method!=='POST'){$_SESSION['user_creation_keys'][$key]=true;$_SESSION['user_creation_keys']=array_slice($_SESSION['user_creation_keys'],-50,null,true);}
@@ -47,6 +52,7 @@ function renderAuthUsers(): void
                         $page['record']['active']=($_POST['active']??null)==='1'?1:0;
                         $page['record']['contact_id']=accessId($_POST['contact_id']??null);
                         $page['record']['group_ids']=array_values(array_filter(array_map('accessId',is_array($_POST['groups']??null)?$_POST['groups']:[])));
+                        if($page['canAssignCompanies']&&isset($_POST['companies_present']))$page['userCompanyIds']=array_values(array_filter(array_map('accessId',is_array($_POST['company_ids']??null)?$_POST['company_ids']:[])));
                     }
                     $page['reopenPassword']=($_POST['action']??null)==='reset_password';
                 }

@@ -8,6 +8,8 @@ if (PHP_SAPI !== 'cli') {
 }
 
 require_once __DIR__ . '/connection.php';
+require_once __DIR__.'/company-maintenance.php';
+companyGuardLegacyInstaller();
 require_once __DIR__ . '/sales-delivery-schema.php';
 require_once __DIR__ . '/external-locations-schema.php';
 require_once __DIR__.'/commission-schema.php';

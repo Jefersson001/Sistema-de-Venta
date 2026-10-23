@@ -1,10 +1,12 @@
 <?php
 declare(strict_types=1);
 
-function loadBusinessCompany(PDO $db): array
+function loadBusinessCompany(PDO $db, ?int $companyId = null): array
 {
-    $record = $db->query('SELECT id,name,legal_name,tax_id,address,phone,email,website,version,updated_at,
-        (logo_data IS NOT NULL) AS has_logo FROM business_company WHERE id=1')->fetch();
+    $companyId ??= function_exists('companyActiveId') ? companyActiveId() : 1;
+    $query = $db->prepare('SELECT id,name,legal_name,tax_id,address,phone,email,website,version,updated_at,
+        (logo_data IS NOT NULL) AS has_logo FROM business_company WHERE id=?');
+    $query->execute([$companyId]); $record=$query->fetch();
     if (!$record) throw new RuntimeException('La ficha de Empresa no está instalada.');
     return $record;
 }
@@ -50,7 +52,7 @@ function companyLogoUpload(array $files): ?array
     return validateCompanyLogo($bytes);
 }
 
-function saveBusinessCompany(PDO $db, array $input, int $version, ?array $logo = null, bool $removeLogo = false): void
+function saveBusinessCompany(PDO $db, array $input, int $version, ?array $logo = null, bool $removeLogo = false, ?int $companyId = null): void
 {
     $data = validateBusinessCompany($input);
     if ($version<1) throw new InvalidArgumentException('Recarga la ficha de Empresa antes de guardar.');
@@ -59,7 +61,8 @@ function saveBusinessCompany(PDO $db, array $input, int $version, ?array $logo =
         $logo = validateCompanyLogo($logo['data']);
         $data += ['logo_data'=>$logo['data'],'logo_mime'=>$logo['mime']];
     } elseif ($removeLogo) $data += ['logo_data'=>null,'logo_mime'=>null];
-    $query = $db->prepare('UPDATE business_company SET '.implode(',',array_map(static fn($key)=>$key.'=:'.$key,array_keys($data))).',version=version+1 WHERE id=1 AND version=:version');
-    $query->execute($data+['version'=>$version]);
+    $companyId ??= function_exists('companyActiveId') ? companyActiveId() : 1;
+    $query = $db->prepare('UPDATE business_company SET '.implode(',',array_map(static fn($key)=>$key.'=:'.$key,array_keys($data))).',version=version+1 WHERE id=:company AND version=:version');
+    $query->execute($data+['version'=>$version,'company'=>$companyId]);
     if ($query->rowCount()!==1) throw new InvalidArgumentException('La ficha de Empresa cambió en otra ventana. Recarga para revisar los datos antes de guardar.',409);
 }

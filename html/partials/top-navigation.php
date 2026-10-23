@@ -11,6 +11,7 @@
             </a><?php endif; ?>
         </nav>
         <div class="top-navigation-status">
+            <?php require __DIR__.'/company-selector.php'; ?>
             <span class="connection-pill <?= $databaseStatus['connected'] ? 'connection-online' : 'connection-offline' ?>" title="<?= $databaseStatus['connected'] ? 'Base de datos conectada' : 'Base de datos desconectada' ?>" aria-label="<?= $databaseStatus['connected'] ? 'Base de datos conectada' : 'Base de datos desconectada' ?>">
                 <span class="connection-dot" aria-hidden="true"></span>
                 <?= $databaseStatus['connected'] ? 'Base de datos conectada' : 'Base de datos desconectada' ?>

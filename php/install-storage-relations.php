@@ -2,6 +2,8 @@
 declare(strict_types=1);
 if (PHP_SAPI !== 'cli') { http_response_code(404); exit; }
 require_once __DIR__ . '/connection.php';
+require_once __DIR__.'/company-maintenance.php';
+companyGuardLegacyInstaller();
 require_once __DIR__ . '/storage-schema.php';
 try {
     $db = createDatabaseConnection();

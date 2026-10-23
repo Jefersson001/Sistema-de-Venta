@@ -18,9 +18,13 @@ function testHttpCurl(string $url,?string $cookie=null): CurlHandle
         if(!is_string($body)||!preg_match('/name="csrf" value="([a-f0-9]+)"/',$body,$token))throw new RuntimeException('No se abrió el login del entorno de prueba.');
         $request=curl_init($base.'/login.php');curl_setopt_array($request,[CURLOPT_RETURNTRANSFER=>true,CURLOPT_COOKIEFILE=>$cookie,CURLOPT_COOKIEJAR=>$cookie,CURLOPT_TIMEOUT=>15,
             CURLOPT_POSTFIELDS=>http_build_query(['csrf'=>$token[1],'login'=>$login,'password'=>$password])]);curl_exec($request);$status=curl_getinfo($request,CURLINFO_RESPONSE_CODE);curl_close($request);
-        if($status!==303)throw new RuntimeException('No se autenticó la cuenta de prueba.');$authenticated[$cookie]=true;
+        if($status!==303)throw new RuntimeException('No se autenticó la cuenta de prueba.');
+        $request=curl_init($base.'/index.php');$scope=null;
+        curl_setopt_array($request,[CURLOPT_RETURNTRANSFER=>true,CURLOPT_COOKIEFILE=>$cookie,CURLOPT_COOKIEJAR=>$cookie,CURLOPT_TIMEOUT=>15,
+            CURLOPT_HEADERFUNCTION=>static function($curl,$line)use(&$scope){if(preg_match('/^X-Nexo-Company-Scope:\s*([a-f0-9]+)/i',$line,$m))$scope=$m[1];return strlen($line);}]);
+        curl_exec($request);curl_close($request);if(!$scope)throw new RuntimeException('No se inicializó la empresa de prueba.');$authenticated[$cookie]=$scope;
     }
-    $request=curl_init($url);curl_setopt_array($request,[CURLOPT_COOKIEFILE=>$cookie,CURLOPT_COOKIEJAR=>$cookie]);return $request;
+    $request=curl_init($url);curl_setopt_array($request,[CURLOPT_COOKIEFILE=>$cookie,CURLOPT_COOKIEJAR=>$cookie,CURLOPT_HTTPHEADER=>['X-Nexo-Company-Scope: '.$authenticated[$cookie]]]);return $request;
 }
 
 function testHttpGet(string $url): string|false

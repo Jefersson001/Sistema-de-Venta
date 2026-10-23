@@ -1,6 +1,6 @@
 # Usuarios y acceso — fase 3
 
-La fase 3 incorpora autenticación y gestión de usuarios internos para una empresa. La fase 4 ya aplica los permisos por sección, acción y alcance: los usuarios de grupos personalizados pueden utilizar sus módulos autorizados sin pertenecer a Administrador. Para validar esos accesos, consultar [permisos-operativos.md](permisos-operativos.md).
+La fase 3 incorpora autenticación y gestión de usuarios internos. La fase 4 aplica los permisos por sección, acción y alcance: los usuarios de grupos personalizados pueden utilizar sus módulos autorizados sin pertenecer a Administrador. La estructura [multiempresa](multiempresa.md) añade empresas autorizadas y relaciones de vendedor por empresa, conservando las identidades y grupos compartidos. Para validar los permisos operativos, consultar [permisos-operativos.md](permisos-operativos.md).
 
 ## Activar la primera cuenta
 

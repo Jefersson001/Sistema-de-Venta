@@ -14,22 +14,27 @@ function permissionMap(): array
 function permissionScope(string $resource,string $action='read'): ?string { return accessPermissionScope(permissionMap(),$resource.'.'.$action); }
 function permissionHas(string $resource,string $action='read'): bool { return permissionScope($resource,$action)!==null; }
 function permissionContact(): int { return permissionRuntime()?(int)(permissionUser()['contact_id']??0):0; }
+function permissionContacts(): array
+{
+    $user=permissionUser();return array_values(array_unique(array_map('intval',$user['company_contacts']??array_filter([$user['contact_id']??0]))));
+}
 function permissionWhere(string $resource,string $alias,string $action='read'): string
 {
     if(!preg_match('/^[a-zA-Z_][a-zA-Z0-9_]*$/D',$alias))throw new LogicException('Alias de permisos inválido.');
     $scope=permissionScope($resource,$action);if($scope==='all')return '1=1';
-    $contact=permissionContact();if($scope!=='own'||!$contact)return '1=0';
+    $contact=permissionContact();if($scope!=='own'||!permissionContacts())return '1=0';
     return permissionAssignedWhere($resource,$alias,$contact);
 }
 function permissionAssignedWhere(string $resource,string $alias,int $contact): string
 {
-    if(!$contact)return '1=0';
+    $ids=permissionRuntime()?permissionContacts():array_filter([$contact]);
+    if(!$ids)return '1=0';$list=implode(',',$ids);
     return match($resource) {
-        'contactos.contacts'=>"($alias.id=$contact OR $alias.salesperson_id=$contact)",
-        'ventas.orders','contabilidad.customer_invoices'=>"$alias.salesperson_id=$contact",
-        'inventario.deliveries'=>"EXISTS(SELECT 1 FROM sales_quotations permission_sale WHERE permission_sale.id=$alias.quotation_id AND permission_sale.salesperson_id=$contact)",
-        'ventas.commissions'=>"$alias.salesperson_id=$contact",
-        'ventas.commission_payments'=>"EXISTS(SELECT 1 FROM accounting_invoices permission_invoice WHERE permission_invoice.id=$alias.invoice_id AND permission_invoice.salesperson_id=$contact)",
+        'contactos.contacts'=>"($alias.id IN ($list) OR $alias.salesperson_id IN ($list))",
+        'ventas.orders','contabilidad.customer_invoices'=>"$alias.salesperson_id IN ($list)",
+        'inventario.deliveries'=>"EXISTS(SELECT 1 FROM sales_quotations permission_sale WHERE permission_sale.id=$alias.quotation_id AND permission_sale.salesperson_id IN ($list))",
+        'ventas.commissions'=>"$alias.salesperson_id IN ($list)",
+        'ventas.commission_payments'=>"EXISTS(SELECT 1 FROM accounting_invoices permission_invoice WHERE permission_invoice.id=$alias.invoice_id AND permission_invoice.salesperson_id IN ($list))",
         default=>'1=0',
     };
 }
@@ -150,6 +155,7 @@ function permissionUrlAllowed(string $url): bool
     if($id&&!permissionRecord($resource,$id))return false;
     if($resource==='inventario.deliveries'&&isset($query['new'])&&permissionScope($resource,'create')==='own')return false;
     if($resource==='ventas.commission_payments'&&isset($query['new'])&&permissionScope('ventas.commissions','pay')==='own'&&isset($query['seller_id'])&&accessId($query['seller_id'])!==permissionContact())return false;
+    if($resource==='ajustes.company'&&isset($query['new']))return (bool)permissionUser()['administrator'];
     if(isset($query['new']))return permissionHas($resource,$resource==='ventas.commission_payments'?'read':(str_ends_with($resource,'.configuration')?'configure':'create'))
         &&($resource!=='ventas.commission_payments'||(permissionHas('ventas.commissions','pay')&&permissionHas('contabilidad.expense','create')&&permissionHas('contabilidad.expense','confirm')));
     return true;
@@ -157,8 +163,8 @@ function permissionUrlAllowed(string $url): bool
 function permissionFilterContacts(array $records): array
 {
     if(!permissionRuntime())return $records;
-    $scope=permissionScope('contactos.contacts');if($scope==='all')return $records;$id=permissionContact();
-    return array_values(array_filter($records,static fn($r)=>$scope==='own'&&$id>0&&((int)$r['id']===$id||(int)($r['salesperson_id']??0)===$id)));
+    $scope=permissionScope('contactos.contacts');if($scope==='all')return $records;$ids=permissionContacts();
+    return array_values(array_filter($records,static fn($r)=>$scope==='own'&&(in_array((int)$r['id'],$ids,true)||in_array((int)($r['salesperson_id']??0),$ids,true))));
 }
 function permissionGuard(bool $json=false): void
 {
@@ -187,11 +193,19 @@ function permissionGuard(bool $json=false): void
     if(in_array($path,[authBasePath().'/modules/ajustes/index.php',authBasePath().'/modules/ajustes/logo.php',authBasePath().'/modules/inventario/informes.php',authBasePath().'/modules/contabilidad/ingresos-egresos.php',authBasePath().'/modules/dashboard/ingresos-egresos.php'],true))return;
     if($resource==='ajustes.company'&&isset($_GET['new']))authStop(404,'La página solicitada no existe.',$json);
     if($resource==='inventario.deliveries'&&isset($_GET['new'])&&permissionScope($resource,'create')==='own')authStop(403,'Genera la entrega desde una venta asignada a tu vendedor.',$json);
-    if(in_array($resource,['ventas.commissions','ventas.commission_payments'],true)&&permissionScope($resource)==='own'&&isset($_GET['seller_id'])&&$_GET['seller_id']!==''&&accessId($_GET['seller_id'])!==permissionContact())authStop(403,'Solo puedes consultar las comisiones de tu vendedor.',$json);
+    if(in_array($resource,['ventas.commissions','ventas.commission_payments'],true)&&permissionScope($resource)==='own'&&isset($_GET['seller_id'])&&$_GET['seller_id']!==''&&!in_array(accessId($_GET['seller_id']),permissionContacts(),true))authStop(403,'Solo puedes consultar las comisiones de tus vendedores autorizados.',$json);
     if(isset($_GET['new']))permissionRequire($resource,$resource==='ventas.commission_payments'?'read':(str_ends_with($resource,'.configuration')?'configure':'create'),null,$json);
     if($resource==='ventas.commission_payments'&&isset($_GET['new']))permissionRequire('ventas.commissions','pay',accessId($_GET['invoice_id']??null),$json);
     if($resource==='ventas.commission_payments'&&isset($_GET['new'])&&permissionScope('ventas.commissions','pay')==='own'&&isset($_GET['seller_id'])&&accessId($_GET['seller_id'])!==permissionContact())authStop(403,'Solo puedes pagar comisiones de tu vendedor.',$json);
     if($_SERVER['REQUEST_METHOD']==='POST') {
+        $companyTable=companyResourceTable($resource);
+        if(!$companyTable&&str_ends_with($resource,'.configuration')) {
+            require_once __DIR__.'/company-view.php';$companyTable=companyViewTable($_SERVER['REQUEST_URI']??$path);
+        }
+        if($recordId&&$companyTable) {
+            $ownership=$db->prepare('SELECT company_id FROM '.$companyTable.' WHERE id=?');$ownership->execute([$recordId]);$owner=$ownership->fetchColumn();
+            if($owner&&(int)$owner!==companyActiveId())authStop(409,'Activa la empresa de este registro antes de modificarlo.',$json);
+        }
         if(!authCheckCsrf($_POST['csrf']??null))authStop(403,'La sesión del formulario no es válida. Recarga la página.',$json);
         $target=$resource==='ventas.commission_payments'?'ventas.commissions':$resource;
         $targetId=$resource==='ventas.commission_payments'?accessId($_GET['invoice_id']??null):$recordId;

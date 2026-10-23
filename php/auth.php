@@ -92,5 +92,6 @@ function authRequireLogin(bool $json=false,bool $allowPasswordChange=false): arr
         if($json)authStop(403,'Debes cambiar tu contraseña temporal antes de continuar.',$json,$url);
         header('Location: '.$url,true,303);exit;
     }
-    return $user;
+    require_once __DIR__.'/company.php';
+    return companyInitialize($user,$json);
 }

@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-function createDatabaseConnection(): PDO
+function createDatabaseConnection(bool $unscoped = false): PDO
 {
     $configuration = require __DIR__ . '/config/database.php';
     if (! preg_match('/^[a-zA-Z0-9_]+$/', $configuration['database'])) {
@@ -37,5 +37,13 @@ function createDatabaseConnection(): PDO
         $configuration['charset'],
     );
 
-    return new PDO($databaseDsn, $configuration['username'], $configuration['password'], $options);
+    if (!$unscoped && isset($GLOBALS['company_context'])) {
+        require_once __DIR__.'/company-connection.php';
+        $context=$GLOBALS['company_context'];
+        return new CompanyConnection($databaseDsn,$configuration['username'],$configuration['password'],$options,
+            $context['read_selected']??$context['selected'],$context['active'],$context['actor'],$context['tables']);
+    }
+    $connection=new PDO($databaseDsn, $configuration['username'], $configuration['password'], $options);
+    $connection->exec("SET time_zone='-04:00'");
+    return $connection;
 }

@@ -99,6 +99,28 @@ function saveAuthUser(PDO $db,array $input,?int $id,?int $version,int $actor,?st
         }
         $db->prepare('DELETE FROM auth_user_groups WHERE user_id=?')->execute([$id]);
         $query=$db->prepare('INSERT INTO auth_user_groups(user_id,group_id) VALUES(?,?)');foreach($data['groups'] as $group)$query->execute([$id,$group]);
+        if(!$existing && $db->query("SHOW TABLES LIKE 'company_user_access'")->fetch()) {
+            $db->prepare('INSERT IGNORE INTO company_user_access(user_id,company_id) VALUES(?,?)')->execute([$id,function_exists('companyActiveId')?companyActiveId():1]);
+        }
+        if(array_key_exists('companies_present',$input)||array_key_exists('company_ids',$input)) {
+            if(!authUserIsAdministrator($db,$actor))throw new InvalidArgumentException('Solo un Administrador puede asignar empresas a los usuarios.',403);
+            $values=$input['company_ids']??[];
+            if(!is_array($values)||!array_is_list($values))throw new InvalidArgumentException('Selecciona empresas válidas.');
+            $companies=[];
+            foreach($values as $value){$company=accessId($value);if(!$company||isset($companies[$company]))throw new InvalidArgumentException('Selecciona empresas válidas, sin duplicados.');$companies[$company]=$company;}
+            sort($companies,SORT_NUMERIC);
+            if(!$companies&&!authUserIsAdministrator($db,$id))throw new InvalidArgumentException('Selecciona al menos una empresa autorizada para el usuario.');
+            $q=$db->prepare('SELECT id FROM business_company WHERE id=?');foreach($companies as $company){$q->execute([$company]);if(!$q->fetchColumn())throw new InvalidArgumentException('Una de las empresas seleccionadas ya no existe.');}
+            $q=$db->prepare('SELECT company_id FROM company_user_access WHERE user_id=?');$q->execute([$id]);$previous=array_map('intval',$q->fetchAll(PDO::FETCH_COLUMN));sort($previous,SORT_NUMERIC);
+            if($previous!==$companies) {
+                $remove=$db->prepare('DELETE FROM company_user_access WHERE user_id=? AND company_id=?');foreach(array_diff($previous,$companies) as $company)$remove->execute([$id,$company]);
+                $add=$db->prepare('INSERT IGNORE INTO company_user_access(user_id,company_id) VALUES(?,?)');foreach(array_diff($companies,$previous) as $company)$add->execute([$id,$company]);
+                $db->prepare('UPDATE auth_users SET auth_version=auth_version+1 WHERE id=?')->execute([$id]);
+                $changed=array_values(array_unique(array_merge(array_diff($previous,$companies),array_diff($companies,$previous))));
+                if($db instanceof CompanyConnection)$db->markCompanyAccessChanged($changed);
+                else {$q=$db->prepare('UPDATE business_company SET version=version+1 WHERE id=?');foreach($changed as $company)$q->execute([$company]);}
+            }
+        }
         authEnsureAdministratorRemains($db);$db->commit();return $id;
     } catch(Throwable $exception) {
         if($db->inTransaction())$db->rollBack();

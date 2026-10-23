@@ -2,7 +2,7 @@
 
 Inicio → Ajustes abre las secciones General, Contactos, Ventas, Compras, Inventario y Contabilidad. Los accesos utilizan los catálogos existentes; las monedas se leen de la configuración financiera actual.
 
-Empresa tiene listado y formulario separados. Existe una única ficha para el negocio, inicialmente sin datos. El nombre comercial es obligatorio; razón social, documento/RIF, dirección, teléfono, correo, sitio web y logo son opcionales. No se generan contactos, facturas ni movimientos de dinero al guardar Empresa.
+Empresa tiene listado y formulario separados y permite administrar varias empresas. El selector del encabezado elige las empresas consultadas y la activa para crear y modificar registros. Cada empresa tiene sus propios productos, contactos, operaciones y configuración. El nombre comercial es obligatorio; razón social, documento/RIF, dirección, teléfono, correo, sitio web y logo son opcionales. La migración conserva los registros existentes en la empresa inicial. Ver [Multiempresa](../../docs/multiempresa.md) para accesos, auditoría, actualización, eliminación y la base reutilizable para tablas nuevas.
 
 El logo admite PNG, JPEG o WebP de hasta 2 MB y 4096 × 4096 píxeles. Se valida en el servidor y se guarda como datos de imagen en la base de datos; `logo.php` lo entrega con su tipo de imagen y sin caché. Una carga nueva reemplaza el logo; Quitar el logo guardado lo elimina al guardar. Seleccionar imagen solo previsualiza; Descartar no guarda.
 

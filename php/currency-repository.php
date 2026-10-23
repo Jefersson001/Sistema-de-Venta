@@ -11,7 +11,8 @@ function accountingCurrencies(PDO $db, ?string $date = null): array
 function currencyRateForPair(PDO $db, string $from, string $to, string $date): ?string
 {
     if ($from === $to) return '1.00000000';
-    $q = $db->prepare('SELECT r.rate,b.code AS base_code FROM accounting_currency_rates r JOIN accounting_currencies c ON c.id=r.currency_id JOIN accounting_currencies b ON b.id=r.base_currency_id WHERE r.rate_date<=? AND ((b.code=? AND c.code=?) OR (b.code=? AND c.code=?)) ORDER BY r.rate_date DESC,(b.code=?) DESC,r.id DESC LIMIT 1');
+    $companyFilter=$db instanceof CompanyConnection?' AND r.company_id='.$db->configurationCompanyId():'';
+    $q = $db->prepare('SELECT r.rate,b.code AS base_code FROM accounting_currency_rates r JOIN accounting_currencies c ON c.id=r.currency_id JOIN accounting_currencies b ON b.id=r.base_currency_id WHERE r.rate_date<=? AND ((b.code=? AND c.code=?) OR (b.code=? AND c.code=?))'.$companyFilter.' ORDER BY r.rate_date DESC,(b.code=?) DESC,r.id DESC LIMIT 1');
     $q->execute([$date,$from,$to,$to,$from,$from]); $rate = $q->fetch();
     return $rate ? ($rate['base_code'] === $from ? $rate['rate'] : bcdiv('1',$rate['rate'],8)) : null;
 }

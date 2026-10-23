@@ -70,7 +70,10 @@ function renderBusinessCompanyLogo(): void
     header('Cache-Control: no-store'); header('X-Content-Type-Options: nosniff');
     if ($_SERVER['REQUEST_METHOD']!=='GET') { header('Allow: GET'); http_response_code(405); return; }
     try {
-        $db = createDatabaseConnection(); $row = $db->query('SELECT logo_data,logo_mime FROM business_company WHERE id=1')->fetch();
+        $id=isset($_GET['id'])?filter_var($_GET['id'],FILTER_VALIDATE_INT):companyActiveId();
+        $allowed=array_map('intval',array_column($GLOBALS['company_context']['companies']??[],'id'));
+        if(!$id||!in_array($id,$allowed,true)){http_response_code(404);return;}
+        $db = createDatabaseConnection(); $q=$db->prepare('SELECT logo_data,logo_mime FROM business_company WHERE id=?');$q->execute([$id]);$row=$q->fetch();
         if (!$row || !$row['logo_data'] || !in_array($row['logo_mime'],['image/png','image/jpeg','image/webp'],true)) { http_response_code(404); return; }
         header('Content-Type: '.$row['logo_mime']); echo $row['logo_data'];
     } catch (PDOException $exception) { error_log('Logo de Empresa: '.$exception->getMessage()); http_response_code(503); }
