@@ -1,17 +1,21 @@
 const searchInput = document.querySelector('[data-module-search]');
-for (const toggle of document.querySelectorAll('[data-report-group-toggle]')) {
-    for (const row of document.querySelectorAll('[data-report-group]')) {
+function initializeReportGroups(root) {
+for (const toggle of root.querySelectorAll('[data-report-group-toggle]')) {
+    for (const row of root.querySelectorAll('[data-report-group]')) {
         if (row.dataset.reportGroup === toggle.dataset.reportGroupToggle) row.hidden = true;
     }
     toggle.setAttribute('aria-expanded', 'false');
     toggle.addEventListener('click', () => {
         const expanded = toggle.getAttribute('aria-expanded') === 'true';
-        for (const row of document.querySelectorAll('[data-report-group]')) {
+        for (const row of root.querySelectorAll('[data-report-group]')) {
             if (row.dataset.reportGroup === toggle.dataset.reportGroupToggle) row.hidden = expanded;
         }
         toggle.setAttribute('aria-expanded', String(!expanded));
     });
 }
+}
+initializeReportGroups(document);
+document.addEventListener('live-filters:updated', event => initializeReportGroups(event.target));
 for (const warehouse of document.querySelectorAll('[data-location-warehouse]')) {
     const parent = warehouse.closest('form').querySelector('[data-location-parent]');
     const type = warehouse.closest('form').querySelector('[data-location-type]');
@@ -31,7 +35,7 @@ for (const warehouse of document.querySelectorAll('[data-location-warehouse]')) 
     updateLocationParents();
 }
 for (const filter of document.querySelectorAll('[data-auto-submit]')) {
-    filter.addEventListener('change', () => filter.closest('form')?.requestSubmit());
+    filter.addEventListener('change', () => { const form=filter.closest('form');if(!form?.hasAttribute('data-live-filters'))form?.requestSubmit(); });
 }
 const moduleCards = [...document.querySelectorAll('[data-module-card]')];
 const emptySearch = document.querySelector('[data-empty-search]');

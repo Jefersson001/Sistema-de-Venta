@@ -87,6 +87,7 @@ function permissionRenderHtml(string $html): string
     if($resource==='ajustes.groups'&&isset($_GET['id'])&&!permissionHas($resource,'archive'))foreach($xpath->query('//input[@name="active"]') as $node)$node->setAttribute('disabled','disabled');
     require_once __DIR__.'/company-view.php';companyDecorateView($dom,$xpath,$current);
     require_once __DIR__.'/transfer-view.php';transferDecorateView($dom,$xpath,$current);
+    require_once __DIR__.'/live-filters-view.php';liveFiltersDecorateView($dom,$xpath);
     foreach(iterator_to_array($dom->childNodes) as $node)if($node->nodeType===XML_PI_NODE)$dom->removeChild($node);
     return "<!DOCTYPE html>\n".$dom->saveHTML($dom->documentElement);
 }

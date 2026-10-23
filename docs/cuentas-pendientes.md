@@ -10,4 +10,6 @@ El Dashboard usa los mismos cálculos y se actualiza con la consulta existente d
 
 No requiere una migración de datos ni nuevos permisos. Los cálculos comunes están en `php/outstanding-repository.php`; informe y dashboard comparten la presentación de `html/partials/outstanding.php`. El modelo de exportación se registra una vez en `php/transfer-models.php`.
 
+La búsqueda del informe se aplica automáticamente al escribir y el vencimiento al cambiar su selección, sin botón Consultar. Se actualizan los resultados sin recargar la página ni perder el foco de escritura. Las consultas anteriores se cancelan para evitar mostrar resultados obsoletos; la exportación conserva los filtros aplicados.
+
 Validación: `php test/outstanding.php`, `php test/run-authenticated.php dashboard`, `node test/dashboard-ui.js` y `php test/role-workflows.php`.

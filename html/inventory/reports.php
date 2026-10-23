@@ -16,7 +16,7 @@
         </tbody><tfoot><tr><th scope="row">Total</th><td><?= inventoryEscape($quantityTotal) ?></td><td><?= inventoryEscape($amountTotal) ?></td></tr></tfoot></table></div>
     <?php elseif ($isSold && $page['display'] === 'graph'): ?>
         <div class="report-graph" aria-label="Cantidades por <?= $page['group'] === 'contact' ? 'contacto' : 'mes' ?>">
-            <?php $maxQuantity = max(1, ...array_map(static fn ($row) => (float) $row['quantity'], $page['summary'])); foreach ($page['summary'] as $summary): ?><div class="report-graph-row"><span><?= inventoryEscape($summary['label']) ?></span><div class="report-graph-bar" style="width: <?= max(1, min(100, (float) $summary['quantity'] * 100 / $maxQuantity)) ?>%" aria-hidden="true"></div><strong><?= inventoryEscape($summary['quantity']) ?></strong></div><?php endforeach; ?>
+            <?php $maxQuantity = max([1, ...array_map(static fn ($row) => (float) $row['quantity'], $page['summary'])]); foreach ($page['summary'] as $summary): ?><div class="report-graph-row"><span><?= inventoryEscape($summary['label']) ?></span><div class="report-graph-bar" style="width: <?= max(1, min(100, (float) $summary['quantity'] * 100 / $maxQuantity)) ?>%" aria-hidden="true"></div><strong><?= inventoryEscape($summary['quantity']) ?></strong></div><?php endforeach; ?>
             <?php if (! $page['summary']): ?><p class="section-subtitle">No hay órdenes confirmadas que coincidan con los filtros.</p><?php endif; ?>
         </div>
     <?php else: ?>
