@@ -1,6 +1,7 @@
 <?php
 declare(strict_types=1);
 require_once __DIR__.'/company-catalog.php';
+require_once __DIR__.'/transfer-transactions.php';
 
 /**
  * Scope every business table occurrence, including nested queries and LEFT JOINs.
@@ -9,6 +10,7 @@ require_once __DIR__.'/company-catalog.php';
  */
 final class CompanyConnection extends PDO
 {
+    use TransferTransactions;
     public function __construct(string $dsn, string $username, string $password, array $options,
         private array $companies, private int $activeCompany, private int $actor, private array $tables)
     {
@@ -23,7 +25,10 @@ final class CompanyConnection extends PDO
         $sql=$this->scope($query);
         return $fetchMode===null?parent::query($sql):parent::query($sql,$fetchMode,...$fetchModeArgs);
     }
-    public function exec(string $statement): int|false { return parent::exec($this->scope($statement)); }
+    public function exec(string $statement): int|false {
+        if($this->transferBatchActive()&&preg_match('/^SET TRANSACTION ISOLATION LEVEL /i',$statement))return 0;
+        return parent::exec($this->scope($statement));
+    }
     public function activeCompanyId(): int { return $this->activeCompany; }
     public function configurationCompanyId(): int { return count($this->companies)===1?$this->companies[0]:$this->activeCompany; }
     public function markCompanyAccessChanged(array $ids): void

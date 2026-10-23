@@ -38,7 +38,7 @@ function startAuthTestServer(): array
         $server['url']='http://127.0.0.1:'.$port.'/project';$server['log']=tempnam(__DIR__,'.auth-server-log-');
         $server['sessions']=sys_get_temp_dir().'/nexo-auth-sessions-'.bin2hex(random_bytes(8));mkdir($server['sessions'],0700);
         $env=getenv();$env['NEXO_DATABASE_NAME']=$name;
-        $server['process']=proc_open([PHP_BINARY,'-d','session.save_path='.$server['sessions'],'-S','127.0.0.1:'.$port,'-t',dirname(__DIR__),__DIR__.'/auth-router.php'],
+        $server['process']=proc_open([PHP_BINARY,'-d','session.save_path='.$server['sessions'],'-d','upload_tmp_dir='.$server['sessions'],'-S','127.0.0.1:'.$port,'-t',dirname(__DIR__),__DIR__.'/auth-router.php'],
             [0=>['pipe','r'],1=>['file',$server['log'],'a'],2=>['file',$server['log'],'a']],$pipes,dirname(__DIR__),$env,['bypass_shell'=>true,'create_new_console'=>false]);
         if(!is_resource($server['process']))throw new RuntimeException('No se pudo iniciar el servidor de prueba.');fclose($pipes[0]);
         for($attempt=0;$attempt<100;$attempt++) {

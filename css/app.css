@@ -417,4 +417,14 @@ a.product-stat-button:hover { border-color: #514397; background: #f0edff; }
 .company-choice-primary .company-choice-name { color: #4338ca; font-weight: 700; }
 .company-choice-name small, .company-selection-count { font-size: .72rem; background: #e0e7ff; color: #4338ca; border-radius: 5px; padding: .15rem .35rem; }
 .company-choice-name:focus-visible { outline: 2px solid #4f46e5; outline-offset: 3px; }
+.transfer-menu { position: relative; margin-left: auto; }
+.transfer-menu > summary { cursor: pointer; list-style: none; white-space: nowrap; }
+.transfer-menu > summary::-webkit-details-marker { display: none; }
+.transfer-menu-options { position: absolute; right: 0; z-index: 80; min-width: 210px; padding: .4rem; border: 1px solid #dbe2ee; border-radius: 10px; background: white; box-shadow: 0 12px 32px #14213d24; }
+.transfer-menu-options a, .transfer-menu-options span { display: block; padding: .7rem .8rem; border-radius: 6px; font-size: .85rem; text-decoration: none; }
+.transfer-menu-options a { color: #25324a; }
+.transfer-menu-options a:hover, .transfer-menu-options a:focus-visible { background: #eef2ff; }
+.transfer-menu-options [aria-disabled] { color: #64748b; opacity: .65; cursor: help; }
+.transfer-field-options { display: grid; grid-template-columns: repeat(auto-fit,minmax(230px,1fr)); gap: .75rem; margin: 1.25rem 0; }
+.transfer-field-options label { display: flex; align-items: center; gap: .5rem; font-size: .85rem; }
 @media(max-width: 700px) { .top-navigation-status { flex-wrap: wrap; } .company-selector { max-width: 210px; } }
