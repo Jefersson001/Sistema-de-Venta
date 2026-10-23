@@ -87,10 +87,11 @@ try {
         roleCreated($post('accounting','/modules/contabilidad/index.php?type='.$type.'&id='.$id,
             ['action'=>'confirm_invoice','version'=>roleRecord($db,'accounting_invoices',$id)['version'],'invoice_date'=>$invoiceDate??$today,'due_date'=>$today]));
     };
-    $pay=static function(string $type,int $id,string $amount,bool $settle=true)use($db,$post,$code,$account,$method,$today):int {
+    $pay=static function(string $type,int $id,string $amount,bool $settle=true,?string $received=null,string $change='0.00')use($db,$post,$code,$account,$method,$today):int {
         $i=roleRecord($db,'accounting_invoices',$id); $path='/modules/contabilidad/index.php?type='.$type.'&id='.$id;
+        $cashMethod=$received!==null?(int)$db->query("SELECT id FROM accounting_payment_methods WHERE system_key='cash'")->fetchColumn():$method;
         roleCreated($post('accounting',$path,['action'=>'register_payment','version'=>$i['version'],'amount'=>$amount,
-            'currency_code'=>$code,'account_id'=>$account,'method_id'=>$method,'payment_date'=>$today]));
+            'currency_code'=>$code,'account_id'=>$account,'method_id'=>$cashMethod,'payment_date'=>$today]+($received!==null?['received_amount'=>$received,'change_amount'=>$change]:[])));
         $q=$db->prepare("SELECT id,payment_id FROM accounting_invoice_payments WHERE invoice_id=? AND status='pending' ORDER BY id DESC LIMIT 1"); $q->execute([$id]); $allocation=$q->fetch();
         if($settle) {
             $i=roleRecord($db,'accounting_invoices',$id);
@@ -132,11 +133,13 @@ try {
     roleExpect($rateInvoice['exchange_rate']==='202.00000000'&&$rateInvoice['exchange_rate_date']===$today,'Una nueva tasa cambió una factura registrada.');
     [, $rateBody]=authTestRequest($server,'/tasa.php?invoice_id='.$customerInvoice.'&date='.$today,$cookies['accounting']);
     roleExpect(json_decode($rateBody,true)['exchange_rate']==='202.00000000','La consulta de una factura registrada reemplazó su tasa por la actual.');
-    $pay('customer',$customerInvoice,'7.70',false);
+    $cashPayment=$pay('customer',$customerInvoice,'7.70',false,'10.00','2.30');
+    $cashRecord=loadAccountingPayment($db,$cashPayment);roleExpect($cashRecord['amount']==='7.70'&&$cashRecord['received_amount']==='10.00'&&$cashRecord['change_amount']==='2.30','El cobro de factura no conserva recibido, vuelto y neto.');
     roleExpect(roleRecord($db,'accounting_invoices',$customerInvoice)['payment_state']==='in_payment','El cobro pendiente tiene un estado incorrecto.');
     $q=$db->prepare('SELECT id FROM accounting_invoice_payments WHERE invoice_id=?'); $q->execute([$customerInvoice]); $allocation=(int)$q->fetchColumn();
     $i=roleRecord($db,'accounting_invoices',$customerInvoice);
     roleCreated($post('accounting','/modules/contabilidad/index.php?type=customer&id='.$customerInvoice,['action'=>'settle_payment','version'=>$i['version'],'payment_id'=>$allocation]));
+    $cashEntries=$db->prepare('SELECT amount FROM accounting_treasury_entries WHERE payment_id=? ORDER BY id');$cashEntries->execute([$cashPayment]);roleExpect($cashEntries->fetchAll(PDO::FETCH_COLUMN)===['10.00','-2.30'],'El cobro de factura no registra entrada y vuelto juntos.');
     roleExpect(roleRecord($db,'accounting_invoices',$customerInvoice)['payment_state']==='partial','El cobro parcial confirmado no deja Parcialmente pagado.');
     $commission=loadSalesCommissions($db,null,null,$customerInvoice)[0];
     roleExpect($commission['commission_earned']==='2.00','El cobro parcial no habilita la mitad de la comisión.');

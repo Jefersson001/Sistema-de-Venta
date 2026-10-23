@@ -116,6 +116,7 @@ function transferSave(PDO $db,array $m,array $input,?array $old,string $key): in
     if(in_array($save,['payment_terms','accounts','methods','concepts'],true)) {
         $name=trim($input['name']??'');if($name===''||mb_strlen($name)>($save==='payment_terms'?120:160))throw new InvalidArgumentException('Revisa el nombre del registro.');$data=['name'=>$name];
         if($save==='payment_terms'){$days=filter_var($input['days']??null,FILTER_VALIDATE_INT,['options'=>['min_range'=>0,'max_range'=>3650]]);if($days===false)throw new InvalidArgumentException('Días debe ser un entero entre 0 y 3650.');$data['days']=$days;}
+        if($save==='methods')$data['allow_change']=(int)($input['allow_change']??$old['allow_change']??0);
         if($save==='accounts') {
             $type=$input['account_type']??'';$currency=$input['currency_code']??'';
             if(!in_array($type,['cash','bank'],true)||($currency!==''&&!in_array($currency,array_merge(accountingCurrencyCodes(accountingCurrencies($db)),[$old['currency_code']??null]),true)))throw new InvalidArgumentException('Revisa el tipo de cuenta y su moneda.');

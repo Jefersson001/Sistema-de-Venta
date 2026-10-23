@@ -198,9 +198,13 @@ function transferApply(PDO $db,array $m,array $groups,array $fields,string $toke
                 if(!$id&&$value===''&&(isset($input[$name])||$fields[$name]['default']!==null))$value=(string)($input[$name]??$fields[$name]['default']);
                 $input[$name]=transferNormalize($db,$name,$value,$fields[$name]);
             }
-            if(!$id)foreach($fields as $name=>$field)if($field['write']&&$field['required']&&!str_starts_with($name,'line.')&&($input[$name]??'')==='')throw new InvalidArgumentException('Falta el campo obligatorio: '.$field['label'].'.');
+            if(!$id)foreach($fields as $name=>$field){
+                if($m['save']==='payments'&&$name==='amount'&&($input['received_amount']??'')!=='')continue;
+                if($field['write']&&$field['required']&&!str_starts_with($name,'line.')&&($input[$name]??'')==='')throw new InvalidArgumentException('Falta el campo obligatorio: '.$field['label'].'.');
+            }
             if($group['has_lines']&&!empty($m['line_write'])){$input['lines']=[];foreach($group['lines'] as $line){$values=[];foreach($line as $name=>$value)if($fields['line.'.$name]['write']??false)$values[$name]=transferNormalize($db,'line.'.$name,$value,$fields['line.'.$name]);$input['lines'][]=$values;}}
             if($m['save']==='users'&&isset($input['groups']))$input['groups']=transferList($input['groups']);
+            if($m['save']==='payments'&&array_key_exists('amount',$raw)&&!array_key_exists('received_amount',$raw))unset($input['received_amount']);
             if($m['save']==='groups'&&isset($input['permissions']))$input['permissions']=transferList($input['permissions']);
             if(isset($input['active'])&&$old&&isset($old['active'])&&(int)$input['active']!==(int)$old['active']&&!str_ends_with($resource,'.configuration')&&!permissionHas($resource,'archive'))throw new InvalidArgumentException('No tienes permiso para archivar o reactivar registros.',403);
             $post=$_POST;try {$_POST=$input;permissionGuardInput($db,$resource,$m['save']==='commission_payments'?accessId($input['invoice_id']??null):$id,$action,false);$input=$_POST;}finally{$_POST=$post;}

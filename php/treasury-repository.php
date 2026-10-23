@@ -39,8 +39,8 @@ function treasuryBalance(PDO $db,int $account,string $currency,string $date): st
 }
 function treasuryEntry(PDO $db,array $data): void
 {
-    $db->prepare('INSERT INTO accounting_treasury_entries(account_id,currency_code,movement_date,amount,category,payment_id,document_id,concept_id,contact_id,method_id) VALUES (?,?,?,?,?,?,?,?,?,?)')
-        ->execute([$data['account_id'],$data['currency_code'],$data['movement_date'],$data['amount'],$data['category'],$data['payment_id']??null,$data['document_id']??null,$data['concept_id']??null,$data['contact_id']??null,$data['method_id']??null]);
+    $db->prepare('INSERT INTO accounting_treasury_entries(account_id,currency_code,movement_date,amount,category,payment_id,document_id,concept_id,contact_id,method_id,flow_amount,cash_role) VALUES (?,?,?,?,?,?,?,?,?,?,?,?)')
+        ->execute([$data['account_id'],$data['currency_code'],$data['movement_date'],$data['amount'],$data['category'],$data['payment_id']??null,$data['document_id']??null,$data['concept_id']??null,$data['contact_id']??null,$data['method_id']??null,$data['flow_amount']??null,$data['cash_role']??'normal']);
 }
 function treasuryPostPayment(PDO $db,array $payment): void
 {
@@ -50,6 +50,15 @@ function treasuryPostPayment(PDO $db,array $payment): void
     $q=$db->prepare('SELECT id FROM accounting_treasury_entries WHERE payment_id=?');$q->execute([$payment['id']]);if($q->fetchColumn())return;
     if($payment['status']!=='settled')throw new InvalidArgumentException('Solo los pagos confirmados generan movimientos de dinero.');
     treasuryCheckCurrency($accounts[(int)$payment['account_id']],$payment['currency_code']);
+    if(!empty($payment['change_enabled'])){
+        $received=$payment['received_amount'];$change=$payment['change_amount'];
+        if($payment['direction']!=='inbound'||$accounts[(int)$payment['account_id']]['account_type']!=='cash'||bccomp(bcsub($received,$change,2),$payment['amount'],2)!==0||bccomp($change,'0',2)<0)throw new InvalidArgumentException('Los importes del efectivo y el vuelto no son válidos.');
+        if(bccomp(bcadd(treasuryBalance($db,(int)$payment['account_id'],$payment['currency_code'],$payment['payment_date']),$received,2),$change,2)<0)throw new InvalidArgumentException('La caja no tiene saldo suficiente para entregar el vuelto.');
+        $base=['account_id'=>$payment['account_id'],'currency_code'=>$payment['currency_code'],'movement_date'=>$payment['payment_date'],'category'=>'payment','payment_id'=>$payment['id'],'concept_id'=>$payment['concept_id']??null,'contact_id'=>$payment['contact_id'],'method_id'=>$payment['method_id']];
+        treasuryEntry($db,$base+['amount'=>$received,'flow_amount'=>$payment['amount'],'cash_role'=>'cash_received']);
+        if(bccomp($change,'0',2)>0)treasuryEntry($db,$base+['amount'=>bcsub('0',$change,2),'flow_amount'=>'0.00','cash_role'=>'cash_change']);
+        return;
+    }
     treasuryEntry($db,['account_id'=>$payment['account_id'],'currency_code'=>$payment['currency_code'],'movement_date'=>$payment['payment_date'],
         'amount'=>$payment['direction']==='inbound'?$payment['amount']:bcsub('0',$payment['amount'],2),'category'=>'payment','payment_id'=>$payment['id'],
         'concept_id'=>$payment['concept_id']??null,'contact_id'=>$payment['contact_id'],'method_id'=>$payment['method_id']]);
@@ -176,8 +185,12 @@ function reverseAccountingPayment(PDO $db,int $id,?int $version,array $input): i
         $new=treasuryInsertDocument($db,['kind'=>'payment_reversal','status'=>'done','account_id'=>$p['account_id'],'currency_code'=>$p['currency_code'],
             'amount'=>$p['amount'],'primary_code'=>$p['primary_code'],'alternate_code'=>$p['alternate_code'],'exchange_rate'=>$p['exchange_rate'],
             'movement_date'=>$date,'concept_id'=>$p['concept_id'],'contact_id'=>$p['contact_id'],'method_id'=>$p['method_id'],'reference'=>$reason,'payment_id'=>$id]);
-        treasuryEntry($db,['account_id'=>$p['account_id'],'currency_code'=>$p['currency_code'],'movement_date'=>$date,'amount'=>$p['direction']==='inbound'?bcsub('0',$p['amount'],2):$p['amount'],
-            'category'=>'reversal','document_id'=>$new,'concept_id'=>$p['concept_id'],'contact_id'=>$p['contact_id'],'method_id'=>$p['method_id']]);
+        $q=$db->prepare('SELECT * FROM accounting_treasury_entries WHERE payment_id=? ORDER BY id');$q->execute([$id]);
+        foreach($q->fetchAll() as $entry){
+            $role=match($entry['cash_role']){'cash_received'=>'cash_received_reversed','cash_change'=>'cash_change_recovered',default=>'normal'};
+            treasuryEntry($db,['account_id'=>$entry['account_id'],'currency_code'=>$entry['currency_code'],'movement_date'=>$date,'amount'=>bcsub('0',$entry['amount'],2),
+                'flow_amount'=>$entry['flow_amount']===null?null:bcsub('0',$entry['flow_amount'],2),'cash_role'=>$role,'category'=>'reversal','document_id'=>$new,'concept_id'=>$p['concept_id'],'contact_id'=>$p['contact_id'],'method_id'=>$p['method_id']]);
+        }
         $db->prepare("UPDATE accounting_invoice_payments SET status='cancel' WHERE payment_id=? AND status<>'cancel'")->execute([$id]);
         $db->prepare("UPDATE accounting_payments SET status='reversed',version=version+1 WHERE id=?")->execute([$id]);paymentRecomputeInvoices($db,$invoices);$db->commit();return $new;
     }catch(Throwable $e){$db->rollBack();throw $e;}

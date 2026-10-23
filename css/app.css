@@ -443,6 +443,7 @@ a.product-stat-button:hover { border-color: #514397; background: #f0edff; }
 .outstanding-partner > summary small { margin-top: 5px; }
 .outstanding-partner .contact-table-wrap { margin-top: 18px; }
 .outstanding-overdue { color: #a63745; font-weight: 700; }
+[data-cash-change-field][hidden], [data-cash-change-error][hidden] { display: none; }
 .transfer-menu > summary { cursor: pointer; list-style: none; white-space: nowrap; }
 .transfer-menu > summary::-webkit-details-marker { display: none; }
 .transfer-menu-options { position: absolute; right: 0; z-index: 80; min-width: 210px; padding: .4rem; border: 1px solid #dbe2ee; border-radius: 10px; background: white; box-shadow: 0 12px 32px #14213d24; }

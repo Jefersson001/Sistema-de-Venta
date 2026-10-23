@@ -14,10 +14,11 @@ function installDefaultPaymentMethods(PDO $db): void
         $names[$normalize($method['name'])] = true;
         if ($method['system_key'] !== null) $keys[$method['system_key']] = true;
     }
-    $insert = $db->prepare('INSERT IGNORE INTO accounting_payment_methods(name,system_key) VALUES (?,?)');
+    $hasChange=(bool)$db->query("SHOW COLUMNS FROM accounting_payment_methods LIKE 'allow_change'")->fetch();
+    $insert = $db->prepare($hasChange?'INSERT IGNORE INTO accounting_payment_methods(name,system_key,allow_change) VALUES (?,?,?)':'INSERT IGNORE INTO accounting_payment_methods(name,system_key) VALUES (?,?)');
     foreach ($defaults as $key => $name) {
         if (isset($keys[$key]) || isset($names[$normalize($name)])) continue;
-        $insert->execute([$name, $key]);
+        $insert->execute($hasChange?[$name,$key,$key==='cash'?1:0]:[$name,$key]);
         $names[$normalize($name)] = true; $keys[$key] = true;
     }
 }

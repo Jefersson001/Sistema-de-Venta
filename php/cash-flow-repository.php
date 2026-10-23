@@ -44,31 +44,36 @@ function cashFlowZeroAmounts(array $codes): array
 {
     $amounts=[];
     foreach($codes as $code)$amounts[$code]=['code'=>$code,'income'=>'0.00','expense'=>'0.00','net'=>'0.00','income_count'=>0,'expense_count'=>0,
-        'balance_start'=>'0.00','balance_end'=>'0.00','transfer_in'=>'0.00','transfer_out'=>'0.00','opening_changes'=>'0.00','methods'=>[]];
+        'balance_start'=>'0.00','balance_end'=>'0.00','transfer_in'=>'0.00','transfer_out'=>'0.00','opening_changes'=>'0.00','cash_received'=>'0.00','cash_change'=>'0.00','cash_received_reversed'=>'0.00','cash_change_recovered'=>'0.00','methods'=>[]];
     return $amounts;
 }
 function cashFlowLedgerTotals(PDO $db,array $range,?int $accountId=null): array
 {
     $external="category IN ('payment','movement','reversal')";
+    $flow='COALESCE(flow_amount,amount)';
     $sql="SELECT account_id,currency_code,
-        SUM(CASE WHEN $external AND movement_date>=? AND amount>0 THEN amount ELSE 0 END) AS income,
-        SUM(CASE WHEN $external AND movement_date>=? AND amount<0 THEN -amount ELSE 0 END) AS expense,
-        SUM($external AND movement_date>=? AND amount>0) AS income_count,
-        SUM($external AND movement_date>=? AND amount<0) AS expense_count,
+        SUM(CASE WHEN $external AND movement_date>=? AND $flow>0 THEN $flow ELSE 0 END) AS income,
+        SUM(CASE WHEN $external AND movement_date>=? AND $flow<0 THEN -$flow ELSE 0 END) AS expense,
+        SUM($external AND movement_date>=? AND $flow>0) AS income_count,
+        SUM($external AND movement_date>=? AND $flow<0) AS expense_count,
         SUM(CASE WHEN movement_date<? OR (category='opening' AND movement_date=?) THEN amount ELSE 0 END) AS balance_start,
         SUM(amount) AS balance_end,
         SUM(CASE WHEN category='transfer' AND movement_date>=? AND amount>0 THEN amount ELSE 0 END) AS transfer_in,
         SUM(CASE WHEN category='transfer' AND movement_date>=? AND amount<0 THEN -amount ELSE 0 END) AS transfer_out,
         SUM(CASE WHEN category='opening' AND movement_date>? THEN amount ELSE 0 END) AS opening_changes,
+        SUM(CASE WHEN cash_role='cash_received' AND movement_date>=? THEN amount ELSE 0 END) AS cash_received,
+        SUM(CASE WHEN cash_role='cash_change' AND movement_date>=? THEN -amount ELSE 0 END) AS cash_change,
+        SUM(CASE WHEN cash_role='cash_received_reversed' AND movement_date>=? THEN -amount ELSE 0 END) AS cash_received_reversed,
+        SUM(CASE WHEN cash_role='cash_change_recovered' AND movement_date>=? THEN amount ELSE 0 END) AS cash_change_recovered,
         SUM(movement_date>=?) AS movement_count
         FROM accounting_treasury_entries WHERE movement_date<=?".($accountId?' AND account_id=?':'').' GROUP BY account_id,currency_code';
-    $params=array_fill(0,10,$range['date_from']);$params[]=$range['date_to'];if($accountId)$params[]=$accountId;
+    $params=array_fill(0,14,$range['date_from']);$params[]=$range['date_to'];if($accountId)$params[]=$accountId;
     $q=$db->prepare($sql);$q->execute($params);return $q->fetchAll();
 }
 function cashFlowMerge(array &$amounts,array $row): void
 {
     $code=$row['currency_code'];$amounts[$code]??=cashFlowZeroAmounts([$code])[$code];
-    foreach(['income','expense','balance_start','balance_end','transfer_in','transfer_out','opening_changes'] as $key)$amounts[$code][$key]=bcadd($amounts[$code][$key],$row[$key],2);
+    foreach(['income','expense','balance_start','balance_end','transfer_in','transfer_out','opening_changes','cash_received','cash_change','cash_received_reversed','cash_change_recovered'] as $key)$amounts[$code][$key]=bcadd($amounts[$code][$key],$row[$key],2);
     foreach(['income_count','expense_count'] as $key)$amounts[$code][$key]+=(int)$row[$key];
     $amounts[$code]['net']=bcsub($amounts[$code]['income'],$amounts[$code]['expense'],2);
 }
@@ -76,8 +81,8 @@ function cashFlowMerge(array &$amounts,array $row): void
 function loadCashFlowMethods(PDO $db,array $range,?int $accountId=null): array
 {
     $sql="SELECT e.account_id,e.currency_code,e.method_id,COALESCE(m.name,'Sin medio de pago') AS name,
-        SUM(CASE WHEN e.amount>0 THEN e.amount ELSE 0 END) AS income,
-        SUM(CASE WHEN e.amount<0 THEN -e.amount ELSE 0 END) AS expense
+        SUM(CASE WHEN COALESCE(e.flow_amount,e.amount)>0 THEN COALESCE(e.flow_amount,e.amount) ELSE 0 END) AS income,
+        SUM(CASE WHEN COALESCE(e.flow_amount,e.amount)<0 THEN -COALESCE(e.flow_amount,e.amount) ELSE 0 END) AS expense
         FROM accounting_treasury_entries e LEFT JOIN accounting_payment_methods m ON m.id=e.method_id
         WHERE e.movement_date BETWEEN ? AND ? AND e.category IN ('payment','movement','reversal')";
     $params=[$range['date_from'],$range['date_to']];

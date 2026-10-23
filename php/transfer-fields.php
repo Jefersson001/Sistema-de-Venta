@@ -19,7 +19,8 @@ function transferFieldLabel(string $name): string
         'legal_name'=>'Razón social','login'=>'Usuario de acceso','invoice_id'=>'Factura (ID)','invoice_date'=>'Fecha de factura','due_date'=>'Fecha de vencimiento',
         'product_id'=>'Producto (ID)','quantity'=>'Cantidad','unit_price'=>'Precio unitario','demand'=>'Cantidad prevista','document_key'=>'Clave del documento (agrupar líneas)',
         'status'=>'Estado','base_amount'=>'Base imponible','tax_amount'=>'Impuestos','total_amount'=>'Total','company_name'=>'Empresa',
-        'price'=>'Precio de proveedor','rate_date'=>'Fecha de la tasa','base_currency_id'=>'Moneda base (ID)'];
+        'price'=>'Precio de proveedor','rate_date'=>'Fecha de la tasa','base_currency_id'=>'Moneda base (ID)',
+        'allow_change'=>'Permitir vuelto','received_amount'=>'Efectivo / importe recibido','change_amount'=>'Vuelto entregado','change_enabled'=>'Vuelto habilitado en este pago','flow_amount'=>'Importe neto para ingresos y egresos','cash_role'=>'Tipo de movimiento de efectivo'];
     return $labels[$name]??ucfirst(str_replace('_',' ',$name));
 }
 

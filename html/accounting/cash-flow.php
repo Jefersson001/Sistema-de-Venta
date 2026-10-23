@@ -14,7 +14,7 @@ $escape = static fn(mixed $value): string => htmlspecialchars((string)$value, EN
     <div class="section-heading"><h2 id="cash-flow-methods-title">Ingresos y egresos por medio de pago</h2></div>
     <div class="cash-flow-accounts-grid">
     <?php foreach($cashFlow['currencies'] as $currency): if(empty($currency['methods']))continue; ?>
-    <div class="overview-card cash-flow-account-currency"><strong><?= $escape($currency['code']) ?></strong><?php require dirname(__DIR__).'/partials/cash-flow-methods.php'; ?></div>
+    <div class="overview-card cash-flow-account-currency"><strong><?= $escape($currency['code']) ?></strong><?php require dirname(__DIR__).'/partials/cash-change-totals.php';require dirname(__DIR__).'/partials/cash-flow-methods.php'; ?></div>
     <?php endforeach; ?>
     </div>
     <?php if(!array_filter($cashFlow['currencies'],static fn($currency)=>!empty($currency['methods']))): ?><p class="section-subtitle">No hay ingresos ni egresos confirmados en este período.</p><?php endif; ?>
@@ -22,7 +22,7 @@ $escape = static fn(mixed $value): string => htmlspecialchars((string)$value, EN
 <section aria-labelledby="cash-flow-history-title">
     <div class="section-heading"><div><h2 id="cash-flow-history-title">Historial de movimientos confirmados</h2><p class="section-subtitle"><?= $history['total'] ?> registros · Fecha del movimiento</p></div></div>
     <div class="contact-table-wrap"><table class="contact-table"><thead><tr><th>Fecha</th><th>Documento</th><th>Contacto</th><th>Tipo</th><th>Caja / banco</th><th>Concepto</th><th>Medio de pago</th><th>Importe</th></tr></thead><tbody>
-    <?php foreach($history['rows'] as $row): ?><?php $href=$row['payment_id']?'pagos.php?type='.$row['partner_type'].'&id='.(int)$row['payment_id']:'tesoreria.php?id='.(int)$row['document_id'];$label=match($row['category']){'opening'=>'Saldo inicial','transfer'=>$row['direction']==='inbound'?'Transferencia recibida':'Transferencia enviada','reversal'=>'Reversión',default=>$row['direction']==='inbound'?'Ingreso':'Egreso'}; ?>
+    <?php foreach($history['rows'] as $row): ?><?php $href=$row['payment_id']?'pagos.php?type='.$row['partner_type'].'&id='.(int)$row['payment_id']:'tesoreria.php?id='.(int)$row['document_id'];$label=match($row['cash_role']){'cash_received'=>'Efectivo recibido','cash_change'=>'Vuelto entregado','cash_received_reversed'=>'Reversión de efectivo recibido','cash_change_recovered'=>'Vuelto recuperado',default=>match($row['category']){'opening'=>'Saldo inicial','transfer'=>$row['direction']==='inbound'?'Transferencia recibida':'Transferencia enviada','reversal'=>'Reversión',default=>$row['direction']==='inbound'?'Ingreso':'Egreso'}}; ?>
 <tr><td><?= $escape((new DateTimeImmutable($row['movement_date']))->format('d/m/Y')) ?></td><td><a class="contact-name" href="<?= $escape($href) ?>"><?= $escape($row['name']) ?></a></td><td><?= $escape($row['contact_name']??'—') ?></td><td><span class="cash-flow-type cash-flow-<?= $row['direction']==='inbound'?'income':'expense' ?>"><?= $escape($label) ?></span></td><td><?= $escape($row['account_name']) ?></td><td><?= $escape($row['concept_name']??'—') ?></td><td><?= $escape($row['method_name']??'—') ?></td><td class="quotation-money"><?= $escape($row['amount'].' '.$row['currency_code']) ?></td></tr><?php endforeach; ?>
     <?php if (!$history['rows']): ?><tr><td colspan="8" class="contact-empty">No hay movimientos confirmados en este período.</td></tr><?php endif; ?>
     </tbody></table></div>

@@ -30,8 +30,8 @@ function companySeedDefaults(PDO $db,int $company): void
     $q->execute(['VES','Bolívar','Bs.','Bolívar','Céntimo','after']);
     $db->exec("INSERT INTO accounting_payment_accounts(name,account_type,currency_code,system_key) VALUES('Caja','cash','USD','default_cash')");
     // Seed explicit constants: another company's methods must not suppress defaults.
-    $q=$db->prepare('INSERT IGNORE INTO accounting_payment_methods(name,system_key) VALUES(?,?)');
-    foreach(['manual'=>'Manual','cash'=>'Efectivo','bank_transfer'=>'Transferencia bancaria','mobile_payment'=>'Pago móvil','card'=>'Tarjeta','zelle'=>'Zelle','usdt'=>'USDT','paypal'=>'PayPal','biopago'=>'Bio Pago'] as $key=>$name)$q->execute([$name,$key]);
+    $q=$db->prepare('INSERT IGNORE INTO accounting_payment_methods(name,system_key,allow_change) VALUES(?,?,?)');
+    foreach(['manual'=>'Manual','cash'=>'Efectivo','bank_transfer'=>'Transferencia bancaria','mobile_payment'=>'Pago móvil','card'=>'Tarjeta','zelle'=>'Zelle','usdt'=>'USDT','paypal'=>'PayPal','biopago'=>'Bio Pago'] as $key=>$name)$q->execute([$name,$key,$key==='cash'?1:0]);
     $db->exec("INSERT INTO accounting_payment_terms(name,days) VALUES('Contado',0)");
     $q=$db->prepare('INSERT INTO inventory_locations(name,location_type,system_key) VALUES(?,?,?)');
     $q->execute(['Clientes','customer','default_customer']);$q->execute(['Proveedores','supplier','default_supplier']);

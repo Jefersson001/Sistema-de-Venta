@@ -21,6 +21,7 @@ function renderPaymentConfiguration(string $section): void
                     $q=$db->prepare('UPDATE accounting_currency_settings SET primary_code=?,alternate_code=?,exchange_rate=?,version=version+1 WHERE id=1 AND version=?');$q->execute([$main,$alt,$rate,$version]);if(!$q->rowCount())throw new InvalidArgumentException('La configuración cambió en otra ventana. Recarga antes de continuar.');
                 }else{
                     $name=is_string($_POST['name']??null)?trim($_POST['name']):'';if($name===''||mb_strlen($name)>120)throw new InvalidArgumentException('Indica un nombre de entre 1 y 120 caracteres.');$data=['name'=>$name];
+                    if($section==='methods')$data['allow_change']=isset($_POST['allow_change'])?1:0;
                     if($section==='concepts'){
                         $direction=$_POST['direction']??'';if(!in_array($direction,['inbound','outbound','both'],true))throw new InvalidArgumentException('Selecciona el sentido del concepto.');
                         if($id){workflowBegin($db);$q=$db->prepare('SELECT direction FROM accounting_cash_concepts WHERE id=? FOR UPDATE');$q->execute([$id]);$currentDirection=$q->fetchColumn();

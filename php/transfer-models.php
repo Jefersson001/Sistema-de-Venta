@@ -24,7 +24,7 @@ function transferModels(): array
         $add($type.'_invoices','accounting_invoices',$type==='customer'?'Facturas de clientes':'Facturas de proveedores','contabilidad.'.$type.'_invoices','invoices','source_order_id,invoice_date,due_date',[
             'domain'=>['invoice_type'=>$type],'type'=>$type,'line_table'=>'accounting_invoice_lines','line_fk'=>'invoice_id','line_write'=>[],
             'synthetic'=>['source_order_id'=>['label'=>'Orden de origen (ID)','required'=>true,'type'=>'int']]]);
-        $add($type.'_payments','accounting_payments',$type==='customer'?'Cobros de clientes':'Pagos a proveedores','contabilidad.'.$type.'_payments','payments','contact_id,amount,currency_code,exchange_rate,payment_date,reference,account_id,method_id,concept_id,direction',[
+        $add($type.'_payments','accounting_payments',$type==='customer'?'Cobros de clientes':'Pagos a proveedores','contabilidad.'.$type.'_payments','payments','contact_id,amount,received_amount,change_amount,currency_code,exchange_rate,payment_date,reference,account_id,method_id,concept_id,direction',[
             'domain'=>['partner_type'=>$type],'defaults'=>['partner_type'=>$type,'direction'=>$type==='customer'?'inbound':'outbound'],'type'=>$type]);
     }
     foreach(['delivery','receipt','internal'] as $type)$add($type.'_operations','inventory_operations',['delivery'=>'Entregas','receipt'=>'Recepciones','internal'=>'Traslados'][$type],'inventario.'.['delivery'=>'deliveries','receipt'=>'receipts','internal'=>'internal'][$type],'operations','scheduled_date,contact_id,source_warehouse_id,source_location_id,destination_warehouse_id,destination_location_id,notes',[
@@ -34,7 +34,7 @@ function transferModels(): array
     $add('treasury','accounting_treasury_documents','Movimientos de tesorería','contabilidad.income','readonly','');
     $add('payment_terms','accounting_payment_terms','Plazos de pago','contabilidad.configuration','payment_terms','name,days');
     $add('accounts','accounting_payment_accounts','Cajas y bancos','contabilidad.configuration','accounts','name,account_type,currency_code',['defaults'=>['currency_code'=>'']]);
-    $add('methods','accounting_payment_methods','Medios de pago','contabilidad.configuration','methods','name');
+    $add('methods','accounting_payment_methods','Medios de pago','contabilidad.configuration','methods','name,allow_change');
     $add('concepts','accounting_cash_concepts','Conceptos de tesorería','contabilidad.configuration','concepts','name,direction,active',['defaults'=>['active'=>'1','direction'=>'both']]);
     $add('currencies','accounting_currencies','Monedas','contabilidad.configuration','currencies','code,name,symbol,unit_label,subunit_label,symbol_position,active',['defaults'=>['symbol_position'=>'before','active'=>'1'],'line_table'=>'accounting_currency_rates','line_fk'=>'currency_id','line_write'=>['base_currency_id','rate_date','rate']]);
     $add('currency_settings','accounting_currency_settings','Configuración de monedas','contabilidad.configuration','currency_settings','primary_code,alternate_code',['singleton'=>true,'search'=>[]]);

@@ -69,13 +69,13 @@ for (const widget of document.querySelectorAll('[data-cash-flow]')) {
         const accountGrid=widget.querySelector('[data-cash-flow-account-grid]');
         if(accountGrid){
             const element=(tag,className,value)=>{const node=document.createElement(tag);node.className=className;if(value!==undefined)node.textContent=value;return node;};
-            const labels={balance_start:'Saldo al inicio',income:'Ingresos',expense:'Egresos',net:'Diferencia',transfer_in:'Transferencias recibidas',transfer_out:'Transferencias enviadas',opening_changes:'Saldos iniciales del período',balance_end:'Saldo al cierre'};
+            const labels={balance_start:'Saldo al inicio',income:'Ingresos',expense:'Egresos',net:'Diferencia',cash_received:'Efectivo recibido',cash_change:'Vuelto entregado',cash_received_reversed:'Efectivo recibido revertido',cash_change_recovered:'Vuelto recuperado por reversión',transfer_in:'Transferencias recibidas',transfer_out:'Transferencias enviadas',opening_changes:'Saldos iniciales del período',balance_end:'Saldo al cierre'};
             const accountCards=data.accounts.map(account=>{
                 const card=element('a','overview-card cash-flow-account-card');card.dataset.cashFlowAccount=account.id;
                 card.href=accountGrid.dataset.historyPrefix+'ingresos-egresos.php?'+applied.toString()+'&account_id='+encodeURIComponent(account.id);
                 const heading=element('div','cash-flow-account-heading');heading.append(element('h3','',account.name),element('span','module-status',account.account_type==='cash'?'Caja':'Banco'));card.append(heading);
                 for(const currency of account.currencies){const block=element('div','cash-flow-account-currency');block.append(element('strong','',currency.code));const totals=element('dl','cash-flow-account-totals');
-                    for(const [key,label] of Object.entries(labels)){if(['transfer_in','transfer_out','opening_changes'].includes(key)&&currency[key]==='0.00')continue;const row=element('div','cash-flow-'+key);row.append(element('dt','',label),element('dd','',currency[key]));totals.append(row);}block.append(totals);
+                    for(const [key,label] of Object.entries(labels)){if(['transfer_in','transfer_out','opening_changes','cash_received','cash_change','cash_received_reversed','cash_change_recovered'].includes(key)&&(!currency[key]||currency[key]==='0.00'))continue;const row=element('div','cash-flow-'+key);row.append(element('dt','',label),element('dd','',currency[key]));totals.append(row);}block.append(totals);
                     const methods=(currency.methods||[]).filter(method=>Number(method.income)!==0||Number(method.expense)!==0);
                     if(methods.length){
                         const detail=element('div','cash-flow-methods');detail.dataset.cashFlowMethods='';detail.append(element('p','cash-flow-methods-title','Por medio de pago'));

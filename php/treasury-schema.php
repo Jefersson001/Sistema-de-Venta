@@ -1,6 +1,7 @@
 <?php
 declare(strict_types=1);
 require_once __DIR__.'/workflow-schema.php';
+require_once __DIR__.'/cash-change-schema.php';
 
 function installTreasury(PDO $db): void
 {
@@ -52,4 +53,5 @@ function installTreasury(PDO $db): void
     $db->exec("INSERT INTO accounting_treasury_entries(account_id,currency_code,movement_date,amount,category,payment_id,concept_id,contact_id,method_id)
         SELECT p.account_id,p.currency_code,p.payment_date,IF(p.direction='inbound',p.amount,-p.amount),'payment',p.id,p.concept_id,p.contact_id,p.method_id
         FROM accounting_payments p WHERE p.status='settled' AND NOT EXISTS(SELECT 1 FROM accounting_treasury_entries e WHERE e.payment_id=p.id)");
+    installCashChange($db);
 }

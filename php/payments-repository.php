@@ -19,7 +19,11 @@ function validateAccountingPayment(PDO $db,array $input,?array $existing=null,?a
     $contact=salesId($input['contact_id']??$existing['contact_id']??null);$q=$db->prepare('SELECT c.active,t.system_key FROM contacts c JOIN contact_types t ON t.id=c.type_id WHERE c.id=?');$q->execute([$contact]);$c=$q->fetch();
     $historical=(int)($existing['contact_id']??0)===$contact || ((int)($invoice['contact_id']??0)===$contact && ($invoice['invoice_type']??null)===$type);
     if(!$c||(!$historical&&($c['system_key']!==($type==='customer'?'client':'supplier')||!$c['active'])))throw new InvalidArgumentException('Selecciona un cliente o proveedor válido para el pago.');
-    $amount=salesDecimal($input['amount']??'',16,2);if(!$amount||bccomp($amount,'0',2)<=0)throw new InvalidArgumentException('El importe del pago debe ser positivo, con hasta dos decimales.');
+    $change=salesDecimal($input['change_amount']??$existing['change_amount']??'0',16,2);
+    $net=salesDecimal($input['amount']??'',16,2);
+    $received=isset($input['received_amount'])&&$input['received_amount']!==''?salesDecimal($input['received_amount'],16,2):($net!==null&&$change!==null?bcadd($net,$change,2):null);
+    if($received===null||salesDecimal($received,16,2)===null||bccomp($received,'0',2)<=0||$change===null||bccomp($change,'0',2)<0||bccomp($change,$received,2)>=0)throw new InvalidArgumentException('El importe recibido debe ser positivo y el vuelto debe ser cero o menor al recibido, con hasta dos decimales.');
+    $amount=bcsub($received,$change,2);
     $date=$input['payment_date']??'';$parsed=is_string($date)?DateTimeImmutable::createFromFormat('!Y-m-d',$date):false;
     if(!$parsed||$parsed->format('Y-m-d')!==$date||$date<'1000-01-01'||$date>'9999-12-31')throw new InvalidArgumentException('Selecciona una fecha de pago válida.');
     $reference=is_string($input['reference']??null)?trim($input['reference']):'';if(mb_strlen($reference)>160)throw new InvalidArgumentException('La referencia admite hasta 160 caracteres.');
@@ -31,12 +35,14 @@ function validateAccountingPayment(PDO $db,array $input,?array $existing=null,?a
     if(array_key_exists('concept_id',$input)&&!salesId($input['concept_id']))throw new InvalidArgumentException('Selecciona un concepto válido.');
     $accounts=treasuryLockAccounts($db,[$account]);$a=$accounts[$account];
     if($a['currency_code']&&$a['currency_code']!==$currency)throw new InvalidArgumentException('La cuenta seleccionada debe admitir la moneda del pago.');
-    $q=$db->prepare('SELECT id FROM accounting_payment_methods WHERE id=?');$q->execute([$method]);if(!$q->fetchColumn())throw new InvalidArgumentException('Selecciona un medio de pago válido.');
+    $q=$db->prepare('SELECT id,allow_change FROM accounting_payment_methods WHERE id=?');$q->execute([$method]);$methodRecord=$q->fetch();if(!$methodRecord)throw new InvalidArgumentException('Selecciona un medio de pago válido.');
+    $changeEnabled=$methodRecord['allow_change']&&$direction==='inbound'&&$a['account_type']==='cash';
+    if(bccomp($change,'0',2)>0&&!$changeEnabled)throw new InvalidArgumentException('El vuelto requiere un cobro entrante, un método con Permitir vuelto y una cuenta de tipo Caja.');
     $concept=treasuryConcept($db,salesId($input['concept_id']??null)??treasuryDefaultConcept($db,$type,$direction),$direction,salesId($existing['concept_id']??null));
     $pair=$existing?['primary_code'=>$existing['primary_code'],'alternate_code'=>$existing['alternate_code'],'exchange_rate'=>$existing['exchange_rate']]:$settings;
     $rate=accountingExchangeRate($input['exchange_rate']??$pair['exchange_rate']);
     if($currency!==$pair['primary_code']&&$currency===$pair['alternate_code']&&!$rate)throw new InvalidArgumentException('Indica la tasa de cambio utilizada para registrar el pago en moneda alterna.');
-    return ['partner_type'=>$type,'direction'=>$direction,'contact_id'=>$contact,'amount'=>$amount,'currency_code'=>$currency,'primary_code'=>$pair['primary_code'],'alternate_code'=>$pair['alternate_code'],'exchange_rate'=>$rate,'payment_date'=>$date,'reference'=>$reference,'account_id'=>$account,'method_id'=>$method,'concept_id'=>$concept];
+    return ['partner_type'=>$type,'direction'=>$direction,'contact_id'=>$contact,'amount'=>$amount,'received_amount'=>$received,'change_amount'=>$change,'change_enabled'=>(int)$changeEnabled,'currency_code'=>$currency,'primary_code'=>$pair['primary_code'],'alternate_code'=>$pair['alternate_code'],'exchange_rate'=>$rate,'payment_date'=>$date,'reference'=>$reference,'account_id'=>$account,'method_id'=>$method,'concept_id'=>$concept];
 }
 function insertAccountingPayment(PDO $db,array $data,string $status='draft',?string $key=null): int
 {
