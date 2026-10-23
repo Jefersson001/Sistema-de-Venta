@@ -4,8 +4,8 @@ require_once __DIR__.'/access-repository.php';
 
 function authPassword(mixed $password): string
 {
-    if(!is_string($password)||mb_strlen($password,'UTF-8')<12||strlen($password)>72||str_contains($password,"\0")) {
-        throw new InvalidArgumentException('La contraseña debe tener al menos 12 caracteres y no ser demasiado larga. Puedes usar una frase.');
+    if(!is_string($password)||mb_strlen($password,'UTF-8')<8||strlen($password)>72||str_contains($password,"\0")) {
+        throw new InvalidArgumentException('La contraseña debe tener al menos 8 caracteres y no ser demasiado larga. Puedes usar una frase.');
     }
     return $password;
 }

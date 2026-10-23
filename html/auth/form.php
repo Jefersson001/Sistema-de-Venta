@@ -13,8 +13,8 @@
             <?php if($mode!=='password'): ?><label class="contact-full">Usuario *<input name="login" required maxlength="120" autocomplete="username" autocapitalize="none" spellcheck="false" value="<?= authEscape($input['login']??'') ?>"></label><?php endif; ?>
             <?php if($mode==='activate'): ?><label class="contact-full">Correo<input type="email" name="email" maxlength="160" autocomplete="email" value="<?= authEscape($input['email']??'') ?>"></label><?php endif; ?>
             <?php if($mode==='password'): ?><label class="contact-full">Contraseña actual *<input name="current_password" type="password" required maxlength="72" autocomplete="current-password"></label><?php endif; ?>
-            <label class="contact-full"><?= $mode==='password'?'Nueva contraseña':'Contraseña' ?> *<input name="password" type="password" required <?= $mode==='login'?'':'minlength="12"' ?> maxlength="72" autocomplete="<?= $mode==='login'?'current-password':'new-password' ?>"></label>
-            <?php if($mode!=='login'): ?><label class="contact-full">Repite la contraseña *<input name="password_confirmation" type="password" required minlength="12" maxlength="72" autocomplete="new-password"><small>Usa una frase de al menos 12 caracteres.</small></label><?php endif; ?>
+            <label class="contact-full"><?= $mode==='password'?'Nueva contraseña':'Contraseña' ?> *<input name="password" type="password" required <?= $mode==='login'?'':'minlength="8"' ?> maxlength="72" autocomplete="<?= $mode==='login'?'current-password':'new-password' ?>"></label>
+            <?php if($mode!=='login'): ?><label class="contact-full">Repite la contraseña *<input name="password_confirmation" type="password" required minlength="8" maxlength="72" autocomplete="new-password"><small>Usa una frase de al menos 8 caracteres.</small></label><?php endif; ?>
         </div>
         <div class="contact-form-actions"><button class="contact-button contact-button-primary auth-submit"><?= $mode==='login'?'Entrar':($mode==='activate'?'Crear administrador':'Guardar contraseña') ?></button></div>
     </form>

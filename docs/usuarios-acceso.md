@@ -28,7 +28,7 @@ Un contacto solo puede relacionarse con una cuenta. Se puede conservar un grupo/
 
 ## Reglas de seguridad y sesión
 
-- Contraseñas de al menos 12 caracteres y como máximo 72 bytes; una frase suele resultar cómoda. Se guardan con `password_hash()` y se comprueban con `password_verify()`.
+- Contraseñas de al menos 8 caracteres y como máximo 72 bytes; una frase suele resultar cómoda. Se guardan con `password_hash()` y se comprueban con `password_verify()`.
 - Cookie de sesión HttpOnly y SameSite=Lax, con Secure cuando se utiliza HTTPS. El identificador de sesión cambia al entrar, cambiar contraseña o salir.
 - Expiración tras 30 minutos sin solicitudes y un máximo de 8 horas desde el login. Las consultas automáticas del Dashboard cuentan como actividad.
 - Diez intentos fallidos por usuario o treinta por dirección IP bloquean nuevos intentos durante 15 minutos. El mensaje de credenciales incorrectas no indica si la cuenta existe.
