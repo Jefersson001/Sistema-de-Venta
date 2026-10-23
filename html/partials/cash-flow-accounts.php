@@ -8,7 +8,7 @@
         <?php foreach(['balance_start'=>'Saldo al inicio','income'=>'Ingresos','expense'=>'Egresos','net'=>'Diferencia','transfer_in'=>'Transferencias recibidas','transfer_out'=>'Transferencias enviadas','opening_changes'=>'Saldos iniciales del período','balance_end'=>'Saldo al cierre'] as $key=>$label): ?>
         <?php if(in_array($key,['transfer_in','transfer_out','opening_changes'],true)&&bccomp($currency[$key],'0',2)===0)continue; ?>
         <div class="cash-flow-<?= $key ?>"><dt><?= $label ?></dt><dd><?= htmlspecialchars($currency[$key],ENT_QUOTES,'UTF-8') ?></dd></div>
-        <?php endforeach; ?></dl></div><?php endforeach; ?>
+        <?php endforeach; ?></dl><?php require __DIR__.'/cash-flow-methods.php'; ?></div><?php endforeach; ?>
         <div class="cash-flow-account-footer"><span><?= $item['count'] ?> movimientos confirmados</span><span class="overview-link">Ver historial →</span></div>
     </a><?php endforeach; ?>
     <?php if(!$cashFlowAccounts): ?><p class="section-subtitle">No hay cajas ni bancos configurados.</p><?php endif; ?>

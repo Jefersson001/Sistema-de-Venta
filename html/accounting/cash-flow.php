@@ -10,6 +10,15 @@ $escape = static fn(mixed $value): string => htmlspecialchars((string)$value, EN
 <?php if (!$account): ?>
 <?php $cashFlowAccounts=$modulePageData['accounts'];$cashFlowAccountHrefPrefix='';require dirname(__DIR__).'/partials/cash-flow-accounts.php'; ?>
 <?php else: ?>
+<section class="business-overview" aria-labelledby="cash-flow-methods-title">
+    <div class="section-heading"><h2 id="cash-flow-methods-title">Ingresos y egresos por medio de pago</h2></div>
+    <div class="cash-flow-accounts-grid">
+    <?php foreach($cashFlow['currencies'] as $currency): if(empty($currency['methods']))continue; ?>
+    <div class="overview-card cash-flow-account-currency"><strong><?= $escape($currency['code']) ?></strong><?php require dirname(__DIR__).'/partials/cash-flow-methods.php'; ?></div>
+    <?php endforeach; ?>
+    </div>
+    <?php if(!array_filter($cashFlow['currencies'],static fn($currency)=>!empty($currency['methods']))): ?><p class="section-subtitle">No hay ingresos ni egresos confirmados en este período.</p><?php endif; ?>
+</section>
 <section aria-labelledby="cash-flow-history-title">
     <div class="section-heading"><div><h2 id="cash-flow-history-title">Historial de movimientos confirmados</h2><p class="section-subtitle"><?= $history['total'] ?> registros · Fecha del movimiento</p></div></div>
     <div class="contact-table-wrap"><table class="contact-table"><thead><tr><th>Fecha</th><th>Documento</th><th>Contacto</th><th>Tipo</th><th>Caja / banco</th><th>Concepto</th><th>Medio de pago</th><th>Importe</th></tr></thead><tbody>

@@ -22,6 +22,8 @@ $cashFlowEscape = static fn(mixed $value): string => htmlspecialchars((string)$v
         </div><p><?= match ($key) { 'income'=>'Entradas externas del período.', 'expense'=>'Salidas externas del período.', 'balance_start'=>'Saldo antes de los movimientos del período.', 'balance_end'=>'Saldo acumulado hasta la fecha final.', default=>'Ingresos menos egresos, sin transferencias internas.' } ?></p></article>
         <?php endforeach; ?>
     </div>
-    <?php if ($cashFlowLive): ?><p class="section-subtitle cash-flow-updated" data-cash-flow-updated role="status"><?= $cashFlow ? 'Actualizado '.$cashFlowEscape($cashFlow['updated_time']).' · Hora de Venezuela' : 'Resumen no disponible.' ?></p><noscript><p class="section-subtitle">Recarga la página para actualizar el resumen.</p></noscript>
+    <?php if ($cashFlowLive): ?>
+    <?php $cashFlowAccounts=$cashFlow['accounts']??[];$cashFlowAccountHrefPrefix='../contabilidad/';require __DIR__.'/cash-flow-accounts.php'; ?>
+    <p class="section-subtitle cash-flow-updated" data-cash-flow-updated role="status"><?= $cashFlow ? 'Actualizado '.$cashFlowEscape($cashFlow['updated_time']).' · Hora de Venezuela' : 'Resumen no disponible.' ?></p><noscript><p class="section-subtitle">Recarga la página para actualizar el resumen.</p></noscript>
     <?php endif; ?>
 </section>

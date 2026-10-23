@@ -44,7 +44,7 @@ function cashFlowZeroAmounts(array $codes): array
 {
     $amounts=[];
     foreach($codes as $code)$amounts[$code]=['code'=>$code,'income'=>'0.00','expense'=>'0.00','net'=>'0.00','income_count'=>0,'expense_count'=>0,
-        'balance_start'=>'0.00','balance_end'=>'0.00','transfer_in'=>'0.00','transfer_out'=>'0.00','opening_changes'=>'0.00'];
+        'balance_start'=>'0.00','balance_end'=>'0.00','transfer_in'=>'0.00','transfer_out'=>'0.00','opening_changes'=>'0.00','methods'=>[]];
     return $amounts;
 }
 function cashFlowLedgerTotals(PDO $db,array $range,?int $accountId=null): array
@@ -72,12 +72,26 @@ function cashFlowMerge(array &$amounts,array $row): void
     foreach(['income_count','expense_count'] as $key)$amounts[$code][$key]+=(int)$row[$key];
     $amounts[$code]['net']=bcsub($amounts[$code]['income'],$amounts[$code]['expense'],2);
 }
+/** Same external movements and dates as the income/expense totals, by account and currency. */
+function loadCashFlowMethods(PDO $db,array $range,?int $accountId=null): array
+{
+    $sql="SELECT e.account_id,e.currency_code,e.method_id,COALESCE(m.name,'Sin medio de pago') AS name,
+        SUM(CASE WHEN e.amount>0 THEN e.amount ELSE 0 END) AS income,
+        SUM(CASE WHEN e.amount<0 THEN -e.amount ELSE 0 END) AS expense
+        FROM accounting_treasury_entries e LEFT JOIN accounting_payment_methods m ON m.id=e.method_id
+        WHERE e.movement_date BETWEEN ? AND ? AND e.category IN ('payment','movement','reversal')";
+    $params=[$range['date_from'],$range['date_to']];
+    if($accountId){$sql.=' AND e.account_id=?';$params[]=$accountId;}
+    $sql.=' GROUP BY e.account_id,e.currency_code,e.method_id,m.name HAVING SUM(ABS(e.amount))>0 ORDER BY m.name,e.method_id,e.currency_code';
+    $q=$db->prepare($sql);$q->execute($params);return $q->fetchAll();
+}
 function loadCashFlowSummary(PDO $db,array $range,?int $accountId=null): array
 {
     $codes=accountingCurrencyCodes(accountingCurrencies($db));
     if($accountId){$q=$db->prepare('SELECT currency_code FROM accounting_payment_accounts WHERE id=?');$q->execute([$accountId]);if($code=$q->fetchColumn())$codes=[$code];}
     $amounts=cashFlowZeroAmounts($codes);$count=0;
     foreach(cashFlowLedgerTotals($db,$range,$accountId) as $row){cashFlowMerge($amounts,$row);$count+=(int)$row['movement_count'];}
+    if($accountId)foreach(loadCashFlowMethods($db,$range,$accountId) as $method)$amounts[$method['currency_code']]['methods'][]=$method;
     $updated=new DateTimeImmutable('now',new DateTimeZone('America/Caracas'));
     return ['range'=>$range,'currencies'=>array_values($amounts),'count'=>$count,'updated_at'=>$updated->format(DATE_ATOM),'updated_time'=>$updated->format('H:i:s')];
 }
@@ -86,6 +100,7 @@ function loadCashFlowAccounts(PDO $db,array $range): array
     $codes=accountingCurrencyCodes(accountingCurrencies($db));$accounts=[];
     foreach($db->query('SELECT * FROM accounting_payment_accounts ORDER BY name,id')->fetchAll() as $a){$a['currencies']=cashFlowZeroAmounts($a['currency_code']?[$a['currency_code']]:$codes);$a['count']=0;$accounts[(int)$a['id']]=$a;}
     foreach(cashFlowLedgerTotals($db,$range) as $row){cashFlowMerge($accounts[(int)$row['account_id']]['currencies'],$row);$accounts[(int)$row['account_id']]['count']+=(int)$row['movement_count'];}
+    foreach(loadCashFlowMethods($db,$range) as $method)$accounts[(int)$method['account_id']]['currencies'][$method['currency_code']]['methods'][]=$method;
     foreach($accounts as &$a)$a['currencies']=array_values($a['currencies']);unset($a);return array_values($accounts);
 }
 function loadCashFlowHistory(PDO $db,array $range,mixed $requestedPage,?int $accountId=null): array

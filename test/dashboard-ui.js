@@ -28,8 +28,10 @@ widget.dataset.cashFlowEndpoint = 'resumen.php';
 const keys = ['income','expense','net','balance_start','balance_end'];
 const amounts = Object.fromEntries(keys.map(key => [key, element()]));
 const cashUpdated = element(), globalUpdated = element(), globalError = element(), rangeLabel = element(), historyLink = element();
+const accountGrid=element();accountGrid.dataset.historyPrefix='../contabilidad/';
 globalError.hidden = true;
 widget.selectors = {'[data-cash-flow-filter]':form,'[data-cash-flow-error]':error,'[data-cash-flow-updated]':cashUpdated,'[data-cash-flow-history]':historyLink,'[data-cash-flow-range]':rangeLabel,'[data-cash-flow-cards]':element()};
+widget.selectors['[data-cash-flow-account-grid]']=accountGrid;
 for (const key of keys) widget.selectors[`[data-cash-flow-amount="${key}"]`] = amounts[key];
 const metrics = ['sales','purchases','receivables','payables','overdue','unallocated'].map(key => {
     const node = element(); node.dataset.dashboardMetric = key; return node;
@@ -67,7 +69,15 @@ function data(sales = '5') {
 }
 const settle = () => new Promise(resolve => setImmediate(resolve));
 (async () => {
+    const bank={id:3,name:'Banco',account_type:'bank',count:2,currencies:[{code:'USD',income:'50.00',expense:'10.00',net:'40.00',balance_start:'0.00',balance_end:'40.00',transfer_in:'0.00',transfer_out:'0.00',opening_changes:'0.00',methods:[{method_id:5,name:'Transferencia <script>',income:'50.00',expense:'0.00'},{method_id:6,name:'Pago móvil',income:'0.00',expense:'10.00'},{method_id:7,name:'Sin uso',income:'0.00',expense:'0.00'}]}]};
+    const originalData=data;
+    data=(...args)=>({...originalData(...args),accounts:[bank]});
     snapshot = data(); poll(); await settle();
+    const methodTable=accountGrid.children[0].children[1].children[2].children[1];
+    assert.equal(methodTable.children[1].children.length,2,'No deben aparecer métodos en cero.');
+    assert.equal(methodTable.children[1].children[0].children[0].textContent,'Transferencia <script>');
+    assert.equal(methodTable.children[1].children[0].children[0].children.length,0,'Los nombres de métodos se renderizan como texto.');
+    assert.equal(methodTable.children[1].children[0].children[1].textContent,'50.00');
     assert.equal(requests[0], 'resumen.php?period=today');
     assert.deepEqual(metrics.map(node => node.textContent), ['5','3','45.00 USD','20.00 USD','2','15.00 USD']);
     assert.equal(amounts.income.children[0].children[0].textContent, '50.00');
@@ -113,7 +123,9 @@ const settle = () => new Promise(resolve => setImmediate(resolve));
     assert.match(window.location.href, /period=custom/);
     assert.match(commissions.children[0].children.at(-1).children[0].href, /period=custom&date_from=2026-10-01&date_to=2026-10-13&new=1&seller_id=4&commission_currency=USD/);
     snapshot.commissions = [{seller_id:4,seller_name:'Consulta',currency_code:'USD',can_pay:false}];
+    bank.currencies[0].methods=[];
     poll(); await settle();
+    assert.equal(accountGrid.children[0].children[1].children.length,2,'La actualización debe retirar el desglose cuando ya no haya métodos usados.');
     assert.equal(commissions.children[0].children.at(-1).children.length, 0, 'Consulta no debe mostrar Pagar comisión.');
     console.log('PASS: todas las secciones se actualizan automáticamente; fechas en edición, errores, recuperación y texto seguro.');
 })().catch(error => { console.error(error); process.exitCode = 1; });

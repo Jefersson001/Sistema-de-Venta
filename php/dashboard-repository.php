@@ -53,9 +53,11 @@ function loadDashboard(PDO $db): array
 }
 function permissionCashFlowSummary(PDO $db,array $range): array
 {
-    if(permissionHas('dashboard.cash_flow')&&permissionHas('contabilidad.cash_flow'))return loadCashFlowSummary($db,$range);
+    if(permissionHas('dashboard.cash_flow')&&permissionHas('contabilidad.cash_flow')){
+        $summary=loadCashFlowSummary($db,$range);$summary['accounts']=loadCashFlowAccounts($db,$range);return $summary;
+    }
     $now=new DateTimeImmutable('now',new DateTimeZone('America/Caracas'));
-    return ['range'=>$range,'currencies'=>[],'count'=>0,'updated_at'=>$now->format(DATE_ATOM),'updated_time'=>$now->format('H:i:s')];
+    return ['range'=>$range,'currencies'=>[],'accounts'=>[],'count'=>0,'updated_at'=>$now->format(DATE_ATOM),'updated_time'=>$now->format('H:i:s')];
 }
 function permissionDashboardCommissions(PDO $db,array $range): array
 {
