@@ -427,6 +427,8 @@ a.product-stat-button:hover { border-color: #514397; background: #f0edff; }
 .company-choice-name small, .company-selection-count { font-size: .72rem; background: #e0e7ff; color: #4338ca; border-radius: 5px; padding: .15rem .35rem; }
 .company-choice-name:focus-visible { outline: 2px solid #4f46e5; outline-offset: 3px; }
 .transfer-menu { position: relative; margin-left: auto; }
+.daily-exchange-rate { display: flex; flex-direction: column; gap: 2px; align-items: flex-start; max-width: 330px; white-space: normal; }
+.daily-exchange-rate small { font-size: 10px; font-weight: 500; }
 .transfer-menu > summary { cursor: pointer; list-style: none; white-space: nowrap; }
 .transfer-menu > summary::-webkit-details-marker { display: none; }
 .transfer-menu-options { position: absolute; right: 0; z-index: 80; min-width: 210px; padding: .4rem; border: 1px solid #dbe2ee; border-radius: 10px; background: white; box-shadow: 0 12px 32px #14213d24; }

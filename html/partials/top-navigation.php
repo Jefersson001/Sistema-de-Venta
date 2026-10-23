@@ -16,6 +16,7 @@
                 <span class="connection-dot" aria-hidden="true"></span>
                 <?= $databaseStatus['connected'] ? 'Base de datos conectada' : 'Base de datos desconectada' ?>
             </span>
+            <?php require __DIR__.'/exchange-rate.php'; ?>
             <?php $navigationUser=function_exists('authCurrentUser')?authCurrentUser():null; ?>
             <?php if($navigationUser): ?><details class="module-menu user-menu"><summary class="user-menu-summary" aria-label="Opciones de <?= authEscape($navigationUser['name']) ?>"><span class="avatar"><?= authEscape(mb_strtoupper(mb_substr($navigationUser['name'],0,1))) ?></span><span class="user-menu-name"><?= authEscape($navigationUser['name']) ?></span><span aria-hidden="true">▾</span></summary>
                 <div class="module-menu-options user-menu-options"><a href="<?= authBasePath() ?>/perfil.php">Mi perfil</a><a href="<?= authBasePath() ?>/cambiar-contrasena.php">Cambiar contraseña</a><form method="post" action="<?= authBasePath() ?>/logout.php"><input type="hidden" name="csrf" value="<?= authEscape($_SESSION['auth_csrf']) ?>"><button type="submit">Cerrar sesión</button></form></div>

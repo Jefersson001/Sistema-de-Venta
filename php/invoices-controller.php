@@ -75,7 +75,9 @@ function renderAccountingInvoices(): void
                         }
                         if ($current['document_type']==='credit') saveCreditNoteQuantities($db,$current,is_array($_POST['credit_quantities']??null)?$_POST['credit_quantities']:[]);
                         $status = $_POST['action'] === 'confirm_invoice' ? 'posted' : 'draft';
-                        $db->prepare('UPDATE accounting_invoices SET invoice_date = ?, due_date = ?, status = ?, version = version + 1 WHERE id = ?')->execute([$data['invoice_date'], $data['due_date'], $status, $id]);
+                        $snapshot=invoiceExchangeSnapshot($db,$current,$data['invoice_date']);
+                        if($status==='posted'&&!$snapshot['exchange_rate'])throw new InvalidArgumentException('No hay una tasa vigente para la fecha de factura. Registra la tasa histórica antes de confirmar.');
+                        $db->prepare('UPDATE accounting_invoices SET invoice_date = ?, due_date = ?, status = ?, exchange_rate=?,exchange_rate_date=?,exchange_rate_source=?, version = version + 1 WHERE id = ?')->execute([$data['invoice_date'], $data['due_date'], $status,$snapshot['exchange_rate'],$snapshot['exchange_rate_date'],$snapshot['exchange_rate_source'], $id]);
                         if ($status === 'posted') {
                             $fresh=$db->prepare('SELECT * FROM accounting_invoices WHERE id=?');$fresh->execute([$id]);invoiceRecomputePaymentState($db,$fresh->fetch());
                             if ($current['reversal_of_id']) { $fresh->execute([$current['reversal_of_id']]);invoiceRecomputePaymentState($db,$fresh->fetch()); }

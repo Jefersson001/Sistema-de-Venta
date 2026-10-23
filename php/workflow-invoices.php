@@ -1,6 +1,24 @@
 <?php
 declare(strict_types=1);
 require_once __DIR__ . '/workflow-repository.php';
+require_once __DIR__ . '/currency-repository.php';
+
+function invoiceExchangeSnapshot(PDO $db,array $invoice,string $date): array
+{
+    // Credit notes reverse the original monetary valuation.
+    if(($invoice['document_type']??'invoice')==='credit')return ['exchange_rate'=>$invoice['exchange_rate'],'exchange_rate_date'=>$invoice['exchange_rate_date']??null,'exchange_rate_source'=>$invoice['exchange_rate_source']??null];
+    $snapshot=currencyRateSnapshot($db,$invoice['currency_primary_code'],$invoice['currency_alternate_code'],$date,isset($invoice['company_id'])?(int)$invoice['company_id']:null);
+    return ['exchange_rate'=>$snapshot['rate']??null,'exchange_rate_date'=>$snapshot['rate_date']??null,'exchange_rate_source'=>$snapshot['source']??null];
+}
+
+function invoiceCurrencyReference(array $invoice): ?array
+{
+    if(empty($invoice['exchange_rate']))return null;
+    $settings=['primary_code'=>$invoice['currency_primary_code'],'alternate_code'=>$invoice['currency_alternate_code'],'exchange_rate'=>$invoice['exchange_rate']];
+    $to=$invoice['currency_code']===$settings['primary_code']?$settings['alternate_code']:$settings['primary_code'];
+    try{return ['code'=>$to,'amount'=>accountingConvert($invoice['total_amount'],$invoice['currency_code'],$to,$settings)];}
+    catch(InvalidArgumentException){return null;}
+}
 
 function workflowCreateInvoice(PDO $db,string $kind,int $id): int
 {
@@ -23,6 +41,8 @@ function workflowCreateInvoice(PDO $db,string $kind,int $id): int
         $db->prepare('INSERT INTO accounting_invoices (invoice_type,sale_id,purchase_id,contact_id,invoice_address,invoice_date,due_date,payment_term_id,salesperson_id,base_amount,tax_amount,total_amount,currency_code,currency_primary_code,currency_alternate_code,exchange_rate) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)')
             ->execute([$sale?'customer':'supplier',$sale?$id:null,$sale?null:$id,$order[$sale?'customer_id':'supplier_id'],$order['invoice_address']??'',$date,$due,$order['payment_term_id'],$order['salesperson_id']??null,$base,$tax,$total,$order['currency_code'],$order['currency_primary_code'],$order['currency_alternate_code'],$order['exchange_rate']]);
         $invoice=(int)$db->lastInsertId();$db->prepare('UPDATE accounting_invoices SET name=? WHERE id=?')->execute([($sale?'FC':'FP').str_pad((string)$invoice,5,'0',STR_PAD_LEFT),$invoice]);
+        $snapshot=invoiceExchangeSnapshot($db,$order,$date);
+        $db->prepare('UPDATE accounting_invoices SET exchange_rate=?,exchange_rate_date=?,exchange_rate_source=? WHERE id=?')->execute([$snapshot['exchange_rate'],$snapshot['exchange_rate_date'],$snapshot['exchange_rate_source'],$invoice]);
         $q=$db->prepare('INSERT INTO accounting_invoice_lines (invoice_id,position,product_id,product_name,quantity,unit_price,tax_id,tax_name,tax_rate,base_amount,tax_amount,total_amount,unit_cost,sale_line_id,purchase_line_id,commission_reference_price,commission_unit_amount) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)');
         foreach($lines as $pos=>$l)$q->execute([$invoice,$pos,$l['product_id'],$l['product_name'],$l['to_invoice'],$l['unit_price'],$l['tax_id'],$l['tax_name'],$l['tax_rate'],$l['base_amount'],$l['tax_amount'],$l['total_amount'],$l['unit_cost'],$sale?$l['id']:null,$sale?null:$l['id'],$sale?($l['commission_reference_price']??null):null,$sale?($l['commission_unit_amount']??null):null]);
         $db->commit();return $invoice;
@@ -73,6 +93,7 @@ function createCreditNote(PDO $db,int $id,?int $version,string $reason): int
             ->execute([$i['invoice_type'],$id,$i['sale_id'],$i['purchase_id'],$i['contact_id'],$i['invoice_address'],commerceToday(),$i['payment_term_id'],$i['salesperson_id'],$base,$tax,$total]);
         $new=(int)$db->lastInsertId();$db->prepare('UPDATE accounting_invoices SET name=? WHERE id=?')->execute(['NC'.str_pad((string)$new,5,'0',STR_PAD_LEFT),$new]);
         $db->prepare('UPDATE accounting_invoices SET credit_reason=?,currency_code=?,currency_primary_code=?,currency_alternate_code=?,exchange_rate=? WHERE id=?')->execute([$reason,$i['currency_code'],$i['currency_primary_code'],$i['currency_alternate_code'],$i['exchange_rate'],$new]);
+        $db->prepare('UPDATE accounting_invoices SET exchange_rate_date=?,exchange_rate_source=? WHERE id=?')->execute([$i['exchange_rate_date']??null,$i['exchange_rate_source']??null,$new]);
         $q=$db->prepare('INSERT INTO accounting_invoice_lines (invoice_id,position,product_id,product_name,quantity,unit_price,tax_id,tax_name,tax_rate,base_amount,tax_amount,total_amount,unit_cost,sale_line_id,purchase_line_id,original_line_id,commission_reference_price,commission_unit_amount) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)');
         foreach($lines as $pos=>$l)$q->execute([$new,$pos,$l['product_id'],$l['product_name'],$l['quantity'],$l['unit_price'],$l['tax_id'],$l['tax_name'],$l['tax_rate'],$l['base_amount'],$l['tax_amount'],$l['total_amount'],$l['unit_cost'],$l['sale_line_id'],$l['purchase_line_id'],$l['id'],$l['commission_reference_price']??null,$l['commission_unit_amount']??null]);
         $db->commit();return $new;

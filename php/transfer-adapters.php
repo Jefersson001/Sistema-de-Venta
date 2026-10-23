@@ -74,7 +74,8 @@ function transferSave(PDO $db,array $m,array $input,?array $old,string $key): in
         $date=treasuryDate($input['invoice_date']??$old['invoice_date']);$due=($input['due_date']??$old['due_date'])?:null;
         if($due){$due=treasuryDate($due);if($due<$date)throw new InvalidArgumentException('El vencimiento no puede ser anterior a la fecha de factura.');}
         workflowLockOrder($db,['quotation_id'=>$old['sale_id'],'purchase_order_id'=>$old['purchase_id']]);
-        $db->prepare('UPDATE accounting_invoices SET invoice_date=?,due_date=?,version=version+1 WHERE id=?')->execute([$date,$due,$id]);return $id;
+        $snapshot=invoiceExchangeSnapshot($db,$old,$date);
+        $db->prepare('UPDATE accounting_invoices SET invoice_date=?,due_date=?,exchange_rate=?,exchange_rate_date=?,exchange_rate_source=?,version=version+1 WHERE id=?')->execute([$date,$due,$snapshot['exchange_rate'],$snapshot['exchange_rate_date'],$snapshot['exchange_rate_source'],$id]);return $id;
     }
     if($save==='commission_payments') {
         if($id)throw new InvalidArgumentException('Los pagos de comisiones existentes se revierten desde su ficha.');

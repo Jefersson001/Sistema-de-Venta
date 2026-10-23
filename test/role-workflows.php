@@ -7,6 +7,7 @@ require_once dirname(__DIR__).'/php/inventory-stock-repository.php';
 require_once dirname(__DIR__).'/php/payments-repository.php';
 require_once dirname(__DIR__).'/php/commission-repository.php';
 require_once dirname(__DIR__).'/php/cash-flow-repository.php';
+require_once dirname(__DIR__).'/php/bcv-sync.php';
 
 function roleExpect(bool $ok, string $message): void { if (!$ok) throw new RuntimeException($message); }
 function roleRecord(PDO $db, string $table, int $id): array {
@@ -24,6 +25,8 @@ try {
     $token=prepareFirstAdministrator($db);
     $admin=createFirstAdministrator($db,['name'=>$prefix,'login'=>strtolower($prefix),
         'password'=>$password,'password_confirmation'=>$password],hash('sha256',$token));
+    $yesterday=(new DateTimeImmutable($today))->modify('-1 day')->format('Y-m-d');
+    foreach([$yesterday=>'101.00000000',$today=>'202.00000000'] as $rateDate=>$rateValue)bcvApplyPublication($db,['effective_date'=>$rateDate,'rate'=>$rateValue,'source'=>'bcv']);
     $types=array_flip($db->query('SELECT id,system_key FROM contact_types WHERE system_key IS NOT NULL')->fetchAll(PDO::FETCH_KEY_PAIR));
     $db->prepare('INSERT INTO inventory_warehouses(name) VALUES(?)')->execute([$prefix]); $warehouse=(int)$db->lastInsertId();
     $db->prepare('INSERT INTO inventory_locations(name,warehouse_id) VALUES(?,?)')->execute(['Existencias',$warehouse]); $location=(int)$db->lastInsertId();
@@ -80,9 +83,9 @@ try {
     $invoice=static function(string $role,string $kind,int $order)use($post):int {
         return roleCreated($post($role,'/modules/'.$kind.'/index.php?id='.$order,['action'=>'create_invoice']));
     };
-    $register=static function(string $type,int $id)use($post,$today):void {
+    $register=static function(string $type,int $id,?string $invoiceDate=null)use($post,$today,$db):void {
         roleCreated($post('accounting','/modules/contabilidad/index.php?type='.$type.'&id='.$id,
-            ['action'=>'confirm_invoice','version'=>1,'invoice_date'=>$today,'due_date'=>$today]));
+            ['action'=>'confirm_invoice','version'=>roleRecord($db,'accounting_invoices',$id)['version'],'invoice_date'=>$invoiceDate??$today,'due_date'=>$today]));
     };
     $pay=static function(string $type,int $id,string $amount,bool $settle=true)use($db,$post,$code,$account,$method,$today):int {
         $i=roleRecord($db,'accounting_invoices',$id); $path='/modules/contabilidad/index.php?type='.$type.'&id='.$id;
@@ -108,12 +111,27 @@ try {
     roleExpect(treasuryBalance($db,$account,$code,$today)==='70.00','Saldo después de la compra incorrecto.');
     $salePath='/modules/ventas/index.php';
     $sale=roleCreated($post('sales',$salePath.'?new=1',['action'=>'save_quotation','customer_id'=>$contacts['client'],
-        'order_date'=>$today,'order_type'=>'delivery','currency_code'=>$code,'lines'=>[['product_id'=>$product,'quantity'=>'2.000']]]));
+        'order_date'=>$today,'order_type'=>'delivery','currency_code'=>$code,'exchange_rate'=>'111','lines'=>[['product_id'=>$product,'quantity'=>'2.000']]]));
     $order=loadSalesQuotation($db,$sale);
     roleExpect($order['total_amount']==='15.40' && $order['commission_estimated']==='4.00' && (int)$order['salesperson_id']===$contacts['salesperson'],'No viajaron impuesto, comisión o vendedor.');
     roleCreated($post('sales',$salePath.'?id='.$sale,['action'=>'confirm_sale','version'=>1]));
     $delivery=roleCreated($post('sales',$salePath.'?id='.$sale,['action'=>'create_delivery'])); $move($delivery,'2.000');
-    $customerInvoice=$invoice('sales','ventas',$sale); $register('customer',$customerInvoice);
+    $customerInvoice=$invoice('sales','ventas',$sale);
+    $rateInvoice=roleRecord($db,'accounting_invoices',$customerInvoice);
+    roleExpect($rateInvoice['exchange_rate']==='202.00000000'&&$rateInvoice['exchange_rate_date']===$today&&$rateInvoice['exchange_rate_source']==='bcv','La factura heredó la tasa de la orden en vez de su fecha.');
+    [, $rateBody]=authTestRequest($server,'/tasa.php?invoice_id='.$customerInvoice.'&date='.$yesterday,$cookies['accounting']);$ratePreview=json_decode($rateBody,true);
+    roleExpect($ratePreview['exchange_rate']==='101.00000000'&&$ratePreview['reference']['amount']==='1555.40','La vista previa de fecha no aplica la tasa histórica al equivalente.');
+    $missingRate=$post('accounting','/modules/contabilidad/index.php?type=customer&id='.$customerInvoice,['action'=>'confirm_invoice','version'=>1,'invoice_date'=>'1000-01-01','due_date'=>$today]);
+    roleExpect($missingRate[0]===200&&str_contains($missingRate[1],'No hay una tasa vigente')&&roleRecord($db,'accounting_invoices',$customerInvoice)['status']==='draft','Se registró una factura sin tasa histórica.');
+    roleExpect(authTestRequest($server,'/tasa.php?invoice_id='.$customerInvoice.'&date='.$yesterday,$cookies['purchases'])[0]===403,'El endpoint de tasas expuso una factura sin permiso.');
+    roleCreated($post('accounting','/modules/contabilidad/index.php?type=customer&id='.$customerInvoice,['action'=>'save_invoice','version'=>1,'invoice_date'=>$yesterday,'due_date'=>$today]));
+    roleExpect(roleRecord($db,'accounting_invoices',$customerInvoice)['exchange_rate']==='101.00000000','Guardar otra fecha no captó la tasa histórica.');
+    $register('customer',$customerInvoice);
+    bcvApplyPublication($db,['effective_date'=>$today,'rate'=>'404.00000000','source'=>'bcv']);
+    $rateInvoice=roleRecord($db,'accounting_invoices',$customerInvoice);
+    roleExpect($rateInvoice['exchange_rate']==='202.00000000'&&$rateInvoice['exchange_rate_date']===$today,'Una nueva tasa cambió una factura registrada.');
+    [, $rateBody]=authTestRequest($server,'/tasa.php?invoice_id='.$customerInvoice.'&date='.$today,$cookies['accounting']);
+    roleExpect(json_decode($rateBody,true)['exchange_rate']==='202.00000000','La consulta de una factura registrada reemplazó su tasa por la actual.');
     $pay('customer',$customerInvoice,'7.70',false);
     roleExpect(roleRecord($db,'accounting_invoices',$customerInvoice)['payment_state']==='in_payment','El cobro pendiente tiene un estado incorrecto.');
     $q=$db->prepare('SELECT id FROM accounting_invoice_payments WHERE invoice_id=?'); $q->execute([$customerInvoice]); $allocation=(int)$q->fetchColumn();

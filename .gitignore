@@ -1,1 +1,4 @@
 /php/backups/
+/php/runtime/*.json
+/php/runtime/*.lock
+/php/runtime/*.pem

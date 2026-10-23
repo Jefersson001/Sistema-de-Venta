@@ -10,11 +10,17 @@ function accountingCurrencies(PDO $db, ?string $date = null): array
 
 function currencyRateForPair(PDO $db, string $from, string $to, string $date): ?string
 {
-    if ($from === $to) return '1.00000000';
-    $companyFilter=$db instanceof CompanyConnection?' AND r.company_id='.$db->configurationCompanyId():'';
-    $q = $db->prepare('SELECT r.rate,b.code AS base_code FROM accounting_currency_rates r JOIN accounting_currencies c ON c.id=r.currency_id JOIN accounting_currencies b ON b.id=r.base_currency_id WHERE r.rate_date<=? AND ((b.code=? AND c.code=?) OR (b.code=? AND c.code=?))'.$companyFilter.' ORDER BY r.rate_date DESC,(b.code=?) DESC,r.id DESC LIMIT 1');
+    return currencyRateSnapshot($db,$from,$to,$date)['rate']??null;
+}
+
+function currencyRateSnapshot(PDO $db,string $from,string $to,string $date,?int $companyId=null): ?array
+{
+    if($from===$to)return ['rate'=>'1.00000000','rate_date'=>$date,'source'=>'same_currency'];
+    $companyFilter=$companyId!==null?' AND r.company_id='.(int)$companyId:($db instanceof CompanyConnection?' AND r.company_id='.$db->configurationCompanyId():'');
+    $q = $db->prepare('SELECT r.rate,r.rate_date,r.source,b.code AS base_code FROM accounting_currency_rates r JOIN accounting_currencies c ON c.id=r.currency_id JOIN accounting_currencies b ON b.id=r.base_currency_id WHERE r.rate_date<=? AND ((b.code=? AND c.code=?) OR (b.code=? AND c.code=?))'.$companyFilter.' ORDER BY r.rate_date DESC,(b.code=?) DESC,r.id DESC LIMIT 1');
     $q->execute([$date,$from,$to,$to,$from,$from]); $rate = $q->fetch();
-    return $rate ? ($rate['base_code'] === $from ? $rate['rate'] : bcdiv('1',$rate['rate'],8)) : null;
+    if(!$rate)return null;
+    $rate['rate']=$rate['base_code']===$from?$rate['rate']:bcdiv('1',$rate['rate'],8);return $rate;
 }
 function accountingCurrencyCodes(array $settings): array { return array_values(array_unique([$settings['primary_code'],$settings['alternate_code']])); }
 function accountingConvert(string $amount,string $from,string $to,array $settings): string

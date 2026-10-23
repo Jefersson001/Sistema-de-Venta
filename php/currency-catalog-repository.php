@@ -92,9 +92,10 @@ function saveCurrencyRecord(PDO $db, array $input, ?int $id, ?int $version): int
             if (isset($seen[$key])) throw new InvalidArgumentException('Solo puede haber una tasa por fecha y moneda base.');
             $seen[$key] = true;
             if ($rateId) {
-                $q = $db->prepare('SELECT id FROM accounting_currency_rates WHERE id=? AND currency_id=?'); $q->execute([$rateId,$id]);
-                if (!$q->fetchColumn()) throw new InvalidArgumentException('La tasa no pertenece a esta moneda.');
-                $db->prepare('UPDATE accounting_currency_rates SET base_currency_id=?,rate_date=?,rate=? WHERE id=?')->execute([$base,$date,$rate,$rateId]);
+                $q = $db->prepare('SELECT * FROM accounting_currency_rates WHERE id=? AND currency_id=?'); $q->execute([$rateId,$id]);$previous=$q->fetch();
+                if (!$previous) throw new InvalidArgumentException('La tasa no pertenece a esta moneda.');
+                $unchanged=(int)$previous['base_currency_id']===$base&&$previous['rate_date']===$date&&bccomp($previous['rate'],$rate,8)===0;
+                $db->prepare('UPDATE accounting_currency_rates SET base_currency_id=?,rate_date=?,rate=?,source=?,fetched_at=? WHERE id=?')->execute([$base,$date,$rate,$unchanged?$previous['source']:'manual',$unchanged?$previous['fetched_at']:null,$rateId]);
             } else $db->prepare('INSERT INTO accounting_currency_rates(currency_id,base_currency_id,rate_date,rate) VALUES(?,?,?,?)')->execute([$id,$base,$date,$rate]);
         }
         $rate = currencyRateForPair($db, $settings['primary_code'], $settings['alternate_code'], commerceToday());

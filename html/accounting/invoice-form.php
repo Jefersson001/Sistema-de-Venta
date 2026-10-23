@@ -31,11 +31,12 @@ if ($record['status'] === 'posted') {
         <?php if(!$credit && $page['type']==='customer' && !empty($record['salesperson_id']) && array_filter($page['lines'],static fn($line)=>isset($line['commission_unit_amount']) ? bccomp($line['commission_unit_amount'],'0',2)>0 : (isset($line['commission_reference_price']) && bccomp($line['unit_price'],$line['commission_reference_price'],2)>0))): ?><a class="contact-button" href="../ventas/comisiones.php?id=<?= (int)$record['id'] ?>">Comisión del vendedor</a><?php endif; ?>
         <?php require __DIR__ . '/invoice-status-actions.php'; ?>
     </div>
-    <div class="contact-sheet quotation-sheet"><form id="invoice-details" method="post" action="index.php?type=<?= $page['type'] ?>&amp;id=<?= (int) $record['id'] ?>">
+    <div class="contact-sheet quotation-sheet"><form id="invoice-details" method="post" action="index.php?type=<?= $page['type'] ?>&amp;id=<?= (int) $record['id'] ?>" data-invoice-rate-form data-rate-endpoint="<?= accountingEscape(authBasePath().'/tasa.php?invoice_id='.(int)$record['id']) ?>">
         <input type="hidden" name="csrf" value="<?= accountingEscape($page['csrf']) ?>"><input type="hidden" name="version" value="<?= (int) $record['version'] ?>">
         <fieldset <?= $posted ? 'disabled' : '' ?> class="quotation-fields"><div class="contact-form-grid">
             <label><?= $page['type'] === 'customer' ? 'Cliente' : 'Proveedor' ?><input readonly value="<?= accountingEscape($record['contact_name']) ?>"></label><label>Fecha de factura *<input type="date" name="invoice_date" required value="<?= accountingEscape($record['invoice_date']) ?>"></label>
             <label>Moneda<input readonly value="<?= accountingEscape($record['currency_code']) ?>"></label><label>Fecha de vencimiento<input type="date" name="due_date" value="<?= accountingEscape($record['due_date'] ?? '') ?>"></label><label>Términos de pago<input readonly value="<?= accountingEscape($record['term_name'] ?? '') ?>"></label><label>Dirección de factura<textarea readonly rows="3"><?= accountingEscape($record['invoice_address']) ?></textarea></label>
+            <label>Tasa de la factura<input readonly data-invoice-rate value="<?= accountingEscape($record['exchange_rate']??'') ?>"><small>1 <?= accountingEscape($record['currency_primary_code']) ?> = tasa en <?= accountingEscape($record['currency_alternate_code']) ?>.</small><small data-invoice-rate-date><?= accountingEscape(($record['exchange_rate_date']??'Fecha histórica no registrada').' · '.(($record['exchange_rate_source']??'')==='bcv'?'BCV':(($record['exchange_rate_source']??'')==='manual'?'Manual':'Tasa guardada'))) ?></small></label>
         </div></fieldset></form><div class="contact-notebook" data-notebook><nav class="notebook-tabs" data-notebook-tabs aria-label="Información de la factura"><a id="invoice-tab-lines" href="#invoice-lines">Líneas de factura</a><a id="invoice-tab-other" href="#invoice-other">Otra información</a></nav>
             <section class="notebook-page" id="invoice-lines" data-notebook-page aria-labelledby="invoice-tab-lines">
                 <div class="contact-table-wrap"><table class="contact-table">
@@ -53,6 +54,8 @@ if ($record['status'] === 'posted') {
                     <div><dt>Base imponible</dt><dd><?= accountingEscape($record['base_amount']) ?></dd></div>
                     <?php if ($page['showCommission']): ?><div data-invoice-commission-total><dt>Comisión incluida</dt><dd><?= accountingEscape($page['commissionTotal']) ?> <?= accountingEscape($record['currency_code']) ?></dd></div><?php endif; ?>
                     <div data-invoice-total><dt>Total</dt><dd><?= accountingEscape($record['total_amount']) ?></dd></div>
+                    <?php $currencyReference=invoiceCurrencyReference($record); ?>
+                    <div><dt>Referencia en otra moneda</dt><dd data-invoice-currency-reference><?= $currencyReference?accountingEscape($currencyReference['amount'].' '.$currencyReference['code']):'Sin tasa para convertir' ?></dd></div>
                 </dl>
                 <?php if ($page['showCommission']): ?><p class="section-subtitle">La comisión ya está incluida en el precio; no aumenta el total. Su cobro, pago y ajustes se consultan en Comisiones.</p><?php endif; ?>
                 <?php require __DIR__ . '/invoice-payments.php'; ?>
@@ -60,4 +63,5 @@ if ($record['status'] === 'posted') {
         </div><div class="contact-form-actions"><?php if (! $posted): ?><button class="contact-button" type="submit" form="invoice-details" name="action" value="save_invoice">Guardar factura</button><button class="contact-button contact-button-primary" type="submit" form="invoice-details" name="action" value="confirm_invoice">Registrar factura</button><?php endif; ?><a class="contact-button" href="index.php?type=<?= $page['type'] ?>">Volver al listado</a></div>
     </div>
     <?php require __DIR__ . '/invoice-payment-wizard.php'; ?>
+    <script src="../../js/invoice-rate.js?v=<?= filemtime(dirname(__DIR__,2).'/js/invoice-rate.js') ?>" defer></script>
 </section>

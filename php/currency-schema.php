@@ -1,6 +1,7 @@
 <?php
 declare(strict_types=1);
 require_once __DIR__ . '/workflow-repository.php';
+require_once __DIR__ . '/exchange-rate-schema.php';
 
 function installCurrencyCatalog(PDO $db): void
 {
@@ -39,4 +40,5 @@ function installCurrencyCatalog(PDO $db): void
         $find->execute([$settings['alternate_code']]); $currency = (int)$find->fetchColumn();
         $db->prepare('INSERT INTO accounting_currency_rates(currency_id,base_currency_id,rate_date,rate) SELECT ?,?,?,? WHERE NOT EXISTS(SELECT 1 FROM accounting_currency_rates WHERE currency_id=? AND base_currency_id=?)')->execute([$currency,$base,commerceToday(),$settings['exchange_rate'],$currency,$base]);
     }
+    installExchangeRateMetadata($db);
 }
