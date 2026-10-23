@@ -29,6 +29,7 @@ const keys = ['income','expense','net','balance_start','balance_end'];
 const amounts = Object.fromEntries(keys.map(key => [key, element()]));
 const cashUpdated = element(), globalUpdated = element(), globalError = element(), rangeLabel = element(), historyLink = element();
 const accountGrid=element();accountGrid.dataset.historyPrefix='../contabilidad/';
+const balanceTotals={customer:element(),supplier:element()},balanceGroups={customer:element(),supplier:element()};
 globalError.hidden = true;
 widget.selectors = {'[data-cash-flow-filter]':form,'[data-cash-flow-error]':error,'[data-cash-flow-updated]':cashUpdated,'[data-cash-flow-history]':historyLink,'[data-cash-flow-range]':rangeLabel,'[data-cash-flow-cards]':element()};
 widget.selectors['[data-cash-flow-account-grid]']=accountGrid;
@@ -39,6 +40,7 @@ const metrics = ['sales','purchases','receivables','payables','overdue','unalloc
 const alerts = element(), tasks = element(), count = element();
 const commissions=element(),commissionRange=element(),commissionHistory=element();
 dashboard.selectors = {'[data-dashboard-updated]':globalUpdated,'[data-dashboard-error]':globalError,'[data-dashboard-alerts]':alerts,'[data-dashboard-alert-count]':count,'[data-dashboard-tasks]':tasks,'[data-dashboard-commissions]':commissions,'[data-dashboard-commission-range]':commissionRange,'[data-dashboard-commission-history]':commissionHistory};
+for(const type of ['customer','supplier']){dashboard.selectors[`[data-outstanding-totals="${type}"]`]=balanceTotals[type];dashboard.selectors[`[data-outstanding-groups="${type}"]`]=balanceGroups[type];}
 dashboard.querySelectorAll = () => metrics;
 const document = element();
 document.hidden = false;
@@ -73,6 +75,12 @@ const settle = () => new Promise(resolve => setImmediate(resolve));
     const originalData=data;
     data=(...args)=>({...originalData(...args),accounts:[bank]});
     snapshot = data(); poll(); await settle();
+    snapshot.dashboard.balances={customer:{currencies:[{code:'USD',balance:'85.00',overdue:'50.00',pending:'10.00',count:2}],groups:[{contact_id:8,contact_name:'Cliente <script>',company_name:'Empresa',count:2,balance:'85.00',overdue:'50.00',code:'USD'}],count:2,group_count:1},supplier:{currencies:[],groups:[],count:0,group_count:0}};
+    poll();await settle();
+    assert.equal(balanceTotals.customer.children[0].children[1].children[0].children[1].textContent,'85.00');
+    assert.equal(balanceGroups.customer.children.length,0,'El dashboard solo debe mostrar importes, sin grupos de contactos.');
+    snapshot.dashboard.balances.customer={currencies:[],groups:[],count:0,group_count:0};poll();await settle();
+    assert.equal(balanceTotals.customer.children[0].children[1].textContent,'0.00','Las deudas pagadas deben dejar el total en cero.');
     const methodTable=accountGrid.children[0].children[1].children[2].children[1];
     assert.equal(methodTable.children[1].children.length,2,'No deben aparecer métodos en cero.');
     assert.equal(methodTable.children[1].children[0].children[0].textContent,'Transferencia <script>');

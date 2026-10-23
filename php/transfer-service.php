@@ -125,7 +125,10 @@ function transferGroupRows(array $m,array $rows): array
 function transferExportRows(PDO $db,array $m,array $filters,array $columns=[]): array
 {
     if(!permissionHas($m['resource']))throw new InvalidArgumentException('No tienes permiso para exportar este modelo.',403);
-    if(($m['reader']??'')==='commissions') {
+    if(($m['reader']??'')==='outstanding') {
+        require_once __DIR__.'/outstanding-repository.php';$rows=[];$filter=outstandingFilters($filters);
+        foreach(['customer','supplier'] as $type){$resource=permissionInvoiceResource($type);if(permissionHas($resource))array_push($rows,...outstandingInvoiceRows($db,$type,permissionWhere($resource,'i'),$filter));}
+    } elseif(($m['reader']??'')==='commissions') {
         $range=isset($filters['id'])?null:cashFlowRange($filters);$rows=loadSalesCommissions($db,$range,accessId($filters['seller_id']??null),accessId($filters['id']??null));
     } else {
         [$where,$args]=transferDomain($db,$m,$filters);$schema=transferSchema($db,$m['table']);

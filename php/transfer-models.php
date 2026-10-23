@@ -48,6 +48,8 @@ function transferModels(): array
         'create_only'=>true,'synthetic'=>array_fill_keys(['payment_date','account_id','method_id','currency_code','exchange_rate','reference'],['type'=>'text'])]);
     foreach(['stock'=>['inventory_stock','Existencias','inventario.stock'],'movements'=>['inventory_stock_moves','Movimientos de existencias','inventario.movements'],'sold'=>['sales_quotation_lines','Productos vendidos','ventas.orders'],'purchased'=>['purchase_order_lines','Productos comprados','compras.orders']] as $key=>[$table,$label,$resource])$add($key,$table,$label,$resource,'readonly','',['search'=>[]]);
     $add('cash_flow','accounting_treasury_entries','Ingresos y egresos','contabilidad.cash_flow','readonly','',['search'=>[]]);
+    $balanceFields=[];foreach(['contact_name'=>'Cliente / proveedor','paid'=>'Pagado confirmado','credited'=>'Notas de crédito','pending'=>'Pagos en proceso','balance'=>'Saldo pendiente','overdue'=>'Vencida'] as $name=>$label)$balanceFields[$name]=['label'=>$label,'type'=>$name==='contact_name'?'text':($name==='overdue'?'boolean':'decimal'),'write'=>false,'export'=>true];
+    $add('outstanding','accounting_invoices','Cuentas por cobrar y pagar','contabilidad.customer_invoices','readonly','',['reader'=>'outstanding','synthetic'=>$balanceFields]);
     // New modules register their model here through the same contract.
     foreach(array_replace(require __DIR__.'/config/transfer-models.php',$GLOBALS['transfer_extra_models']??[]) as $key=>$model)$models[$key]=array_replace(['key'=>$key,'domain'=>[],'defaults'=>[],'search'=>['name'],'admin'=>false],$model);
     return $models;
@@ -84,6 +86,7 @@ function transferRouteModel(string $url): ?array
         'contabilidad/ingresos-egresos.php'=>'cash_flow',default=>null,
     };
     $models=transferModels();
+    if($route==='contabilidad/cuentas-pendientes.php'){$model=$models['outstanding'];$model['resource']=permissionHas('contabilidad.customer_invoices')?'contabilidad.customer_invoices':'contabilidad.supplier_invoices';return $model;}
     if($key==='treasury') {
         $model=$models[$key];
         foreach(['income','expense','transfer','opening','customer_payments','supplier_payments'] as $resource)if(permissionHas('contabilidad.'.$resource)){$model['resource']='contabilidad.'.$resource;break;}

@@ -2,6 +2,7 @@
 declare(strict_types=1);
 require_once __DIR__.'/payments-repository.php';
 require_once __DIR__.'/operation-status-repository.php';
+require_once __DIR__.'/outstanding-repository.php';
 function dashboardPendingOrderCondition(string $kind,string $alias='o'): string
 {
     $sale=$kind==='sale';$table=$sale?'sales_quotation_lines':'purchase_order_lines';$fk=$sale?'quotation_id':'order_id';$column=$sale?'sale_line_id':'purchase_line_id';
@@ -11,7 +12,7 @@ function dashboardPendingOrderCondition(string $kind,string $alias='o'): string
 }
 function loadDashboard(PDO $db): array
 {
-    $settings=accountingCurrencies($db);$d=['available'=>true,'settings'=>$settings,'sales'=>0,'purchases'=>0,'receivables'=>[],'payables'=>[],'overdue'=>0,'unallocated'=>[],'alerts'=>[],'alert_count'=>0,'tasks'=>[],'allowed_metrics'=>[]];
+    $settings=accountingCurrencies($db);$d=['available'=>true,'settings'=>$settings,'sales'=>0,'purchases'=>0,'receivables'=>[],'payables'=>[],'overdue'=>0,'unallocated'=>[],'alerts'=>[],'alert_count'=>0,'tasks'=>[],'allowed_metrics'=>[],'balances'=>['customer'=>null,'supplier'=>null]];
     foreach(['sales'=>['ventas.orders','sales_quotations','sale'],'purchases'=>['compras.orders','purchase_orders','purchase']] as $key=>[$resource,$table,$status]) {
         $condition=permissionDashboardWhere('dashboard.business',$resource,'o');if($condition==='1=0')continue;
         $d[$key]=(int)$db->query("SELECT COUNT(*) FROM $table o WHERE o.status='$status' AND ($condition) AND ".dashboardPendingOrderCondition($key==='sales'?'sale':'purchase'))->fetchColumn();
@@ -21,11 +22,9 @@ function loadDashboard(PDO $db): array
     foreach(['customer'=>'receivables','supplier'=>'payables'] as $type=>$key) {
         $resource=permissionInvoiceResource($type);$business=permissionDashboardWhere('dashboard.business',$resource,'i');$tasks=permissionDashboardWhere('dashboard.tasks',$resource,'i');
         if($business==='1=0'&&$tasks==='1=0')continue;if($business!=='1=0')$d['allowed_metrics'][]=$key;
-        $q=$db->query("SELECT i.id,i.name,i.invoice_type,i.currency_code,i.total_amount,i.due_date,c.name AS contact_name, ($business) AS show_business, ($tasks) AS show_task,
-            COALESCE((SELECT SUM(p.amount) FROM accounting_invoice_payments p WHERE p.invoice_id=i.id AND p.status='settled'),0) AS paid,
-            COALESCE((SELECT SUM(n.total_amount) FROM accounting_invoices n WHERE n.reversal_of_id=i.id AND n.status='posted'),0) AS credited
-            FROM accounting_invoices i JOIN contacts c ON c.id=i.contact_id WHERE i.invoice_type='$type' AND (($business) OR ($tasks)) AND i.status='posted' AND i.document_type='invoice' AND i.payment_state!='reversed' ORDER BY i.due_date IS NULL,i.due_date,i.id");
-        foreach($q->fetchAll() as $i) {
+        $rows=outstandingInvoiceRows($db,$type,"($business) OR ($tasks)",[],['show_business'=>$business,'show_task'=>$tasks]);
+        if($business!=='1=0')$d['balances'][$type]=outstandingDashboardSection(array_values(array_filter($rows,static fn($row)=>(bool)$row['show_business'])));
+        foreach($rows as $i) {
             $balance=bcsub(bcsub($i['total_amount'],$i['credited'],2),$i['paid'],2);if(bccomp($balance,'0',2)<=0)continue;$code=$i['currency_code'];
             if($i['show_business'])$d[$key][$code]=bcadd($d[$key][$code]??'0.00',$balance,2);
             if($i['due_date']&&$i['due_date']<$today){if($i['show_business'])$d['overdue']++;if($i['show_task']&&count($d['tasks'])<6)$d['tasks'][]=['label'=>$i['name'].' · '.$i['contact_name'],'detail'=>'Vencida · '.$balance.' '.$code,'href'=>'modules/contabilidad/index.php?type='.$type.'&id='.$i['id']];}

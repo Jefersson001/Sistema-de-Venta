@@ -33,6 +33,7 @@
                     <nav class="notebook-tabs dashboard-tabs" data-notebook-tabs aria-label="Secciones del dashboard">
                         <a id="dashboard-tab-income" href="#dashboard-page-income">Ingresos y egresos</a>
                         <a id="dashboard-tab-overview" href="#dashboard-page-overview">Resumen del negocio</a>
+                        <a id="dashboard-tab-balances" href="#dashboard-page-balances">Cuentas por cobrar y pagar</a>
                         <a id="dashboard-tab-alerts" href="#dashboard-page-alerts">Alertas de inventario</a>
                         <a id="dashboard-tab-tasks" href="#dashboard-page-tasks">Tareas pendientes</a>
                         <a id="dashboard-tab-commissions" href="#dashboard-page-commissions">Comisiones</a>
@@ -69,13 +70,19 @@
                             <span class="overview-label">Cobros pendientes</span>
                             <p class="overview-value" data-dashboard-metric="receivables"><?= $dashboard['available'] ? htmlspecialchars(dashboardMoney($dashboard['receivables']),ENT_QUOTES,'UTF-8') : '—' ?></p>
                             <p>Saldo de facturas registradas, descontando pagos confirmados y notas de crédito.</p>
-                            <a class="overview-link" href="../contabilidad/index.php?type=customer&amp;unpaid=1">Ir a Contabilidad <span aria-hidden="true">→</span></a>
+                            <a class="overview-link" href="../contabilidad/cuentas-pendientes.php#accounts-customer">Ver cuentas por cobrar <span aria-hidden="true">→</span></a>
                         </article>
-                        <article class="overview-card"><span class="overview-label">Pagos a proveedores pendientes</span><p class="overview-value" data-dashboard-metric="payables"><?= $dashboard['available']?htmlspecialchars(dashboardMoney($dashboard['payables']),ENT_QUOTES,'UTF-8'):'—' ?></p><a class="overview-link" href="../contabilidad/index.php?type=supplier&amp;unpaid=1">Consultar facturas de proveedores →</a></article>
+                        <article class="overview-card"><span class="overview-label">Pagos a proveedores pendientes</span><p class="overview-value" data-dashboard-metric="payables"><?= $dashboard['available']?htmlspecialchars(dashboardMoney($dashboard['payables']),ENT_QUOTES,'UTF-8'):'—' ?></p><a class="overview-link" href="../contabilidad/cuentas-pendientes.php#accounts-supplier">Ver cuentas por pagar →</a></article>
                         <article class="overview-card"><span class="overview-label">Facturas vencidas</span><p class="overview-value" data-dashboard-metric="overdue"><?= $dashboard['available']?$dashboard['overdue']:'—' ?></p><p>Clientes y proveedores con saldo y vencimiento anterior a hoy.</p><a class="overview-link" href="../contabilidad/index.php?type=customer&amp;overdue=1">Clientes →</a> <a class="overview-link" href="../contabilidad/index.php?type=supplier&amp;overdue=1">Proveedores →</a></article>
                         <article class="overview-card"><span class="overview-label">Pagos sin aplicar</span><p class="overview-value" data-dashboard-metric="unallocated"><?= $dashboard['available']?htmlspecialchars(dashboardMoney($dashboard['unallocated']),ENT_QUOTES,'UTF-8'):'—' ?></p><a class="overview-link" href="../contabilidad/pagos.php?type=customer&amp;available=1">Clientes →</a> <a class="overview-link" href="../contabilidad/pagos.php?type=supplier&amp;available=1">Proveedores →</a></article>
                     </div>
                 </section>
+                    </section>
+                    <section class="notebook-page" id="dashboard-page-balances" data-notebook-page aria-labelledby="dashboard-tab-balances">
+                        <p class="section-subtitle">Saldos actuales acumulados de las empresas seleccionadas. Se actualizan cada 30 segundos; el período de ingresos y egresos no limita las deudas pendientes.</p>
+                        <div class="dashboard-balances-grid">
+                        <?php $balanceSections=$dashboard['balances']??[];$balanceLive=true;$balancePrefix='../contabilidad/';require __DIR__.'/partials/outstanding.php'; ?>
+                        </div>
                     </section>
                     <section class="notebook-page" id="dashboard-page-alerts" data-notebook-page aria-labelledby="dashboard-tab-alerts">
                     <div class="section-heading"><h2>Alertas de inventario</h2></div>

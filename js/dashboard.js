@@ -35,6 +35,17 @@ for (const dashboard of document.querySelectorAll('[data-dashboard]')) {
         if (!tasks.length) tasks.push(element('p', '', 'No hay operaciones pendientes ni facturas vencidas con saldo.'));
         dashboard.querySelector('[data-dashboard-tasks]')?.replaceChildren(...tasks);
         const commissions=dashboard.querySelector('[data-dashboard-commissions]');
+        for(const type of ['customer','supplier']){
+            const section=data.balances?.[type],totals=dashboard.querySelector(`[data-outstanding-totals="${type}"]`);
+            if(!totals)continue;
+            if(!section){totals.replaceChildren();continue;}
+            const cards=section.currencies.map(amount=>{
+                const card=element('article','overview-card');card.append(element('span','overview-label',amount.code));const list=element('dl','cash-flow-account-totals');
+                for(const [key,label] of Object.entries({balance:'Saldo pendiente',overdue:'Vencido',pending:'Pagos en proceso'})){const row=element('div');row.append(element('dt','',label),element('dd','',amount[key]));list.append(row);}card.append(list,element('small','',amount.count+' facturas con saldo'));return card;
+            });
+            if(!cards.length){const card=element('article','overview-card');card.append(element('span','overview-label','Saldo pendiente'),element('strong','','0.00'));cards.push(card);}
+            totals.replaceChildren(...cards);
+        }
         if(commissions){
             const params=new URLSearchParams({period:event.detail.range.period});
             if(event.detail.range.period==='custom') { params.set('date_from',event.detail.range.date_from);params.set('date_to',event.detail.range.date_to); }

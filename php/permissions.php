@@ -102,6 +102,7 @@ function permissionRoute(string $path,array $query): ?string
         'contabilidad/pagos.php'=>permissionPaymentResource(is_string($query['type']??null)?$query['type']:'customer'),
         'contabilidad/tesoreria.php'=>'contabilidad.'.(in_array($query['kind']??null,['income','expense','transfer','opening'],true)?$query['kind']:'income'),
         'contabilidad/ingresos-egresos.php'=>'contabilidad.cash_flow',
+        'contabilidad/cuentas-pendientes.php'=>permissionHas('contabilidad.customer_invoices')?'contabilidad.customer_invoices':'contabilidad.supplier_invoices',
         'ajustes/index.php'=>'ajustes.general','ajustes/empresa.php','ajustes/logo.php'=>'ajustes.company',
         'ajustes/grupos.php'=>'ajustes.groups','ajustes/usuarios.php'=>'ajustes.users',
         'dashboard/ingresos-egresos.php'=>'dashboard.cash_flow',default=>null,

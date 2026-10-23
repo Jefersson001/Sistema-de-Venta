@@ -429,6 +429,20 @@ a.product-stat-button:hover { border-color: #514397; background: #f0edff; }
 .transfer-menu { position: relative; margin-left: auto; }
 .daily-exchange-rate { display: flex; flex-direction: column; gap: 2px; align-items: flex-start; max-width: 330px; white-space: normal; }
 .daily-exchange-rate small { font-size: 10px; font-weight: 500; }
+.outstanding-section { margin-top: 28px; }
+.dashboard-balances-grid, .outstanding-columns { display: grid; grid-template-columns: repeat(2,minmax(0,1fr)); gap: 24px; align-items: start; }
+.dashboard-balances-grid > .outstanding-section, .outstanding-columns > .outstanding-section { min-width: 0; }
+.dashboard-balances-grid .section-heading, .outstanding-columns .section-heading { flex-wrap: wrap; gap: 8px; }
+.outstanding-columns .outstanding-partner { min-width: 0; overflow-wrap: anywhere; }
+@media(max-width: 720px) { .dashboard-balances-grid, .outstanding-columns { grid-template-columns: 1fr; } }
+.outstanding-totals { display: grid; grid-template-columns: repeat(auto-fit,minmax(240px,1fr)); gap: 14px; }
+.outstanding-groups { margin-top: 18px; }
+.outstanding-partner small { display: block; color: var(--muted); font-size: 12px; }
+.outstanding-partner { margin-top: 12px; }
+.outstanding-partner > summary { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 12px; cursor: pointer; }
+.outstanding-partner > summary small { margin-top: 5px; }
+.outstanding-partner .contact-table-wrap { margin-top: 18px; }
+.outstanding-overdue { color: #a63745; font-weight: 700; }
 .transfer-menu > summary { cursor: pointer; list-style: none; white-space: nowrap; }
 .transfer-menu > summary::-webkit-details-marker { display: none; }
 .transfer-menu-options { position: absolute; right: 0; z-index: 80; min-width: 210px; padding: .4rem; border: 1px solid #dbe2ee; border-radius: 10px; background: white; box-shadow: 0 12px 32px #14213d24; }

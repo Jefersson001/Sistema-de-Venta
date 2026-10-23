@@ -39,7 +39,8 @@ function permissionRenderHtml(string $html): string
     if(isset($GLOBALS['permission_dashboard_metrics'])) {
         foreach(['income'=>permissionHas('dashboard.cash_flow')&&permissionHas('contabilidad.cash_flow'),'overview'=>permissionHas('dashboard.business'),
             'alerts'=>permissionHas('dashboard.inventory')&&permissionHas('inventario.stock')&&permissionHas('inventario.products'),
-            'tasks'=>permissionHas('dashboard.tasks'),'commissions'=>permissionHas('dashboard.commissions')&&permissionHas('ventas.commissions')] as $section=>$allowed) {
+            'tasks'=>permissionHas('dashboard.tasks'),'commissions'=>permissionHas('dashboard.commissions')&&permissionHas('ventas.commissions'),
+            'balances'=>permissionHas('dashboard.business')&&(permissionHas('contabilidad.customer_invoices')||permissionHas('contabilidad.supplier_invoices'))] as $section=>$allowed) {
             if(!$allowed)foreach(iterator_to_array($xpath->query('//*[@id="dashboard-tab-'.$section.'" or @id="dashboard-page-'.$section.'"]')) as $node)$node->parentNode?->removeChild($node);
         }
         foreach(iterator_to_array($xpath->query('//*[@data-dashboard-metric]')) as $node)if(!in_array($node->getAttribute('data-dashboard-metric'),$GLOBALS['permission_dashboard_metrics'],true)){$card=$xpath->query('ancestor::article[1]',$node)->item(0);$card?->parentNode?->removeChild($card);}
