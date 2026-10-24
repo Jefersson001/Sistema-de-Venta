@@ -154,7 +154,7 @@ function restaurantChangeService(PDO $db,int $id,array $input): void
 {
     permissionRequire('restaurante.tables','edit',$id);
     $state=$input['service_state']??'';if(!in_array($state,['free','reserved','cleaning'],true))throw new InvalidArgumentException('Estado de mesa no válido.');
-    $reason=restaurantText($input['reason']??null,255);
+    $reason=restaurantText($input['reason']??'',255,false);
     restaurantAtomic($db,function()use($db,$id,$input,$state,$reason){
         $table=restaurantLockTable($db,$id);restaurantVersion($table,$input['version']??null);
         $q=$db->prepare('SELECT account_id FROM restaurant_active_tables WHERE table_id=?');$q->execute([$id]);if($q->fetchColumn())throw new InvalidArgumentException('Una mesa ocupada cambia de estado desde su cuenta.');
@@ -187,10 +187,12 @@ function restaurantAccountAction(PDO $db,int $id,array $input): int
         return restaurantRequest($db,$action,$key,[$id,$target,$reason],function()use($db,$input,$id,$account,$current,$target,$action,$reason,$locked){
             restaurantVersion($account,$input['version']??null);
             if($account['status']!=='open')throw new InvalidArgumentException('La cuenta ya no admite esta operación.',409);
+            $discardedItems=[];
             if($action==='close_empty_account'){
                 if($db->query("SHOW TABLES LIKE 'restaurant_account_items'")->fetch()){
-                    $q=$db->prepare('SELECT id FROM restaurant_account_items WHERE account_id=? LIMIT 1');$q->execute([$id]);if($q->fetch())throw new InvalidArgumentException('La mesa tiene productos. Usa Facturar para finalizar su consumo.');
-                    $q=$db->prepare('SELECT invoice_id FROM restaurant_account_carts WHERE account_id=?');$q->execute([$id]);if($q->fetchColumn())throw new InvalidArgumentException('La cuenta ya tiene una factura relacionada.');
+                    $q=$db->prepare('SELECT sale_id,invoice_id FROM restaurant_account_carts WHERE account_id=?');$q->execute([$id]);$documents=$q->fetch();
+                    if($documents&&($documents['sale_id']||$documents['invoice_id']))throw new InvalidArgumentException('La cuenta ya tiene una venta o factura relacionada.');
+                    $q=$db->prepare('SELECT * FROM restaurant_account_items WHERE account_id=? ORDER BY id');$q->execute([$id]);$discardedItems=$q->fetchAll();
                 }
                 // Future order phases cannot accidentally use the empty-account shortcut.
                 if($db->query("SHOW TABLES LIKE 'restaurant_orders'")->fetch()){
@@ -199,6 +201,8 @@ function restaurantAccountAction(PDO $db,int $id,array $input): int
                 if($db->query("SHOW TABLES LIKE 'restaurant_account_payments'")->fetch()){
                     $q=$db->prepare('SELECT id FROM restaurant_account_payments WHERE account_id=? LIMIT 1');$q->execute([$id]);if($q->fetch())throw new InvalidArgumentException('La cuenta tiene pagos relacionados. Resuélvelos desde caja.');
                 }
+                // These items are drafts: stock is consumed only by checkout.
+                if($discardedItems)$db->prepare('DELETE FROM restaurant_account_items WHERE account_id=?')->execute([$id]);
                 foreach($current as $table)restaurantReleaseTable($db,$id,$table,$reason,'cleaning');
                 $db->prepare("UPDATE restaurant_accounts SET status='closed',closed_at=CURRENT_TIMESTAMP,version=version+1 WHERE id=?")->execute([$id]);
             }elseif($action==='detach_table'){
@@ -215,7 +219,9 @@ function restaurantAccountAction(PDO $db,int $id,array $input): int
                 if($action==='move_account')foreach($current as $table)restaurantReleaseTable($db,$id,$table,$reason,'cleaning');
             }
             if($action!=='close_empty_account')$db->prepare('UPDATE restaurant_accounts SET version=version+1 WHERE id=?')->execute([$id]);
-            restaurantAudit($db,$action,['account_id'=>$id,'table_id'=>$target?:null,'previous_tables'=>$current],$reason);return $id;
+            $audit=['account_id'=>$id,'table_id'=>$target?:null,'previous_tables'=>$current];
+            if($action==='close_empty_account')$audit['discarded_items']=$discardedItems;
+            restaurantAudit($db,$action,$audit,$reason);return $id;
         });
     });
 }

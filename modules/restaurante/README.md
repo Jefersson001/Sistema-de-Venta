@@ -3,11 +3,11 @@
 ## Flujo principal
 
 1. Abrir Restaurante. Si no hay mesas, indicar cuántas se necesitan y pulsar **Crear mis mesas**.
-2. Tocar una mesa libre: la cuenta se abre directamente a nombre del usuario, sin formulario previo. Tocar una ocupada abre su pedido.
+2. Tocar una mesa libre muestra la carta sin crear una cuenta ni ocupar la mesa. El primer producto abre la cuenta a nombre del usuario y guarda el artículo en una sola transacción. Salir sin agregar productos deja la mesa libre. Tocar una ocupada abre su pedido.
 3. Agregar productos desde la carta, buscar por nombre o filtrar categorías. Ajustar cantidades con −/+, quitar artículos o añadir observaciones. El pedido se guarda sin salir de la pantalla.
 4. Pulsar **Facturar y cobrar**, elegir cliente, medio, caja y ubicación, y confirmar. Se usan los documentos y servicios existentes de ventas, inventario, facturas y pagos. Si un selector tiene una sola opción, ya aparece seleccionada. La caja, medio y ubicación elegidos se recuerdan durante la sesión; el cliente no se cambia automáticamente para otra mesa.
 
-El cierre rápido registra el cobro completo con un medio de pago. La mesa queda pendiente de limpieza y el comprobante se consulta en Facturas, según los permisos del usuario. Las acciones de traslado, unión, separación e historial se mantienen plegadas en **Opciones de mesa e historial**.
+El cierre rápido registra el cobro completo con un medio de pago. La mesa queda pendiente de limpieza y el comprobante se consulta en Facturas, según los permisos del usuario. El botón **Opciones de mesa**, arriba del pedido, reúne el detalle de la atención, traslado, unión, separación, historial y cierre sin consumo. Cada cambio abre un asistente de dos pasos: seleccionar la mesa y registrar el motivo, luego revisar y confirmar. Separar solo aparece cuando hay varias mesas unidas; las acciones respetan los permisos del usuario. El historial se consulta en su propia ventana, sin desplegar formularios debajo de los productos.
 
 Los precios e impuestos aplicados se conservan en el pedido. En este flujo sin envío a cocina, cargar productos guarda un borrador: el punto único de salida de inventario es confirmar la facturación y cobro. La venta, entrega, factura, pago y liberación de mesa se coordinan en una transacción; una falta de existencias revierte todo. Los reintentos devuelven el documento original.
 
@@ -31,7 +31,7 @@ Prueba del circuito rápido: `php test/restaurant-pos.php`. Cubre precio histór
 
 Disponible: configuración de áreas y mesas, mapa por áreas, estados libre/ocupada/reservada/por limpiar, apertura de cuentas con mesero y comensales, traslado de cuenta, unión de mesas libres, separación, cierre sin consumo e historial con usuario y motivo. El mapa y los formularios se adaptan a dispositivos móviles.
 
-El cierre sin consumo se bloquea si existen productos, pedidos o pagos relacionados. Unir mesas libres no fusiona cuentas ocupadas.
+El cierre sin consumo descarta los productos del borrador y cierra la atención en una sola operación, sin generar ventas, cobros ni movimientos de inventario. Conserva los artículos descartados y el motivo en auditoría. Se bloquea si existen ventas, facturas, pedidos confirmados o pagos relacionados. Unir mesas libres no fusiona cuentas ocupadas.
 
 ## Instalación
 
@@ -51,7 +51,7 @@ La configuración detallada de áreas y mesas sigue disponible para distribuirla
 
 Los permisos se gestionan en Ajustes → Grupos de acceso:
 
-- Mapa y estado de mesas: Consultar; Editar permite marcar reserva, limpieza o disponibilidad, siempre con motivo.
+- Mapa y estado de mesas: Consultar; Editar permite marcar reserva, limpieza o disponibilidad sin solicitar motivo. El cambio conserva su registro de auditoría.
 - Cuentas del restaurante: Consultar, Crear, Editar y Cancelar. Cancelar autoriza el cierre de una cuenta sin consumo. Editar permite trasladar, unir mesas libres y separarlas.
 - Áreas y mesas del restaurante: Consultar y Configurar.
 

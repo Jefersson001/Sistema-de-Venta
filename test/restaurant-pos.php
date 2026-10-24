@@ -39,7 +39,19 @@ try{
     posCheck(restaurantCart($db,$account)['total']==='10.00','Se perdió el precio aplicado.');
     posCheck((int)$raw->query('SELECT COUNT(*) FROM sales_quotations')->fetchColumn()===$initialSales,'El borrador creó una venta.');
     $q=$db->prepare('SELECT quantity FROM inventory_stock WHERE product_id=? AND location_id=?');$q->execute([$product,$location]);posCheck(bccomp((string)$q->fetchColumn(),'10',3)===0,'El borrador descontó existencias.');
-    posReject(fn()=>restaurantAccountAction($db,$account,['action'=>'close_empty_account','version'=>3,'reason'=>'No permitido','request_key'=>bin2hex(random_bytes(32))]));
+    echo "RUN POS close without consumption discards draft once\n";
+    $cancelTable=restaurantSaveTable($db,['area_id'=>$area,'name'=>'Mesa sin consumo','capacity'=>4,'position_x'=>3,'position_y'=>1,'active'=>1]);
+    $cancelAccount=restaurantOpenAccount($db,['table_id'=>$cancelTable,'table_version'=>1,'waiter_id'=>$actor,'guests'=>1,'request_key'=>bin2hex(random_bytes(32))]);
+    restaurantCartCommand($db,$cancelAccount,['action'=>'pos_add','product_id'=>$product,'version'=>1,'request_key'=>bin2hex(random_bytes(32))]);
+    $cancelCommand=['action'=>'close_empty_account','version'=>2,'reason'=>'Cliente no acepta el precio','request_key'=>bin2hex(random_bytes(32))];
+    restaurantAccountAction($db,$cancelAccount,$cancelCommand);restaurantAccountAction($db,$cancelAccount,$cancelCommand);
+    $cancelCart=restaurantCart($db,$cancelAccount);
+    posCheck($cancelCart['account']['status']==='closed'&&$cancelCart['items']===[]&&bccomp($cancelCart['total'],'0',2)===0,'El cierre no descartó el borrador.');
+    posCheck(restaurantRecord($db,'restaurant_tables',$cancelTable)['service_state']==='cleaning','El cierre no liberó la mesa para limpieza.');
+    posCheck((int)$raw->query('SELECT COUNT(*) FROM sales_quotations')->fetchColumn()===$initialSales,'Cerrar sin consumo generó una venta.');
+    $q=$db->prepare('SELECT quantity FROM inventory_stock WHERE product_id=? AND location_id=?');$q->execute([$product,$location]);posCheck(bccomp((string)$q->fetchColumn(),'10',3)===0,'Cerrar sin consumo alteró existencias.');
+    $q=$db->prepare("SELECT details FROM restaurant_audit_events WHERE account_id=? AND action='close_empty_account'");$q->execute([$cancelAccount]);$cancelEvents=$q->fetchAll(PDO::FETCH_COLUMN);
+    posCheck(count($cancelEvents)===1&&count(json_decode($cancelEvents[0],true,512,JSON_THROW_ON_ERROR)['discarded_items'])===1,'El cierre no conservó los artículos descartados o duplicó su auditoría.');
     $cash=(int)$db->query("SELECT id FROM accounting_payment_accounts WHERE account_type='cash' AND (currency_code IS NULL OR currency_code='USD') LIMIT 1")->fetchColumn();
     $method=(int)$db->query('SELECT id FROM accounting_payment_methods LIMIT 1')->fetchColumn();
     $checkout=['customer_id'=>$customer,'location_id'=>$location,'account_id'=>$cash,'method_id'=>$method,'version'=>3,'request_key'=>bin2hex(random_bytes(32))];
@@ -49,6 +61,7 @@ try{
     posCheck($bill['status']==='posted'&&$bill['payment_state']==='paid'&&$bill['total_amount']==='10.00','La factura y cobro no coinciden.');
     $q=$db->prepare('SELECT quantity FROM inventory_stock WHERE product_id=? AND location_id=?');$q->execute([$product,$location]);posCheck(bccomp((string)$q->fetchColumn(),'8',3)===0,'Descuento de stock incorrecto o duplicado.');
     posCheck(restaurantRecord($db,'restaurant_accounts',$account)['status']==='closed','La cuenta no se cerró.');
+    posReject(fn()=>restaurantAccountAction($db,$account,['action'=>'close_empty_account','version'=>4,'reason'=>'No debe borrar una venta cobrada','request_key'=>bin2hex(random_bytes(32))]));
     posCheck((int)$raw->query('SELECT COUNT(*) FROM sales_quotations')->fetchColumn()===$initialSales+1,'Cantidad incorrecta de ventas.');
     $stockMoves=(int)$raw->query('SELECT COUNT(*) FROM inventory_stock_moves')->fetchColumn();
     restaurantChangeService($db,$table,['version'=>3,'service_state'=>'free','reason'=>'Mesa lista']);
@@ -60,8 +73,25 @@ try{
     posCheck((int)$raw->query('SELECT COUNT(*) FROM sales_quotations')->fetchColumn()===$initialSales+1,'La falta de stock dejó una venta parcial.');
     posCheck((int)$raw->query('SELECT COUNT(*) FROM inventory_stock_moves')->fetchColumn()===$stockMoves,'La falta de stock dejó movimientos parciales.');
     $cookie=tempnam(sys_get_temp_dir(),'nexo-pos-cookie-');$cookies[]=$cookie;$r=authTestRequest($s,'/login.php',$cookie);$r=authTestRequest($s,'/login.php',$cookie,['csrf'=>authTestToken($r[1]),'login'=>$login,'password'=>$password]);posCheck($r[0]===303,'Login falló.');
+    echo "RUN read-only table preview and atomic first product\n";
+    $previewTable=restaurantSaveTable($db,['area_id'=>$area,'name'=>'Mesa para consultar','capacity'=>4,'position_x'=>4,'position_y'=>1,'active'=>1]);
+    $previewRoute='/modules/restaurante/cuenta.php?new=1&preview=1&table_id='.$previewTable;
+    $beforeAccounts=(int)$db->query('SELECT COUNT(*) FROM restaurant_accounts')->fetchColumn();
+    foreach([1,2] as $visit){$previewResponse=authTestRequest($s,$previewRoute,$cookie);posCheck($previewResponse[0]===200&&str_contains($previewResponse[1],'save_first_product'),'No abre la carta sin ocupar la mesa.');}
+    posCheck((int)$db->query('SELECT COUNT(*) FROM restaurant_accounts')->fetchColumn()===$beforeAccounts,'Consultar la mesa abrió una cuenta.');
+    $start=['csrf'=>authTestToken($previewResponse[1]),'action'=>'save_first_product','table_id'=>$previewTable,'table_version'=>1,'product_id'=>$outsideProduct,'request_key'=>bin2hex(random_bytes(32))];
+    $failedStart=authTestRequest($s,$previewRoute,$cookie,$start);posCheck($failedStart[0]===422,'Se aceptó un producto fuera de la carta.');
+    posCheck((int)$db->query('SELECT COUNT(*) FROM restaurant_accounts')->fetchColumn()===$beforeAccounts,'El primer producto fallido dejó una cuenta abierta.');
+    $start['product_id']=$product;$start['request_key']=bin2hex(random_bytes(32));
+    foreach([1,2] as $attempt){$started=authTestRequest($s,$previewRoute,$cookie,$start);posCheck($started[0]===303,'No se agregó el primer producto: '.$started[0]);}
+    posCheck((int)$db->query('SELECT COUNT(*) FROM restaurant_accounts')->fetchColumn()===$beforeAccounts+1,'El reintento duplicó la primera cuenta.');
+    $q=$db->prepare('SELECT account_id FROM restaurant_active_tables WHERE table_id=?');$q->execute([$previewTable]);$startedAccount=(int)$q->fetchColumn();
+    $startedCart=restaurantCart($db,$startedAccount);posCheck(count($startedCart['items'])===1&&bccomp($startedCart['items'][0]['quantity'],'1',3)===0,'El reintento duplicó el primer producto.');
+    posReject(fn()=>restaurantStartOrder($db,array_replace($start,['request_key'=>bin2hex(random_bytes(32))]),$actor));
     $r=authTestRequest($s,'/modules/restaurante/cuenta.php?id='.$second,$cookie);posCheck($r[0]===200&&str_contains($r[1],'data-pos-root')&&str_contains($r[1],'Facturar y cobrar'),'No se ve el pedido directo.');
     $r=authTestRequest($s,'/modules/restaurante/cuenta.php?id='.$account,$cookie);posCheck($r[0]===200&&str_contains($r[1],'Factura emitida y cobro registrado.'),'No se ve el comprobante.');
+    $closeResponse=authTestRequest($s,'/modules/restaurante/cuenta.php?id='.$cancelAccount,$cookie,array_merge($cancelCommand,['csrf'=>authTestToken($r[1])]));
+    posCheck($closeResponse[0]===303&&str_ends_with($closeResponse[2],'/modules/restaurante/index.php'),'El cierre sin consumo no vuelve al mapa al reintentar.');
     echo "RUN POS JSON commands and lost-response retry\n";
     $jsonCommand=['csrf'=>authTestToken($r[1]),'company_scope'=>authTestToken($r[1],'company_scope'),'action'=>'pos_note',
         'item_id'=>$secondCart['items'][0]['id'],'notes'=>'Sin cebolla','version'=>3,'request_key'=>bin2hex(random_bytes(32))];
@@ -93,6 +123,7 @@ try{
     posCheck((int)$other->query('SELECT COUNT(*) FROM restaurant_tables')->fetchColumn()===3,'La creación rápida no generó las mesas solicitadas.');
     posReject(fn()=>restaurantQuickSetup($other,['table_count'=>2,'request_key'=>bin2hex(random_bytes(32))]));unset($GLOBALS['company_context']);
     if(isset($argv[1])){
+        restaurantSaveTable($db,['area_id'=>$area,'name'=>'Mesa libre para traslado','capacity'=>4,'position_x'=>2,'position_y'=>1,'active'=>1]);
         $addCategory=static function(string $name,?int $parent=null,bool $enabled=false)use($db):int{
             $db->prepare('INSERT INTO inventory_categories(name,parent_id,restaurant_enabled) VALUES(?,?,?)')->execute([$name,$parent,(int)$enabled]);return (int)$db->lastInsertId();
         };

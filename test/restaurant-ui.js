@@ -77,6 +77,28 @@ const http = require('node:http');
                 if(name==='pos'){
                     assert.ok(await evaluate('!!document.querySelector("[data-pos-cart]")'));
                     assert.ok(await evaluate('document.querySelectorAll(".restaurant-pos-line").length>0'));
+                    assert.equal(await evaluate('!!document.querySelector(".restaurant-advanced")'),false,'Do not render all advanced forms below the ticket.');
+                    await evaluate('document.querySelector("[data-table-menu-toggle]").click()');
+                    assert.equal(await evaluate('document.querySelector("#restaurant-table-menu").hidden'),false);
+                    await evaluate('document.querySelector("[data-table-option=move_account]").click()');
+                    assert.equal(await evaluate('document.querySelector("[data-table-dialog]").open'),true);
+                    assert.ok(await evaluate('document.querySelector("[data-table-dialog]").getBoundingClientRect().width')<=width);
+                    assert.equal(await evaluate('[...document.querySelectorAll("[data-table-panel]")].filter(panel=>!panel.hidden).length'),1);
+                    const wizard = '[data-table-panel=move_account]';
+                    const hasDestination = await evaluate(`document.querySelector('${wizard} [name=table_id]').options.length>1`);
+                    if(hasDestination){
+                        await evaluate(`{const form=document.querySelector('${wizard} form');form.querySelector('[name=table_id]').selectedIndex=1;form.querySelector('[name=reason]').value='Cambio solicitado';form.requestSubmit();}`);
+                        assert.equal(await evaluate(`document.querySelector('${wizard} [data-table-step=confirm]').hidden`),false,'Enter must show confirmation before posting.');
+                        assert.ok(await evaluate(`document.querySelector('${wizard} [data-table-review-reason]').textContent.includes('Cambio solicitado')`));
+                        await evaluate(`document.querySelector('${wizard} [data-table-back]').click()`);
+                        assert.equal(await evaluate(`document.querySelector('${wizard} [data-table-step=edit]').hidden`),false);
+                        assert.equal(await evaluate(`document.querySelector('${wizard} [name=reason]').value`),'Cambio solicitado');
+                    }
+                    await evaluate('document.querySelector("[data-table-dialog-close]").click()');
+                    await evaluate('document.querySelector("[data-table-menu-toggle]").click();document.querySelector("[data-table-option=history]").click()');
+                    assert.equal(await evaluate('document.querySelector("[data-table-panel=history]").hidden'),false);
+                    assert.equal(await evaluate('document.querySelector("[data-table-panel=move_account]").hidden'),true);
+                    await evaluate('document.querySelector("[data-table-dialog-close]").click()');
                     const categories=await evaluate('JSON.parse(document.getElementById("pos-category-fixture")?.textContent||"null")');
                     if(categories){
                         const visibleProducts=()=>evaluate('[...document.querySelectorAll("[data-pos-product]")].filter(p=>!p.hidden).map(p=>Number(p.querySelector("[name=product_id]").value)).sort((a,b)=>a-b)');
@@ -140,6 +162,7 @@ const http = require('node:http');
                     assert.equal(command.sent.key,command.previousKey);
                     assert.ok(command.sent.csrf);
                     assert.equal(command.version,'42');
+                    assert.equal(await evaluate('document.querySelector("[data-table-wizard] [name=version]").value'),'42','Table actions must use the version after product changes.');
                     assert.equal(command.error,false);
                     assert.equal(command.enabled,true);
                 }

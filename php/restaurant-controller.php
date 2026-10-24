@@ -22,6 +22,16 @@ function restaurantMapRows(PDO $db): array
     }unset($row);
     return $rows;
 }
+function restaurantLoadCatalog(PDO $db,array &$page): void
+{
+    $pair=$page['cart']['header']?:accountingCurrencies($db);$currency=$page['cart']['currency'];
+    $page['products']=restaurantRows($db,'SELECT p.id,p.name,p.sale_price,p.currency_code,p.category_id,c.name AS category_name FROM inventory_products p LEFT JOIN inventory_categories c ON c.id=p.category_id WHERE p.sale_enabled=1 AND p.company_id=? ORDER BY p.name',[companyActiveId()]);
+    $page['productCategories']=restaurantRows($db,'SELECT id,name,parent_id,restaurant_enabled FROM inventory_categories WHERE company_id=? ORDER BY name,id',[companyActiveId()]);
+    $page['restaurantCategoryIds']=inventoryRestaurantCategoryIds($page['productCategories']);
+    $page['productCategories']=array_values(array_filter($page['productCategories'],static fn($category)=>in_array((int)$category['id'],$page['restaurantCategoryIds'],true)));
+    $page['products']=array_values(array_filter($page['products'],static fn($product)=>in_array((int)$product['category_id'],$page['restaurantCategoryIds'],true)));
+    foreach($page['products'] as &$product){try{$product['display_price']=accountingConvert($product['sale_price'],$product['currency_code'],$currency,$pair);$product['available']=true;}catch(InvalidArgumentException){$product['display_price']=null;$product['available']=false;}}unset($product);
+}
 function renderRestaurant(string $view): void
 {
     try {renderRestaurantPage($view);}
@@ -58,12 +68,13 @@ function renderRestaurantPage(string $view): void
                     $destination=restaurantUrl('configuracion.php',['section'=>$section]);$message='Configuración guardada.';
                 }
             }elseif($view==='account' && isset($_GET['new'])){
-                if($action!=='save_account')throw new InvalidArgumentException('Acción no válida.');
-                $account=restaurantOpenAccount($db,$_POST);$destination=restaurantUrl('cuenta.php',['id'=>$account]);$message='Cuenta abierta. La mesa ya está asignada.';
+                if(!in_array($action,['save_account','save_first_product'],true))throw new InvalidArgumentException('Acción no válida.');
+                $account=$action==='save_first_product'?restaurantStartOrder($db,$_POST,(int)permissionUser()['id']):restaurantOpenAccount($db,$_POST);
+                $destination=restaurantUrl('cuenta.php',['id'=>$account]);$message=$action==='save_first_product'?'Producto agregado. La mesa está en atención.':'Cuenta abierta. La mesa ya está asignada.';
             }elseif($view==='account' && $id){
-                restaurantAccountAction($db,$id,$_POST);$destination=restaurantUrl('cuenta.php',['id'=>$id]);$message='Cuenta actualizada.';
+                restaurantAccountAction($db,$id,$_POST);$destination=$action==='close_empty_account'?'index.php':restaurantUrl('cuenta.php',['id'=>$id]);$message='Cuenta actualizada.';
             }elseif($view==='table' && $id && $action==='change_table_service'){
-                restaurantChangeService($db,$id,$_POST);$destination=restaurantUrl('mesa.php',['id'=>$id]);$message='Estado de la mesa actualizado.';
+                restaurantChangeService($db,$id,$_POST);$destination='index.php';$message='Estado de la mesa actualizado.';
             }else throw new InvalidArgumentException('Acción no válida.');
             $_SESSION['restaurant_notice']=$message;header('Location: '.$destination,true,303);exit;
         }catch(InvalidArgumentException $e){
@@ -93,6 +104,12 @@ function renderRestaurantPage(string $view): void
             }
             $page['waiters']=restaurantWaiters($db);
             if(permissionScope('restaurante.accounts','create')==='own')$page['waiters']=array_values(array_filter($page['waiters'],static fn($u)=>(int)$u['id']===(int)permissionUser()['id']));
+            if(isset($_GET['preview'])&&$page['view']!=='error'){
+                $page['preview']=true;$page['view']='preview';$page['posReady']=true;
+                $page['cart']=['account'=>['id'=>0,'name'=>'Sin pedido','status'=>'open','version'=>0],
+                    'header'=>null,'items'=>[],'base'=>'0.00','tax'=>'0.00','total'=>'0.00','currency'=>accountingCurrencies($db)['primary_code']];
+                restaurantLoadCatalog($db,$page);
+            }
         }elseif($view==='account' && $id){
             $page['record']=restaurantRecord($db,'restaurant_accounts',$id);
             $q=$db->prepare('SELECT name FROM auth_users WHERE id=?');$q->execute([$page['record']['waiter_id']]);$page['waiter']=$q->fetchColumn();
@@ -102,17 +119,11 @@ function renderRestaurantPage(string $view): void
             $page['posReady']=(bool)$db->query("SHOW TABLES LIKE 'restaurant_account_items'")->fetch();
             if($page['posReady']){
                 $page['cart']=restaurantCart($db,$id);
-                $pair=$page['cart']['header']?:accountingCurrencies($db);$currency=$page['cart']['currency'];
-                $page['products']=restaurantRows($db,'SELECT p.id,p.name,p.sale_price,p.currency_code,p.category_id,c.name AS category_name FROM inventory_products p LEFT JOIN inventory_categories c ON c.id=p.category_id WHERE p.sale_enabled=1 AND p.company_id=? ORDER BY p.name',[companyActiveId()]);
-                $page['productCategories']=restaurantRows($db,'SELECT id,name,parent_id,restaurant_enabled FROM inventory_categories WHERE company_id=? ORDER BY name,id',[companyActiveId()]);
-                $page['restaurantCategoryIds']=inventoryRestaurantCategoryIds($page['productCategories']);
-                $page['productCategories']=array_values(array_filter($page['productCategories'],static fn($category)=>in_array((int)$category['id'],$page['restaurantCategoryIds'],true)));
-                $page['products']=array_values(array_filter($page['products'],static fn($product)=>in_array((int)$product['category_id'],$page['restaurantCategoryIds'],true)));
-                foreach($page['products'] as &$product){try{$product['display_price']=accountingConvert($product['sale_price'],$product['currency_code'],$currency,$pair);$product['available']=true;}catch(InvalidArgumentException){$product['display_price']=null;$product['available']=false;}}unset($product);
+                restaurantLoadCatalog($db,$page);
                 if(permissionRecord('restaurante.accounts',$id,'confirm') && permissionRecord('restaurante.accounts',$id,'pay')){
                     $page['clients']=restaurantRows($db,"SELECT c.id,c.name FROM contacts c JOIN contact_types t ON t.id=c.type_id WHERE c.active=1 AND t.system_key='client' ORDER BY c.name");
                     $page['locations']=restaurantRows($db,"SELECT id,name FROM inventory_locations WHERE location_type='internal' ORDER BY name");
-                    $page['cashAccounts']=restaurantRows($db,'SELECT id,name FROM accounting_payment_accounts WHERE currency_code IS NULL OR currency_code=? ORDER BY name',[$currency]);
+                    $page['cashAccounts']=restaurantRows($db,'SELECT id,name FROM accounting_payment_accounts WHERE currency_code IS NULL OR currency_code=? ORDER BY name',[$page['cart']['currency']]);
                     $page['methods']=restaurantRows($db,'SELECT id,name FROM accounting_payment_methods ORDER BY name');
                 }
             }

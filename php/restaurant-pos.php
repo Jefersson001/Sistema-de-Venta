@@ -23,6 +23,16 @@ function restaurantCart(PDO $db,int $id): array
     foreach($items as &$item){$item+=commerceAmounts($item['quantity'],$item['unit_price'],$item['tax_rate']);$base=bcadd($base,$item['base_amount'],2);$tax=bcadd($tax,$item['tax_amount'],2);$total=bcadd($total,$item['total_amount'],2);}unset($item);
     return ['account'=>$account,'header'=>$cart?:null,'items'=>$items,'base'=>$base,'tax'=>$tax,'total'=>$total,'currency'=>$cart['currency_code']??accountingCurrencies($db)['primary_code']];
 }
+/** Visiting a free table is read-only; its first product opens the account atomically. */
+function restaurantStartOrder(PDO $db,array $input,int $waiter): int
+{
+    if(!$db instanceof CompanyConnection)throw new LogicException('El pedido requiere una conexión de empresa.');
+    return $db->atomicTransfer(function()use($db,$input,$waiter){
+        $id=restaurantOpenAccount($db,array_replace($input,['waiter_id'=>$waiter,'guests'=>1,'notes'=>'']));
+        restaurantCartCommand($db,$id,array_replace($input,['action'=>'pos_add','version'=>1]));
+        return $id;
+    });
+}
 function restaurantCartCommand(PDO $db,int $id,array $input): int
 {
     permissionRequire('restaurante.accounts','edit',$id);
