@@ -81,6 +81,9 @@ try {
             settingsCheck($linkStatus===200,'El acceso '.$name.' no abre su destino.');
         }
     }
+    [$legacyStatus]=settingsRequest('modules/ajustes/index.php?section=Contabilidad',$cookie);
+    settingsCheck($legacyStatus===200,'Se perdió el enlace anterior de Contabilidad.');
+    settingsCheck(isset(businessSettingsSections()['restaurante'],businessSettingsSections()['accesos']),'Falta la configuración de Restaurante o de accesos.');
     [$status,$html]=settingsRequest('modules/ajustes/empresa.php',$cookie);
     settingsCheck($status===200&&str_contains($html,'<table')&&!str_contains($html,'data-company-form'),'No se separan listado y formulario de Empresa.');
     [$status,$html]=settingsRequest('modules/ajustes/empresa.php?id=1',$cookie);

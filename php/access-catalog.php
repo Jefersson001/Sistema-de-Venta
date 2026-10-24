@@ -38,7 +38,7 @@ function accessResources(): array
         ['restaurante','configuration','Áreas y mesas del restaurante','read,configure',false],
         ['compras','orders','Solicitudes y órdenes de compra','read,create,edit,send,confirm,cancel,create_receipt,create_invoice',false],
         ['compras','configuration','Impuestos de compra','read,configure',false],
-        ['inventario','products','Productos','read,create,edit,view_cost,set_commission',false],
+        ['inventario','products','Productos y variantes','read,create,edit,view_cost,set_commission',false],
         ['inventario','deliveries','Entregas','read,create,edit,confirm,reserve,validate,cancel,return,create_invoice',true],
         ['inventario','receipts','Recepciones','read,create,edit,confirm,reserve,validate,cancel,return,create_invoice',false],
         ['inventario','internal','Movimientos internos','read,create,edit,confirm,reserve,validate,cancel',false],
@@ -72,6 +72,41 @@ function accessActionLabel(string $resource,string $action): string
 {
     if($resource==='restaurante.accounts')return match($action){'confirm'=>'Facturar','pay'=>'Cobrar','cancel'=>'Cerrar sin consumo',default=>accessActions()[$action]};
     return accessActions()[$action];
+}
+function accessResourceHelp(string $resource): string
+{
+    return match($resource){
+        'inventario.products'=>'Productos principales y variantes comparten estos permisos. Costos y comisiones conservan sus permisos específicos.',
+        'inventario.configuration'=>'Incluye categorías y la casilla Es para restaurante, además de almacenes y ubicaciones.',
+        'restaurante.tables'=>'Consultar muestra el mapa. Editar permite marcar mesas libres, reservadas o por limpiar.',
+        'restaurante.accounts'=>'Crear y Editar permiten tomar pedidos y gestionar mesas. Facturar y Cobrar se necesitan juntos para completar el cobro, incluidos pagos combinados, reparto y comprobante. Cerrar sin consumo descarta el pedido sin facturar.',
+        'restaurante.configuration'=>'Crear y editar áreas y mesas. No concede permisos para cobrar.',
+        'contabilidad.configuration'=>'Incluye monedas, tasas, cajas, bancos, medios de pago y Permitir vuelto. El cambio requiere un medio habilitado y una cuenta de tipo Caja.',
+        default=>'',
+    };
+}
+
+/** Suggestions only: no group or user receives these permissions automatically. */
+function accessRestaurantTemplates(): array
+{
+    $specs=[
+        'waiter'=>['Mesero','Toma pedidos en sus propias cuentas, sin facturar ni cobrar.',[
+            'restaurante.tables'=>['all','read'],'restaurante.accounts'=>['own','read,create,edit'],'inventario.products'=>['all','read']]],
+        'cashier'=>['Caja de restaurante','Consulta y cobra cuentas de cualquier mesero; puede actualizar el estado de las mesas.',[
+            'restaurante.tables'=>['all','read,edit'],'restaurante.accounts'=>['all','read,confirm,pay'],
+            'inventario.products'=>['all','read'],'contactos.contacts'=>['all','read']]],
+        'manager'=>['Encargado de restaurante','Gestiona todas las cuentas, cierres sin consumo, áreas, mesas y cobros.',[
+            'restaurante.tables'=>['all','read,edit'],'restaurante.accounts'=>['all','read,create,edit,cancel,confirm,pay'],
+            'restaurante.configuration'=>['all','read,configure'],'inventario.products'=>['all','read'],
+            'inventario.stock'=>['all','read'],'contactos.contacts'=>['all','read']]],
+    ];
+    $result=[];
+    foreach($specs as $key=>[$name,$description,$resources]){
+        $permissions=[];
+        foreach($resources as $resource=>[$scope,$actions])foreach(explode(',',$actions) as $action)$permissions[$resource.'.'.$action]=$scope;
+        $result[$key]=compact('name','description','permissions');
+    }
+    return $result;
 }
 function accessPermissionCatalog(): array
 {

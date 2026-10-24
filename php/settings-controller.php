@@ -27,12 +27,20 @@ function renderBusinessSettings(bool $company = false): void
     }
     try {
         $section = $_GET['section']??'general';
+        if($section==='Contabilidad')$section='contabilidad';
         if (!is_string($section) || !isset($page['sections'][$section]) || ($company && isset($_GET['new']))
             || (isset($_GET['id']) && (!$company || $_GET['id']!=='1'))) {
             http_response_code(404); $page['available']=false; $page['errors'][]='La página solicitada no existe.';
         }
         if ($page['available']) {
             $db = createDatabaseConnection(); $page['record']=loadBusinessCompany($db); $page['section']=$section;
+            if(!$company&&permissionRuntime()){
+                foreach($page['sections'] as $key=>&$entry){
+                    $entry['links']=array_values(array_filter($entry['links'],static fn($link)=>permissionUrlAllowed(permissionAbsoluteUrl($link[2],authBasePath().'/modules/ajustes/index.php'))));
+                    if($key!=='general'&&!$entry['links'])unset($page['sections'][$key]);
+                }unset($entry);
+                if(!isset($page['sections'][$section])){http_response_code(403);$page['available']=false;$page['errors'][]='Tu grupo no tiene acceso a las opciones de esta sección.';}
+            }
             if ($company) {
                 $page['view'] = isset($_GET['id'])?'form':'list';
                 if ($method==='POST') {

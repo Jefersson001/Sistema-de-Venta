@@ -27,6 +27,7 @@
                     <?php endif; ?>
                     <div class="catalog-options">
                         <?php foreach($section['links'] as [$name,$description,$href]): ?><a class="catalog-option" href="<?= $e($href) ?>"><strong><?= $e($name) ?></strong><p class="section-subtitle"><?= $e($description) ?></p><span>Abrir <span aria-hidden="true">→</span></span></a><?php endforeach; ?>
+                        <?php if(!$section['links']): ?><p class="section-subtitle">No tienes opciones de configuración autorizadas en esta sección. Consulta con el administrador para ampliar tus accesos.</p><?php endif; ?>
                     </div>
                 </div>
             </div>

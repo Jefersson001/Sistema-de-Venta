@@ -74,6 +74,13 @@ try {
     $renamed=accessInput($salesGroup['permissions'],'Ventas modificadas');$renamed['active']='0';unset($renamed['permissions'][array_search('ventas.orders.confirm',$renamed['permissions'],true)]);$renamed['permissions']=array_values($renamed['permissions']);
     saveAccessGroup($db,$renamed,(int)$salesGroup['id'],1);$custom=loadAccessGroup($db,(int)$salesGroup['id']);
     installAccessGroups($db);accessCheck(loadAccessGroup($db,(int)$salesGroup['id'])===$custom,'Reinstalar restaura nombre, estado o permisos personalizados.');
+    $beforeSync=$db->query('SELECT group_id,permission_code,record_scope FROM access_group_permissions ORDER BY group_id,permission_code')->fetchAll();
+    syncAccessPermissionCatalog($db);syncAccessPermissionCatalog($db);
+    accessCheck($db->query('SELECT group_id,permission_code,record_scope FROM access_group_permissions ORDER BY group_id,permission_code')->fetchAll()===$beforeSync,'Sincronizar el catálogo modificó permisos de grupos.');
+    foreach(accessRestaurantTemplates() as $template){validateAccessGroup(accessInput($template['permissions'],$template['name']));}
+    $waiterTemplate=accessRestaurantTemplates()['waiter']['permissions'];$cashierTemplate=accessRestaurantTemplates()['cashier']['permissions'];
+    accessCheck(($waiterTemplate['restaurante.accounts.read']??null)==='own'&&!isset($waiterTemplate['restaurante.accounts.confirm'],$waiterTemplate['restaurante.accounts.pay']),'La plantilla Mesero permite cobros o acceso a cuentas ajenas.');
+    accessCheck(isset($cashierTemplate['restaurante.accounts.confirm'],$cashierTemplate['restaurante.accounts.pay'])&&!isset($cashierTemplate['restaurante.accounts.cancel']),'La plantilla Caja no separa el cobro del cierre sin consumo.');
     accessCheck(!accessPermissionAllows(resolveAccessGroupPermissions($db,[$salesGroup['id']]),'ventas.orders.confirm',21,21),'Un grupo inactivo concede confirmación.');
 } finally {$db->exec('USE information_schema');$db->exec('DROP DATABASE `'.$testDatabase.'`');}
 

@@ -2,6 +2,22 @@
 declare(strict_types=1);
 require_once __DIR__.'/access-catalog.php';
 
+/** Refresh descriptions/catalog entries only. Never restore or grant group permissions. */
+function syncAccessPermissionCatalog(PDO $db): array
+{
+    $own=!$db->inTransaction();if($own)$db->beginTransaction();
+    try{
+        $query=$db->prepare('INSERT INTO access_permissions(code,module_key,resource_key,action_key,label,allows_own) VALUES(?,?,?,?,?,?)
+            ON DUPLICATE KEY UPDATE module_key=VALUES(module_key),resource_key=VALUES(resource_key),action_key=VALUES(action_key),label=VALUES(label),allows_own=VALUES(allows_own)');
+        $result=['created'=>0,'updated'=>0];
+        foreach(accessPermissionCatalog() as $code=>$p){
+            $query->execute([$code,$p['module'],$p['resource'],$p['action'],$p['label'],(int)$p['allows_own']]);
+            if($query->rowCount()===1)$result['created']++;elseif($query->rowCount()>1)$result['updated']++;
+        }
+        if($own)$db->commit();return $result;
+    }catch(Throwable $e){if($own&&$db->inTransaction())$db->rollBack();throw $e;}
+}
+
 function installAccessGroups(PDO $db): void
 {
     $db->exec("CREATE TABLE IF NOT EXISTS access_permissions (
@@ -22,9 +38,7 @@ function installAccessGroups(PDO $db): void
     ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4");
     $db->beginTransaction();
     try {
-        $query=$db->prepare('INSERT INTO access_permissions(code,module_key,resource_key,action_key,label,allows_own) VALUES(?,?,?,?,?,?)
-            ON DUPLICATE KEY UPDATE module_key=VALUES(module_key),resource_key=VALUES(resource_key),action_key=VALUES(action_key),label=VALUES(label),allows_own=VALUES(allows_own)');
-        foreach(accessPermissionCatalog() as $code=>$p)$query->execute([$code,$p['module'],$p['resource'],$p['action'],$p['label'],(int)$p['allows_own']]);
+        syncAccessPermissionCatalog($db);
         $insert=$db->prepare('INSERT IGNORE INTO access_groups(name,description,system_key) VALUES(?,?,?)');
         $find=$db->prepare('SELECT id FROM access_groups WHERE system_key=?');
         $grant=$db->prepare('INSERT INTO access_group_permissions(group_id,permission_code,record_scope) VALUES(?,?,?)');

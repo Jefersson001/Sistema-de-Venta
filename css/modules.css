@@ -313,3 +313,7 @@
     .module-workspace .workspace-empty-table .workspace-empty { padding: 20px 4px; }
 }
 .module-workspace .contact-sheet:has(#product-page-variants:not([hidden])) > .contact-form-actions { position: static; margin-top: 24px; }
+.module-workspace .access-resource-help { display: block; max-width: 350px; margin-top: 8px; color: #657887; font-size: 11px; line-height: 1.6; font-weight: 400; }
+.module-workspace .access-template-picker { display: grid; grid-template-columns: minmax(0,1fr) auto; align-items: end; gap: 12px; padding: 18px; margin: 20px 0; border: 1px solid #dce5ec; border-radius: 12px; background: #f7fafc; }
+.module-workspace .access-template-picker > p { grid-column: 1 / -1; margin: 0; }
+@media(max-width:640px){.module-workspace .access-template-picker{grid-template-columns:1fr}.module-workspace .access-resource-help{max-width:none}}
