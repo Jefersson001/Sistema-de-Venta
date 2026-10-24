@@ -6,9 +6,11 @@
     <meta name="theme-color" content="#f5f7fb">
     <title><?= $isConfiguration ? 'Configuración | ' : '' ?><?= htmlspecialchars($module['name'], ENT_QUOTES, 'UTF-8') ?> | Nexo</title>
     <link rel="stylesheet" href="../../css/app.css?v=<?= filemtime(dirname(__DIR__) . '/css/app.css') ?>">
+    <link rel="stylesheet" href="../../css/modules.css?v=<?= filemtime(dirname(__DIR__) . '/css/modules.css') ?>">
     <script src="../../js/app.js?v=<?= filemtime(dirname(__DIR__) . '/js/app.js') ?>" defer></script>
+    <script src="../../js/modules.js?v=<?= filemtime(dirname(__DIR__) . '/js/modules.js') ?>" defer></script>
 </head>
-<body>
+<body class="module-workspace">
     <div class="app-shell">
         <?php $homeHref = '../../index.php'; $isHomePage = false; require __DIR__ . '/partials/top-navigation.php'; ?>
         <main class="main-area">
