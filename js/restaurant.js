@@ -1,3 +1,18 @@
+function restaurantPackPayments(payload) {
+    const rows = {};
+    for (const [key, value] of [...payload.entries()]) {
+        const field = /^payments\[(\d+)\]\[(label|method_id|account_id|amount|received_amount)\]$/.exec(key);
+        const item = /^payments\[(\d+)\]\[items\]\[(\d+)\]$/.exec(key);
+        if (!field && !item) continue;
+        const index = (field || item)[1]; rows[index] ||= {};
+        if (field) rows[index][field[2]] = value;
+        else { rows[index].items ||= {}; rows[index].items[item[2]] = value; }
+        payload.delete(key);
+    }
+    payload.set('payments_json', JSON.stringify(Object.keys(rows).sort((a,b)=>Number(a)-Number(b)).map(index=>rows[index])));
+    return payload;
+}
+
 (() => {
     'use strict';
     const root = document.querySelector('.restaurant-workspace');
@@ -152,6 +167,7 @@
         if (busy || !form.reportValidity()) return;
         busy = true;
         const payload = new FormData(form);
+        if (payload.get('action') === 'pos_checkout') restaurantPackPayments(payload);
         const controls = [...pos.querySelectorAll('button,input,select,textarea')];
         const enabled = controls.filter(control => !control.disabled);
         enabled.forEach(control => { control.disabled = true; });

@@ -9,6 +9,7 @@
     <link rel="stylesheet" href="../../css/modules.css?v=<?= filemtime(dirname(__DIR__) . '/css/modules.css') ?>">
     <script src="../../js/app.js?v=<?= filemtime(dirname(__DIR__) . '/js/app.js') ?>" defer></script>
     <script src="../../js/modules.js?v=<?= filemtime(dirname(__DIR__) . '/js/modules.js') ?>" defer></script>
+    <script src="../../js/unsaved-changes.js?v=<?= filemtime(dirname(__DIR__) . '/js/unsaved-changes.js') ?>" defer></script>
     <?php if($moduleKey==='restaurante'): ?>
     <link rel="stylesheet" href="../../css/restaurant.css?v=<?= filemtime(dirname(__DIR__).'/css/restaurant.css') ?>">
     <script src="../../js/restaurant.js?v=<?= filemtime(dirname(__DIR__).'/js/restaurant.js') ?>" defer></script>

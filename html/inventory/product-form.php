@@ -17,8 +17,9 @@ $indicatorViews = ['on-hand' => 'stock', 'sold' => 'sold', 'purchased' => 'purch
 ?>
 <section aria-labelledby="product-title">
     <div class="contact-toolbar"><div><a class="overview-link" href="<?= inventoryEscape($backUrl) ?>">← <?= $isVariant?'Variantes':'Productos' ?></a><h1 id="product-title"><?= $editing ? ($isVariant?'Editar variante':'Editar producto') : ($isVariant?'Nueva variante':'Nuevo producto') ?></h1><?php if($isVariant&&$page['variantParent']): ?><p class="section-subtitle">Producto principal: <a class="inline-link" href="index.php?id=<?= (int)$page['variantParent']['id'] ?>#product-page-variants"><?= inventoryEscape($page['variantParent']['name']) ?></a></p><?php endif; ?></div></div>
-    <form class="contact-sheet" method="post" action="<?= inventoryEscape($formUrl) ?>" data-product-commission-form>
+    <form class="contact-sheet" method="post" action="<?= inventoryEscape($formUrl) ?>" data-product-commission-form data-unsaved-changes <?= !empty($page['errors'])?'data-unsaved-initial="true"':'' ?>>
         <input type="hidden" name="csrf" value="<?= inventoryEscape($page['csrf']) ?>"><input type="hidden" name="action" value="save_product">
+        <?php if($editing): ?><input type="hidden" name="product_revision" value="<?= inventoryEscape($page['productRevision']) ?>"><?php endif; ?>
         <div class="product-stat-buttons" role="group" aria-label="Estadísticas del producto" aria-describedby="product-stats-help">
             <?php foreach (['on-hand' => 'Cantidad a la mano', 'sold' => 'Vendido', 'purchased' => 'Comprado'] as $key => $label): ?>
                 <?php $value = $key === 'on-hand' ? $page['productStock']['total'] : $page['productIndicators'][$key]; ?>

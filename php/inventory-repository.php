@@ -160,7 +160,15 @@ function validateInventoryProduct(array $input, array $categories = [], array $p
     return [$data, $errors];
 }
 
-function saveInventoryProduct(PDO $db, array $data, ?int $id): int
+function inventoryProductRevision(array $record,array $suppliers): string
+{
+    $snapshot=[];
+    foreach(['id','name','sale_enabled','purchase_enabled','sale_price','category_id','purchase_tax_id','sale_tax_id','product_type','invoice_policy','cost_price','currency_code','commission_type','commission_value','parent_product_id'] as $field)$snapshot[$field]=isset($record[$field])?(string)$record[$field]:null;
+    $prices=[];foreach($suppliers as $row)$prices[(int)$row['supplier_id']]=(string)$row['price'];ksort($prices,SORT_NUMERIC);
+    return hash_hmac('sha256',json_encode([$snapshot,$prices],JSON_THROW_ON_ERROR),$_SESSION['auth_csrf']??'inventory-cli');
+}
+
+function saveInventoryProduct(PDO $db, array $data, ?int $id,?string $expectedRevision=null): int
 {
     $data+=['commission_type'=>'none','commission_value'=>'0.0000'];
     $ownTransaction=!$db->inTransaction();if($ownTransaction)$db->beginTransaction();
@@ -174,7 +182,13 @@ function saveInventoryProduct(PDO $db, array $data, ?int $id): int
         if($id===(int)$parent)throw new InvalidArgumentException('Una variante no puede ser su propio producto principal.');
         inventoryProductParent($db,(int)$parent,true);
     }
-    if($id){$q=$db->prepare('SELECT id FROM inventory_products WHERE id=? FOR UPDATE');$q->execute([$id]);if(!$q->fetchColumn())throw new InvalidArgumentException('El producto ya no está disponible.');}
+    if($id){
+        $q=$db->prepare('SELECT * FROM inventory_products WHERE id=? FOR UPDATE');$q->execute([$id]);$current=$q->fetch();if(!$current)throw new InvalidArgumentException('El producto ya no está disponible.');
+        if($expectedRevision!==null){
+            $q=$db->prepare('SELECT supplier_id,price FROM product_supplier_prices WHERE product_id=? ORDER BY supplier_id FOR UPDATE');$q->execute([$id]);
+            if(!hash_equals(inventoryProductRevision($current,$q->fetchAll()),$expectedRevision))throw new InvalidArgumentException('Este producto fue modificado desde otra ficha. Tus cambios siguen en pantalla; recarga para revisar la versión actual antes de guardar.',409);
+        }
+    }
     if ($id && $data['product_type']==='service') {
         $q=$db->prepare('SELECT COUNT(*) FROM inventory_operation_lines WHERE product_id=?');$q->execute([$id]);
         if($q->fetchColumn())throw new InvalidArgumentException('Un producto con movimientos de inventario debe conservar el tipo Mercancía.');

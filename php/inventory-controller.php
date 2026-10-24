@@ -76,6 +76,7 @@ function renderInventoryProducts(bool $variantCreation=false): void
             $page['storage'] = loadStorageRelations($db);
             $page['suppliers']=$db->query("SELECT c.id,c.name FROM contacts c JOIN contact_types t ON t.id=c.type_id WHERE t.system_key='supplier' AND c.active=1 ORDER BY c.name")->fetchAll();
             $prices=$db->prepare('SELECT * FROM product_supplier_prices WHERE product_id=? ORDER BY id');$prices->execute([$id??($variantCreation?($page['record']['parent_product_id']??null):null)]);$page['supplierPrices']=$prices->fetchAll();
+            $page['productRevision']=$id?($_SERVER['REQUEST_METHOD']==='POST'?(is_string($_POST['product_revision']??null)?$_POST['product_revision']:''):inventoryProductRevision($page['record'],$page['supplierPrices'])):null;
         }
         if ($_SERVER['REQUEST_METHOD'] === 'POST' && $page['available']) {
             $token = $_POST['csrf'] ?? null;
@@ -86,6 +87,13 @@ function renderInventoryProducts(bool $variantCreation=false): void
                 http_response_code(400);
                 $page['errors'][] = 'La operación solicitada no es válida.';
             } else {
+                if(permissionHas('inventario.products','view_cost')&&is_array($_POST['supplier_prices']??null)){
+                    $page['supplierPrices']=[];
+                    foreach($_POST['supplier_prices'] as $row)if(is_array($row)){
+                        $supplier=inventoryId($row['supplier_id']??null);$price=is_string($row['price']??null)?$row['price']:'';
+                        if($supplier||!in_array($price,['','0','0.00'],true))$page['supplierPrices'][]=['supplier_id'=>$supplier,'price'=>$price];
+                    }
+                }
                 $input=$_POST;$input['currency_code']??=$page['record']['currency_code']??$page['settings']['primary_code'];
                 $input['parent_product_id']=$page['record']['parent_product_id']??null;
                 if($variantCreation&&!$input['parent_product_id'])$page['errors'][]='Selecciona el producto principal de la variante.';
@@ -105,7 +113,7 @@ function renderInventoryProducts(bool $variantCreation=false): void
                             if(!inventoryCategoryRecord($page['suppliers'],$supplier) || isset($seen[$supplier]) || !preg_match('/^[0-9]{1,10}(\.[0-9]{1,2})?$/',$price))throw new InvalidArgumentException('Selecciona proveedores sin repetir e importes válidos.');
                             $supplierRows[]=[$supplier,$price];$seen[$supplier]=true;
                         }
-                        $db->beginTransaction(); $saved=saveInventoryProduct($db,$data,$id);
+                        $db->beginTransaction(); $saved=saveInventoryProduct($db,$data,$id,$id?$page['productRevision']:null);
                         if(permissionHas('inventario.products','view_cost')){
                             $db->prepare('DELETE FROM product_supplier_prices WHERE product_id=?')->execute([$saved]);
                             foreach($supplierRows as [$supplier,$price])$db->prepare('INSERT INTO product_supplier_prices (product_id,supplier_id,price) VALUES (?,?,?)')->execute([$saved,$supplier,$price]);
@@ -113,7 +121,7 @@ function renderInventoryProducts(bool $variantCreation=false): void
                             foreach($page['supplierPrices'] as $row)$db->prepare('INSERT INTO product_supplier_prices(product_id,supplier_id,price) VALUES(?,?,?)')->execute([$saved,$row['supplier_id'],$row['price']]);
                         }
                         $db->commit();
-                    } catch (InvalidArgumentException $e) { if($db->inTransaction())$db->rollBack();$page['errors'][]=$e->getMessage(); }
+                    } catch (InvalidArgumentException $e) { if($db->inTransaction())$db->rollBack();if($e->getCode()===409)http_response_code(409);$page['errors'][]=$e->getMessage(); }
                     catch (Throwable $e) { if($db->inTransaction())$db->rollBack();throw $e; }
                     if(!$page['errors']) {
                     $_SESSION['inventory_flash'] = !empty($data['parent_product_id'])?'Variante guardada correctamente.':'Producto guardado correctamente.';

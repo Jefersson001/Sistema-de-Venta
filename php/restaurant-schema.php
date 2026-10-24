@@ -3,6 +3,7 @@ declare(strict_types=1);
 require_once __DIR__.'/company-schema.php';
 require_once __DIR__.'/access-schema.php';
 require_once __DIR__.'/inventory-restaurant-schema.php';
+require_once __DIR__.'/receipt-snapshot.php';
 
 function restaurantTables(): array
 {
@@ -52,7 +53,7 @@ function installRestaurant(PDO $db,?callable $progress=null): void
             FOREIGN KEY(table_id) REFERENCES restaurant_tables(id), FOREIGN KEY(area_id) REFERENCES restaurant_areas(id)",
         'restaurant_account_carts' => "account_id INT UNSIGNED PRIMARY KEY, currency_code CHAR(3) NOT NULL,
             primary_code CHAR(3) NOT NULL, alternate_code CHAR(3) NOT NULL, exchange_rate DECIMAL(20,8) NULL,
-            sale_id INT UNSIGNED NULL, invoice_id INT UNSIGNED NULL, UNIQUE KEY restaurant_cart_sale(sale_id),
+            sale_id INT UNSIGNED NULL, invoice_id INT UNSIGNED NULL, receipt_snapshot LONGTEXT NULL, UNIQUE KEY restaurant_cart_sale(sale_id),
             UNIQUE KEY restaurant_cart_invoice(invoice_id), FOREIGN KEY(account_id) REFERENCES restaurant_accounts(id),
             FOREIGN KEY(sale_id) REFERENCES sales_quotations(id), FOREIGN KEY(invoice_id) REFERENCES accounting_invoices(id)",
         'restaurant_account_items' => "id INT UNSIGNED AUTO_INCREMENT PRIMARY KEY, account_id INT UNSIGNED NOT NULL,
@@ -71,6 +72,7 @@ function installRestaurant(PDO $db,?callable $progress=null): void
         $db->exec("CREATE TABLE IF NOT EXISTS $table ($definition) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4");
         installCompanyTable($db, $table);
     }
+    installReceiptSnapshots($db);
     // Refresh the cross-company triggers once, after every new relationship is registered.
     registerCompanyTable($db,'restaurant_requests');
     // Install only this module's permissions. Never reseed existing groups or business data.

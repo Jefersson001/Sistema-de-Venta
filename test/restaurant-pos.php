@@ -140,6 +140,14 @@ try{
     posCheck((int)$db->query('SELECT COUNT(*) FROM inventory_stock_moves')->fetchColumn()===$beforeMixedStock,'Un fallo de vuelto dejó una entrega parcial.');
     $mixedInvoice=restaurantCheckout($db,$mixedAccount,$mixed);posCheck(restaurantCheckout($db,$mixedAccount,$mixed)===$mixedInvoice,'El reintento de pagos mixtos duplicó factura.');
     $mixedReceipt=restaurantLoadReceipt($db,$mixedAccount);
+    echo "RUN immutable receipt identity\n";
+    $raw->prepare('UPDATE contacts SET name=? WHERE id=?')->execute(['Cliente cambiado',$customer]);
+    $originalCompany=$raw->query('SELECT name FROM business_company WHERE id=1')->fetchColumn();
+    $raw->exec("UPDATE business_company SET name='Empresa cambiada' WHERE id=1");
+    $frozenReceipt=restaurantLoadReceipt($db,$mixedAccount);
+    posCheck($frozenReceipt['invoice']['customer_name']===$mixedReceipt['invoice']['customer_name']&&$frozenReceipt['company']['name']===$mixedReceipt['company']['name'],'Editar cliente o empresa alteró un comprobante emitido.');
+    $raw->prepare('UPDATE contacts SET name=? WHERE id=?')->execute([$mixedReceipt['invoice']['customer_name'],$customer]);
+    $raw->prepare('UPDATE business_company SET name=? WHERE id=1')->execute([$originalCompany]);
     posCheck(count($mixedReceipt['payments'])===2&&$mixedReceipt['invoice']['payment_state']==='paid','No se registraron ambos medios de pago.');
     posCheck($mixedReceipt['payments'][0]['received_amount']==='5.00'&&$mixedReceipt['payments'][0]['change_amount']==='1.00'&&$mixedReceipt['payments'][0]['amount']==='4.00','El efectivo y el cambio no coinciden con el neto aplicado.');
     posCheck((int)$db->query('SELECT COUNT(*) FROM accounting_payments')->fetchColumn()===$beforeMixed+2,'Se duplicaron pagos al reintentar.');
@@ -167,6 +175,7 @@ try{
     $httpAccount=$newCollection('Cobro HTTP',3,$splitProduct);
     $httpCheckout=['csrf'=>$jsonCommand['csrf'],'company_scope'=>$jsonCommand['company_scope'],'action'=>'pos_checkout','customer_id'=>$customer,'location_id'=>$location,'version'=>2,'request_key'=>bin2hex(random_bytes(32)),
         'split_mode'=>'full','payments'=>[['method_id'=>$manualMethod,'account_id'=>$bank,'amount'=>'3.86']]];
+    $httpCheckout['payments_json']=json_encode($httpCheckout['payments'],JSON_THROW_ON_ERROR);unset($httpCheckout['payments']);
     foreach([1,2] as $attempt){
         $curl=curl_init($s['url'].'/modules/restaurante/cuenta.php?id='.$httpAccount);
         curl_setopt_array($curl,[CURLOPT_RETURNTRANSFER=>true,CURLOPT_COOKIEFILE=>$cookie,CURLOPT_TIMEOUT=>10,CURLOPT_HTTPHEADER=>['Accept: application/json'],CURLOPT_POSTFIELDS=>http_build_query($httpCheckout)]);

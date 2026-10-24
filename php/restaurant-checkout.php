@@ -1,6 +1,18 @@
 <?php
 declare(strict_types=1);
 
+function restaurantCheckoutInput(array $input): array
+{
+    if(array_key_exists('payments_json',$input)){
+        if(isset($input['payments'])||!is_string($input['payments_json'])||strlen($input['payments_json'])>1000000)throw new InvalidArgumentException('El reparto de pagos no es válido.');
+        try{$rows=json_decode($input['payments_json'],true,16,JSON_THROW_ON_ERROR);}
+        catch(JsonException){throw new InvalidArgumentException('No se pudo leer el reparto de pagos.');}
+        if(!is_array($rows)||!array_is_list($rows)||count($rows)<1||count($rows)>20)throw new InvalidArgumentException('Registra entre 1 y 20 pagos.');
+        $input['payments']=$rows;unset($input['payments_json']);
+    }
+    return $input;
+}
+
 /** Normalize the division in the server; money and quantities never come from browser totals. */
 function restaurantPaymentPlan(array $cart,array $input): array
 {

@@ -70,7 +70,17 @@ try{
     $r=authTestRequest($s,'/modules/inventario/index.php?q='.urlencode($prefix),$cookie);variantCheck($r[0]===200&&str_contains($r[1],'Variantes del producto')&&!str_contains($r[1],$variantName),'La lista principal mezcla variantes o no tiene menú.');
     $r=authTestRequest($s,'/modules/inventario/index.php?id='.$parent,$cookie);variantCheck($r[0]===200&&str_contains($r[1],$variantName)&&str_contains($r[1],'Nueva variante'),'El principal no muestra sus variantes.');
     $r=authTestRequest($s,'/modules/inventario/index.php?id='.$lemon,$cookie);variantCheck($r[0]===200&&str_contains($r[1],'Editar variante')&&str_contains($r[1],'Producto principal:'),'La ficha no identifica a su principal.');
-    $r=authTestRequest($s,'/modules/inventario/index.php?id='.$lemon,$cookie,['csrf'=>$csrf,'action'=>'save_product','name'=>$variantName,'sale_enabled'=>'1','purchase_enabled'=>'1','sale_price'=>'13.00','currency_code'=>$currency,'category_id'=>$category,'product_type'=>'goods','invoice_policy'=>'ordered']);variantCheck($r[0]===303&&str_contains($r[2],'variantes.php?parent_id='.$parent),'Editar variante no vuelve al listado correspondiente.');
+    $revision=authTestToken($r[1],'product_revision');
+    $r=authTestRequest($s,'/modules/inventario/index.php?id='.$lemon,$cookie,['csrf'=>$csrf,'action'=>'save_product','product_revision'=>$revision,'name'=>$variantName,'sale_enabled'=>'1','purchase_enabled'=>'1','sale_price'=>'13.00','currency_code'=>$currency,'category_id'=>$category,'product_type'=>'goods','invoice_policy'=>'ordered']);variantCheck($r[0]===303&&str_contains($r[2],'variantes.php?parent_id='.$parent),'Editar variante no vuelve al listado correspondiente.');
+    echo "RUN stale form conflict and supplier values after validation\n";
+    $stale=array_replace($createPost,['product_revision'=>$revision,'sale_price'=>'99.00']);
+    $r=authTestRequest($s,'/modules/inventario/index.php?id='.$lemon,$cookie,$stale);
+    variantCheck($r[0]===409&&str_contains($r[1],'Tus cambios siguen en pantalla'),'Una ficha antigua no informa el conflicto.');
+    $q->execute([$lemon]);variantCheck($q->fetch()['sale_price']==='13.00','La ficha antigua sobrescribió el precio nuevo.');
+    $db->prepare("INSERT INTO contacts(name,type_id) SELECT ?,id FROM contact_types WHERE system_key='supplier'")->execute(['Proveedor revisión '.$prefix]);$supplier=(int)$db->lastInsertId();
+    $invalid=array_replace($createPost,['name'=>'','supplier_prices'=>[['supplier_id'=>$supplier,'price'=>'123.45']]]);
+    $r=authTestRequest($s,'/modules/inventario/variantes.php?new=1',$cookie,$invalid);
+    variantCheck($r[0]===200&&str_contains($r[1],'value="123.45"')&&str_contains($r[1],'data-unsaved-initial="true"'),'La validación perdió precios de proveedor o el aviso de cambios.');
     echo "RUN cross-company parent protection and read-only permissions\n";
     $otherCompany=createBusinessCompany($raw,['name'=>'Empresa variantes '.$prefix],$actor);$other=$connect([$otherCompany],$otherCompany);
     echo "RUN foreign company created\n";
@@ -97,7 +107,7 @@ try{
     if(isset($argv[1])){
         $fixtures=sys_get_temp_dir().'/nexo-variant-fixtures-'.bin2hex(random_bytes(5));mkdir($fixtures,0700);
         $css=preg_replace('/^@import[^\r\n]+[\r\n]*/m','',file_get_contents(dirname(__DIR__).'/css/app.css')).file_get_contents(dirname(__DIR__).'/css/modules.css');
-        $js=file_get_contents(dirname(__DIR__).'/js/app.js')."\n".file_get_contents(dirname(__DIR__).'/js/modules.js')."\n".file_get_contents(dirname(__DIR__).'/js/navigation.js')."\n".file_get_contents(dirname(__DIR__).'/js/product-commissions.js');
+        $js=file_get_contents(dirname(__DIR__).'/js/app.js')."\n".file_get_contents(dirname(__DIR__).'/js/modules.js')."\n".file_get_contents(dirname(__DIR__).'/js/navigation.js')."\n".file_get_contents(dirname(__DIR__).'/js/product-commissions.js')."\n".file_get_contents(dirname(__DIR__).'/js/unsaved-changes.js')."\n".file_get_contents(dirname(__DIR__).'/js/product-variant-form.js');
         foreach(['list'=>'/modules/inventario/variantes.php?parent_id='.$parent,'new'=>'/modules/inventario/variantes.php?new=1&parent_id='.$parent,'parent'=>'/modules/inventario/index.php?id='.$parent,'variant'=>'/modules/inventario/index.php?id='.$lemon] as $name=>$route){
             $r=authTestRequest($s,$route,$cookie);variantCheck($r[0]===200,'No renderiza '.$name);
             $html=preg_replace('~<script\b[^>]*\bsrc="[^"]*"[^>]*>\s*</script>|<link\b[^>]*rel="stylesheet"[^>]*>~i','',$r[1]);$html=str_replace('</head>','<style>'.$css.'</style></head>',$html);$html=str_replace('</body>','<script>'.$js.'</script></body>',$html);file_put_contents($fixtures.'/'.$name.'.html',$html);

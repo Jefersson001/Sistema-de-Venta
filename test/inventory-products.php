@@ -18,6 +18,9 @@ $id = null;
 
 function productRequest(string $base, string $path, string $cookie, ?array $post = null): array
 {
+    if($post!==null&&($post['action']??'')==='save_product'&&str_contains($path,'id=')&&!isset($post['product_revision'])){
+        [, $fresh]=productRequest($base,$path,$cookie);preg_match('/name="product_revision" value="([a-f0-9]+)"/',$fresh,$revision);$post['product_revision']=$revision[1]??'';
+    }
     $curl = testHttpCurl($base . $path, $cookie ?? $cookieJar ?? $cookieFile ?? null);
     curl_setopt_array($curl, [CURLOPT_RETURNTRANSFER => true, CURLOPT_COOKIEJAR => $cookie,
         CURLOPT_COOKIEFILE => $cookie, CURLOPT_TIMEOUT => 10]);

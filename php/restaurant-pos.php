@@ -6,6 +6,7 @@ require_once __DIR__.'/workflow-invoices.php';
 require_once __DIR__.'/operation-status-repository.php';
 require_once __DIR__.'/payments-repository.php';
 require_once __DIR__.'/restaurant-checkout.php';
+require_once __DIR__.'/receipt-snapshot.php';
 
 function restaurantPosFields(array $cart,string $action): void
 {
@@ -85,6 +86,7 @@ function restaurantCartCommand(PDO $db,int $id,array $input): int
 /** One transaction coordinates the existing sales, stock, invoice and payment services. */
 function restaurantCheckout(PDO $db,int $id,array $input): int
 {
+    $input=restaurantCheckoutInput($input);
     $trace=static function(string $step):void{if(PHP_SAPI==='cli'&&getenv('NEXO_POS_TRACE'))fwrite(STDERR,'POS '.$step.PHP_EOL);};
     permissionRequire('restaurante.accounts','confirm',$id);permissionRequire('restaurante.accounts','pay',$id);
     if(!$db instanceof CompanyConnection)throw new LogicException('El cobro requiere una conexión de empresa.');
@@ -100,6 +102,7 @@ function restaurantCheckout(PDO $db,int $id,array $input): int
             if($cart['header']['invoice_id'])throw new InvalidArgumentException('La mesa ya tiene una factura.',409);
             restaurantPaymentPlan($cart,$input);
             $q=$db->prepare("SELECT c.* FROM contacts c JOIN contact_types t ON t.id=c.type_id WHERE c.id=? AND c.active=1 AND t.system_key='client'");$q->execute([$customer]);$contact=$q->fetch();if(!$contact)throw new InvalidArgumentException('Selecciona un cliente activo.');
+            $receiptSnapshot=restaurantReceiptSnapshot($db,$contact,(int)$account['company_id']);
             $q=$db->prepare("SELECT * FROM inventory_locations WHERE id=? AND location_type='internal'");$q->execute([$location]);$origin=$q->fetch();if(!$origin)throw new InvalidArgumentException('Selecciona una ubicación interna para las existencias.');
             $header=$cart['header'];$date=commerceToday();
             $snapshot=invoiceExchangeSnapshot($db,['currency_primary_code'=>$header['primary_code'],'currency_alternate_code'=>$header['alternate_code']],$date);
@@ -120,7 +123,7 @@ function restaurantCheckout(PDO $db,int $id,array $input): int
             $trace('payment');$collection=restaurantCollectPayments($db,$id,$account,$invoice,$cart,$customer,$input);
             $trace('close');$q=$db->prepare('SELECT * FROM accounting_invoices WHERE id=?');$q->execute([$invoice]);$invoiceRow=$q->fetch();invoiceRecomputePaymentState($db,$invoiceRow);
             $details=invoicePaymentDetails($db,$invoice);if(bccomp($details['settled'],$cart['total'],2)!==0)throw new LogicException('El cobro no coincide con la factura.');
-            $db->prepare('UPDATE restaurant_account_carts SET sale_id=?,invoice_id=? WHERE account_id=?')->execute([$sale,$invoice,$id]);
+            $db->prepare('UPDATE restaurant_account_carts SET sale_id=?,invoice_id=?,receipt_snapshot=? WHERE account_id=?')->execute([$sale,$invoice,json_encode($receiptSnapshot,JSON_UNESCAPED_UNICODE|JSON_THROW_ON_ERROR),$id]);
             $q=$db->prepare('SELECT table_id FROM restaurant_active_tables WHERE account_id=? ORDER BY table_id');$q->execute([$id]);$tableIds=array_map('intval',$q->fetchAll(PDO::FETCH_COLUMN));
             foreach($tableIds as $table)restaurantReleaseTable($db,$id,$table,'Facturación y cobro completados','cleaning');
             $db->prepare("UPDATE restaurant_accounts SET status='closed',closed_at=CURRENT_TIMESTAMP,version=version+1 WHERE id=?")->execute([$id]);

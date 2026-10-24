@@ -7,6 +7,7 @@ require_once dirname(__DIR__).'/php/commerce-repository.php';
 require_once dirname(__DIR__).'/php/invoice-status-repository.php';
 require_once dirname(__DIR__).'/php/inventory-stock-repository.php';
 require_once dirname(__DIR__).'/php/operation-status-repository.php';
+require_once dirname(__DIR__).'/php/bcv-sync.php';
 $db=createDatabaseConnection();$prefix='Test parciales '.bin2hex(random_bytes(8));$cookie=tempnam(sys_get_temp_dir(),'partial-');$f=[];$orders=[];$manual=[];
 function checkPartial(bool $ok,string $message):void{if(!$ok)throw new RuntimeException($message);}
 function partialRequest(string $path,string $cookie,?array $post=null):array{
@@ -18,6 +19,8 @@ function partialToken(string $body):string{checkPartial(preg_match('/name="csrf"
 function partialId(array $r):int{checkPartial($r[0]===303&&preg_match('/id=(\d+)/',$r[2],$m)===1,'Falló una acción: '.strip_tags($r[1]));return(int)$m[1];}
 function partialRecord(PDO $db,string $table,int $id):array{$q=$db->prepare('SELECT * FROM '.$table.' WHERE id=?');$q->execute([$id]);return $q->fetch();}
 try{
+    checkPartial((bool)preg_match('/^nexo_auth_test_[a-f0-9]{16}$/D',(string)$db->query('SELECT DATABASE()')->fetchColumn()),'Se requiere una base de pruebas aislada.');
+    bcvApplyPublication($db,['rate'=>'100.00000000','effective_date'=>commerceToday(),'source'=>'bcv']);
     require_once __DIR__.'/treasury-cleanup.php';
     $roles=array_flip($db->query('SELECT id,system_key FROM contact_types WHERE system_key IS NOT NULL')->fetchAll(PDO::FETCH_KEY_PAIR));
     $db->prepare("INSERT INTO accounting_payment_accounts(name,account_type) VALUES (?,'cash')")->execute([$prefix]);$f['account']=(int)$db->lastInsertId();
@@ -32,7 +35,8 @@ try{
     $db->prepare('INSERT INTO accounting_payment_terms(name,days) VALUES (?,30)')->execute([$prefix]);$f['term']=(int)$db->lastInsertId();
     // Configure supplier prices through the product form.
     [, $productForm]=partialRequest('inventario/index.php?id='.$f['product'],$cookie);
-    $r=partialRequest('inventario/index.php?id='.$f['product'],$cookie,['csrf'=>partialToken($productForm),'action'=>'save_product','name'=>$prefix,'sale_enabled'=>'1','purchase_enabled'=>'1','sale_price'=>'3.00','cost_price'=>'0','product_type'=>'goods','invoice_policy'=>'delivered','supplier_prices'=>[['supplier_id'=>$f['supplier'],'price'=>'2.00']]]);
+    preg_match('/name="product_revision" value="([a-f0-9]+)"/',$productForm,$revision);
+    $r=partialRequest('inventario/index.php?id='.$f['product'],$cookie,['csrf'=>partialToken($productForm),'product_revision'=>$revision[1]??'','action'=>'save_product','name'=>$prefix,'sale_enabled'=>'1','purchase_enabled'=>'1','sale_price'=>'3.00','cost_price'=>'0','product_type'=>'goods','invoice_policy'=>'delivered','supplier_prices'=>[['supplier_id'=>$f['supplier'],'price'=>'2.00']]]);
     checkPartial($r[0]===303,'No se guardó el precio de proveedor.');
     $prices=loadPurchaseCatalogs($db,null);checkPartial(count(array_filter($prices['supplierPrices'],fn($p)=>(int)$p['product_id']===$f['product']&&$p['price']==='2.00'))===1,'No se relacionó el precio del proveedor.');
     $createOrder=function(string $kind,string $quantity='10.000',bool $confirm=true)use($db,$cookie,$f,&$orders):int{

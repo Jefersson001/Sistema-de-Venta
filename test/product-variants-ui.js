@@ -73,6 +73,7 @@ const http = require('node:http');
                 await evaluate('window.scrollTo(0,0)');
                 const png = await call('Page.captureScreenshot', {format: 'png', captureBeyondViewport: true});
                 fs.writeFileSync(path.join(process.argv[3], view + '-' + width + '.png'), Buffer.from(png.data, 'base64'));
+                await evaluate('document.querySelectorAll("[data-unsaved-changes]").forEach(form=>window.nexoUnsavedChanges.allowNavigation(form))');
             }
         }
         assert.deepEqual(errors, []);
