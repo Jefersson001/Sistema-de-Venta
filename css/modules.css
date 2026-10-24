@@ -317,3 +317,7 @@
 .module-workspace .access-template-picker { display: grid; grid-template-columns: minmax(0,1fr) auto; align-items: end; gap: 12px; padding: 18px; margin: 20px 0; border: 1px solid #dce5ec; border-radius: 12px; background: #f7fafc; }
 .module-workspace .access-template-picker > p { grid-column: 1 / -1; margin: 0; }
 @media(max-width:640px){.module-workspace .access-template-picker{grid-template-columns:1fr}.module-workspace .access-resource-help{max-width:none}}
+/* Shared model actions, in both tree and form views. */
+.record-selectable-card{display:flex;gap:12px;align-items:center}.record-selectable-card>a{flex:1}.record-selectable-card>input{width:18px;height:18px;accent-color:#137080}
+.restaurant-heading:has(.transfer-menu){flex-wrap:wrap}
+.record-pagination{display:flex;gap:6px;margin-left:auto;flex-wrap:wrap}.record-pagination [aria-disabled=true]{opacity:.45;cursor:default}.record-selection{width:42px!important;min-width:42px;text-align:center!important}.record-selection input{width:17px;height:17px;accent-color:#137080;cursor:pointer}.record-delete-link{color:#b33d50!important}.record-delete-button{background:#b13d50!important;color:white!important;border-color:#b13d50!important}.record-confirmation{max-width:760px;margin:50px auto}.record-confirmation li{padding:5px}.record-confirmation h1{margin-bottom:20px}

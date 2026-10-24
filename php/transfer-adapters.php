@@ -19,11 +19,16 @@ function transferSave(PDO $db,array $m,array $input,?array $old,string $key): in
 {
     $id=$old?(int)$old['id']:null;$version=$old['version']??null;$actor=(int)permissionUser()['id'];$save=$m['save'];
     if(is_callable($save))return $save($db,$input,$old,$key);
+    if(in_array($save,['restaurant_areas','restaurant_tables'],true)){
+        require_once __DIR__.'/restaurant-repository.php';$input['version']=$version;
+        return $save==='restaurant_areas'?restaurantSaveArea($db,$input,$id):restaurantSaveTable($db,$input,$id);
+    }
     if($save==='contacts') {
         $data=transferValidated(validateContact($input,loadContactCatalogs($db),loadContactSalespeople($db,accessId($old['salesperson_id']??null),$id),$id,loadStorageRelations($db)));
         $data['active']=(int)($input['active']??'1');return saveContact($db,$data,$id);
     }
     if($save==='products') {
+        if($m['key']==='variants'&&!$id&&!accessId($input['parent_product_id']??null))throw new InvalidArgumentException('Selecciona el producto principal de la variante.');
         $input['currency_code']??=accountingCurrencies($db)['primary_code'];
         if(!in_array($input['currency_code'],array_merge(accountingCurrencyCodes(accountingCurrencies($db)),[$old['currency_code']??null]),true))throw new InvalidArgumentException('Selecciona una moneda configurada.');
         $saved=saveInventoryProduct($db,transferValidated(validateInventoryProduct($input,loadInventoryCategories($db),loadBusinessTaxes($db,'compras'),loadBusinessTaxes($db,'ventas'))),$id);

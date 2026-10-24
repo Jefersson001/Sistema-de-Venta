@@ -39,6 +39,10 @@ function transferDomain(PDO $db,array $m,array $filters=[],bool $editing=false):
     } elseif($m['key']==='treasury')$where[]=permissionTreasuryWhere('r');
     elseif(!str_ends_with($m['resource'],'.configuration'))$where[]=permissionWhere($m['resource'],'r');
     if($editing)return [$where,$args];
+    if(in_array($m['key'],['products','variants'],true)&&!isset($filters['id'])){
+        $where[]='r.parent_product_id IS '.($m['key']==='variants'?'NOT NULL':'NULL');
+        if($m['key']==='variants'&&accessId($filters['parent_id']??null)){$where[]='r.parent_product_id=?';$args[]=accessId($filters['parent_id']);}
+    }
     if(isset($filters['id'])){if(!accessId($filters['id'])||!isset($schema['id']))throw new InvalidArgumentException('La ficha solicitada no existe.');$where[]='r.id=?';$args[]=accessId($filters['id']);}
     if($m['key']==='contacts'&&!isset($filters['id'])) {
         $where[]='r.active=?';$args[]=($filters['status']??'')==='archived'?0:1;

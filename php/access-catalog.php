@@ -9,7 +9,7 @@ function accessModules(): array
 
 function accessActions(): array
 {
-    return ['read'=>'Consultar','create'=>'Crear','edit'=>'Editar','archive'=>'Archivar',
+    return ['read'=>'Consultar','create'=>'Crear','edit'=>'Editar','archive'=>'Archivar','delete'=>'Eliminar borradores o registros sin uso','duplicate'=>'Duplicar factura en borrador',
         'confirm'=>'Confirmar','send'=>'Marcar enviada','cancel'=>'Cancelar',
         'create_delivery'=>'Generar entrega','create_receipt'=>'Generar recepción','create_invoice'=>'Generar factura',
         'reserve'=>'Comprobar disponibilidad','validate'=>'Validar movimiento','return'=>'Crear devolución',
@@ -62,6 +62,8 @@ function accessResources(): array
     ];
     $result = [];
     foreach ($specs as [$module,$key,$label,$actions,$own]) {
+        if(in_array($module.'.'.$key,['contactos.contacts','inventario.products','ventas.orders','compras.orders','inventario.deliveries','inventario.receipts','inventario.internal','contabilidad.customer_invoices','contabilidad.supplier_invoices','contabilidad.customer_payments','contabilidad.supplier_payments','contabilidad.income','contabilidad.expense','contabilidad.transfer','contabilidad.opening','ajustes.groups'],true))$actions.=',delete';
+        if(in_array($key,['customer_invoices','supplier_invoices'],true))$actions.=',duplicate';
         $resource = $module.'.'.$key;
         $result[$resource] = ['module'=>$module,'label'=>$label,'actions'=>explode(',',$actions),'allows_own'=>$own];
     }

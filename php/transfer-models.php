@@ -52,6 +52,10 @@ function transferModels(): array
     $add('outstanding','accounting_invoices','Cuentas por cobrar y pagar','contabilidad.customer_invoices','readonly','',['reader'=>'outstanding','synthetic'=>$balanceFields]);
     // New modules register their model here through the same contract.
     foreach(array_replace(require __DIR__.'/config/transfer-models.php',$GLOBALS['transfer_extra_models']??[]) as $key=>$model)$models[$key]=array_replace(['key'=>$key,'domain'=>[],'defaults'=>[],'search'=>['name'],'admin'=>false],$model);
+    $models['variants']=array_replace($models['products'],['key'=>'variants','label'=>'Variantes del producto']);
+    $add('restaurant_areas','restaurant_areas','Áreas del restaurante','restaurante.configuration','restaurant_areas','name,sort_order,active');
+    $add('restaurant_tables','restaurant_tables','Mesas del restaurante','restaurante.configuration','restaurant_tables','name,area_id,capacity,location_label,position_x,position_y,active');
+    $add('restaurant_accounts','restaurant_accounts','Cuentas del restaurante','restaurante.accounts','readonly','');
     return $models;
 }
 
@@ -70,13 +74,14 @@ function transferRouteModel(string $url): ?array
         if($value=$query->fetchColumn())$q[$param]=$value;
     }
     if(basename($path)==='configuracion.php') {
-        $section=$q['section']??null;if(!is_string($section))return null;
+        $section=$q['section']??(dirname($route)==='restaurante'?'restaurant_areas':null);if(!is_string($section))return null;
         $key=match(dirname($route)){'contactos'=>in_array($section,['countries','states','cities','types','document_types'],true)?$section:null,
             'inventario'=>in_array($section,['categories','warehouses','locations'],true)?$section:null,
             'ventas','compras'=>$section==='taxes'?(dirname($route)==='ventas'?'sale_taxes':'purchase_taxes'):null,
-            'contabilidad'=>in_array($section,['payment_terms','accounts','methods','concepts','currencies','currency_settings'],true)?$section:null,default=>null};
+            'contabilidad'=>in_array($section,['payment_terms','accounts','methods','concepts','currencies','currency_settings'],true)?$section:null,
+            'restaurante'=>in_array($section,['restaurant_areas','restaurant_tables'],true)?$section:'restaurant_areas',default=>null};
     } else $key=match($route){
-        'contactos/index.php'=>'contacts','inventario/index.php'=>'products','ventas/index.php'=>'sale_orders','compras/index.php','compras/orden.php'=>'purchase_orders',
+        'contactos/index.php'=>'contacts','inventario/index.php'=>'products','inventario/variantes.php'=>'variants','ventas/index.php'=>'sale_orders','compras/index.php','compras/orden.php'=>'purchase_orders','restaurante/cuentas.php','restaurante/cuenta.php'=>'restaurant_accounts',
         'contabilidad/index.php'=>($q['type']??'customer')==='supplier'?'supplier_invoices':'customer_invoices',
         'contabilidad/pagos.php'=>($q['type']??'customer')==='supplier'?'supplier_payments':'customer_payments',
         'contabilidad/tesoreria.php'=>in_array($q['kind']??'',['income','expense','transfer','opening'],true)?$q['kind']:'treasury',
@@ -87,6 +92,10 @@ function transferRouteModel(string $url): ?array
     };
     $models=transferModels();
     if($route==='contabilidad/cuentas-pendientes.php'){$model=$models['outstanding'];$model['resource']=permissionHas('contabilidad.customer_invoices')?'contabilidad.customer_invoices':'contabilidad.supplier_invoices';return $model;}
+    if($key==='products'&&accessId($q['id']??null)){
+        $statement=createDatabaseConnection()->prepare('SELECT parent_product_id FROM inventory_products WHERE id=?');$statement->execute([accessId($q['id'])]);if($statement->fetchColumn())$key='variants';
+    }
+    if($key==='variants'&&accessId($q['parent_id']??null))$models[$key]['defaults']['parent_product_id']=(string)accessId($q['parent_id']);
     if($key==='treasury') {
         $model=$models[$key];
         foreach(['income','expense','transfer','opening','customer_payments','supplier_payments'] as $resource)if(permissionHas('contabilidad.'.$resource)){$model['resource']='contabilidad.'.$resource;break;}

@@ -1,5 +1,5 @@
 <?php
-$links=$page['links'];$kind=$page['documentKind'];$sourceId=(int)$links['source']['id'];
+$links=$page['links'];$kind=$page['documentKind'];$sourceId=(int)($links['source']['id']??0);if(!$sourceId)return;
 $sale=$kind==='sale';$invoiceType=$sale?'customer':'supplier';$operationType=$sale?'delivery':'receipt';
 $filter=($sale?'sale_id=':'purchase_id=').$sourceId;$operations=$links['operations'];$invoices=$links['invoices'];
 $showOrigin=in_array($documentView,['operation','invoice'],true);
