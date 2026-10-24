@@ -93,7 +93,9 @@ try {
     [$status,$html]=accessRequest('grupos.php?id='.$id,$cookie);
     accessCheck($status===200&&str_contains($html,'&lt;script&gt;')&&!str_contains($html,$prefix.' <script>'),'El nombre del grupo no se presenta como texto seguro.');
     $dom=new DOMDocument();libxml_use_internal_errors(true);$dom->loadHTML('<?xml encoding="UTF-8">'.$html);$xpath=new DOMXPath($dom);
-    accessCheck($xpath->query('//*[@data-notebook-page]')->length===7,'No se organizan los permisos por módulo.');
+    accessCheck($xpath->query('//*[@data-notebook-page]')->length===count(accessModules()),'No se organizan los permisos por módulo.');
+    foreach(array_keys(accessModules()) as $module)accessCheck($xpath->query('//*[@id="access-'.$module.'" and @data-notebook-page]')->length===1,'Falta la pestaña de permisos de '.$module.'.');
+    accessCheck($xpath->query('//label[input[@value="restaurante.accounts.pay"]]/span[text()="Cobrar"]')->length===1,'El permiso de cobro del restaurante no tiene una etiqueta clara.');
     accessCheck($xpath->query('//input[@value="ventas.orders.edit" and @checked]')->length===1&&$xpath->query('//select[@name="scopes[ventas.orders]"]/option[@value="own" and @selected]')->length===1,'No se conserva la matriz de permisos propios.');
     $saved=loadAccessGroup($live,$id);
     [$status]=accessRequest('grupos.php?id='.$id,$cookie,array_replace($post,['version'=>'999']));accessCheck($status===409&&loadAccessGroup($live,$id)===$saved,'Se sobrescribe un grupo con versión antigua.');

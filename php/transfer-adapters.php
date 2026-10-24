@@ -35,7 +35,7 @@ function transferSave(PDO $db,array $m,array $input,?array $old,string $key): in
         }
         return $saved;
     }
-    if($save==='categories')return saveInventoryCategory($db,transferValidated(validateInventoryCategory($input,loadInventoryCategories($db),$id)),$id);
+    if($save==='categories')return saveInventoryCategory($db,transferValidated(validateInventoryCategory($input+['restaurant_enabled'=>$old['restaurant_enabled']??0],loadInventoryCategories($db),$id)),$id);
     if(in_array($save,['warehouses','locations'],true))return saveInventoryStorage($db,$save,transferValidated(validateInventoryStorage($save,$input,loadInventoryWarehouses($db),loadInventoryLocations($db),$id)),$id);
     if($save==='contact_catalog') {
         $data=transferValidated(validateContactCatalog($m['section'],$input,loadContactCatalogs($db),$id));saveContactCatalog($db,$m['section'],$data,$id);return $id??(int)$db->lastInsertId();

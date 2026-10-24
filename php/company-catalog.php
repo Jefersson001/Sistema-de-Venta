@@ -26,6 +26,7 @@ function companySharedTables(): array
 function companyResourceTable(string $resource): ?string
 {
     return match($resource){
+        'restaurante.accounts'=>'restaurant_accounts','restaurante.tables'=>'restaurant_tables',
         'contactos.contacts'=>'contacts','inventario.products'=>'inventory_products',
         'ventas.orders'=>'sales_quotations','compras.orders'=>'purchase_orders',
         'inventario.deliveries','inventario.receipts','inventario.internal'=>'inventory_operations',
@@ -59,11 +60,13 @@ function companyRouteTable(string $path,array $query): ?string
 {
     $route=implode('/',array_slice(explode('/',$path),-2));
     if(basename($path)==='configuracion.php')return match($query['section']??''){
+        'restaurant_areas'=>'restaurant_areas','restaurant_tables'=>'restaurant_tables',
         'categories'=>'inventory_categories','warehouses'=>'inventory_warehouses','locations'=>'inventory_locations',
         'payment_terms'=>'accounting_payment_terms','accounts'=>'accounting_payment_accounts','methods'=>'accounting_payment_methods',
         'concepts'=>'accounting_cash_concepts','currencies'=>'accounting_currencies','taxes'=>'business_taxes',default=>null,
     };
     return match($route){
+        'restaurante/cuenta.php'=>'restaurant_accounts','restaurante/mesa.php'=>'restaurant_tables',
         'contactos/index.php'=>'contacts','inventario/index.php','ventas/producto.php'=>'inventory_products',
         'ventas/index.php'=>'sales_quotations','compras/index.php','compras/orden.php'=>'purchase_orders',
         'inventario/operaciones.php'=>'inventory_operations','contabilidad/index.php','ventas/comisiones.php'=>'accounting_invoices',

@@ -34,7 +34,7 @@
                         <?php foreach($resources as $resource=>$definition): if($definition['module']!==$module)continue; $scope=$page['scopes'][$resource]??'all'; ?>
                             <tr data-access-row data-access-module="<?= $module ?>"><td><?= $e($definition['label']) ?></td><td><div class="access-permission-options">
                                 <?php foreach($definition['actions'] as $action): $code=$resource.'.'.$action;$locked=isset($protected[$code]);$checked=$locked||isset($record['permissions'][$code]); ?>
-                                    <label><input type="checkbox" name="permissions[]" value="<?= $e($code) ?>" data-access-permission="<?= $action ?>" <?= $checked?'checked':'' ?> <?= $locked?'disabled':'' ?>><span><?= $e(accessActions()[$action]) ?></span></label>
+                                    <label><input type="checkbox" name="permissions[]" value="<?= $e($code) ?>" data-access-permission="<?= $action ?>" <?= $checked?'checked':'' ?> <?= $locked?'disabled':'' ?>><span><?= $e(accessActionLabel($resource,$action)) ?></span></label>
                                     <?php if($locked): ?><input type="hidden" name="permissions[]" value="<?= $e($code) ?>"><?php endif; ?>
                                 <?php endforeach; ?>
                             </div></td><td>

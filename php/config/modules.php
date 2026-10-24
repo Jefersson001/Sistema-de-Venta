@@ -51,6 +51,14 @@ return [
         'color' => 'rose',
         'features' => ['Ingresos y gastos', 'Cuentas por cobrar y pagar', 'Reportes financieros'],
     ],
+    'restaurante' => [
+        'name' => 'Restaurante',
+        'description' => 'Organiza las áreas, mesas y cuentas de tu restaurante.',
+        'category' => 'Operaciones',
+        'initials' => 'RE',
+        'color' => 'emerald',
+        'features' => ['Mapa de mesas', 'Cuentas y atención', 'Áreas del restaurante'],
+    ],
     'ajustes' => [
         'name' => 'Ajustes',
         'description' => 'Configura tu empresa y las opciones de cada módulo.',

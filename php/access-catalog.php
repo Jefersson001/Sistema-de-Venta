@@ -4,7 +4,7 @@ declare(strict_types=1);
 function accessModules(): array
 {
     return ['dashboard'=>'Dashboard','contactos'=>'Contactos','ventas'=>'Ventas','compras'=>'Compras',
-        'inventario'=>'Inventario','contabilidad'=>'Contabilidad','ajustes'=>'Ajustes'];
+        'inventario'=>'Inventario','contabilidad'=>'Contabilidad','restaurante'=>'Restaurante','ajustes'=>'Ajustes'];
 }
 
 function accessActions(): array
@@ -33,6 +33,9 @@ function accessResources(): array
         ['ventas','commissions','Comisiones','read,pay,reverse',true],
         ['ventas','commission_payments','Pagos de comisiones','read',true],
         ['ventas','configuration','Impuestos de venta','read,configure',false],
+        ['restaurante','tables','Mapa y estado de mesas','read,edit',false],
+        ['restaurante','accounts','Cuentas del restaurante','read,create,edit,cancel,confirm,pay',true],
+        ['restaurante','configuration','Áreas y mesas del restaurante','read,configure',false],
         ['compras','orders','Solicitudes y órdenes de compra','read,create,edit,send,confirm,cancel,create_receipt,create_invoice',false],
         ['compras','configuration','Impuestos de compra','read,configure',false],
         ['inventario','products','Productos','read,create,edit,view_cost,set_commission',false],
@@ -65,13 +68,18 @@ function accessResources(): array
     return $result;
 }
 
+function accessActionLabel(string $resource,string $action): string
+{
+    if($resource==='restaurante.accounts')return match($action){'confirm'=>'Facturar','pay'=>'Cobrar','cancel'=>'Cerrar sin consumo',default=>accessActions()[$action]};
+    return accessActions()[$action];
+}
 function accessPermissionCatalog(): array
 {
     $catalog = [];
     foreach (accessResources() as $resource=>$definition) {
         foreach ($definition['actions'] as $action) $catalog[$resource.'.'.$action] = [
             'resource'=>$resource,'module'=>$definition['module'],'action'=>$action,'allows_own'=>$definition['allows_own'],
-            'label'=>$definition['label'].' · '.accessActions()[$action],
+            'label'=>$definition['label'].' · '.accessActionLabel($resource,$action),
         ];
     }
     return $catalog;

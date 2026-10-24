@@ -9,6 +9,10 @@
     <link rel="stylesheet" href="../../css/modules.css?v=<?= filemtime(dirname(__DIR__) . '/css/modules.css') ?>">
     <script src="../../js/app.js?v=<?= filemtime(dirname(__DIR__) . '/js/app.js') ?>" defer></script>
     <script src="../../js/modules.js?v=<?= filemtime(dirname(__DIR__) . '/js/modules.js') ?>" defer></script>
+    <?php if($moduleKey==='restaurante'): ?>
+    <link rel="stylesheet" href="../../css/restaurant.css?v=<?= filemtime(dirname(__DIR__).'/css/restaurant.css') ?>">
+    <script src="../../js/restaurant.js?v=<?= filemtime(dirname(__DIR__).'/js/restaurant.js') ?>" defer></script>
+    <?php endif; ?>
 </head>
 <body class="module-workspace">
     <div class="app-shell">
@@ -17,7 +21,10 @@
             <div class="page-content module-page">
                 <a class="back-link" href="../../index.php">← Volver al inicio</a>
                 <?php if ($moduleKey !== 'dashboard'): ?><nav class="module-navigation" aria-label="Secciones de <?= htmlspecialchars($module['name'], ENT_QUOTES, 'UTF-8') ?>">
-                    <?php if ($moduleKey === 'ajustes'): ?>
+                    <?php if ($moduleKey === 'restaurante'): ?>
+                        <a class="module-navigation-link <?= ($modulePageData['area']??'')==='map'?'module-navigation-active':'' ?>" href="index.php">Mapa de mesas</a>
+                        <a class="module-navigation-link <?= ($modulePageData['area']??'')==='accounts'?'module-navigation-active':'' ?>" href="cuentas.php">Cuentas</a>
+                    <?php elseif ($moduleKey === 'ajustes'): ?>
                         <a class="module-navigation-link <?= ($modulePageData['area']??'')==='settings'?'module-navigation-active':'' ?>" href="index.php" <?= ($modulePageData['area']??'')==='settings'?'aria-current="page"':'' ?>>Ajustes generales</a>
                         <a class="module-navigation-link <?= ($modulePageData['area']??'')==='company'?'module-navigation-active':'' ?>" href="empresa.php" <?= ($modulePageData['area']??'')==='company'?'aria-current="page"':'' ?>>Empresa</a>
                         <a class="module-navigation-link <?= ($modulePageData['area']??'')==='groups'?'module-navigation-active':'' ?>" href="grupos.php" <?= ($modulePageData['area']??'')==='groups'?'aria-current="page"':'' ?>>Grupos de acceso</a>
@@ -42,7 +49,9 @@
                     <?php endif; ?>
                     <?php if (!in_array($moduleKey,['dashboard','ajustes'],true)): ?><a class="module-navigation-link <?= $isConfiguration ? 'module-navigation-active' : '' ?>" href="configuracion.php" <?= $isConfiguration ? 'aria-current="page"' : '' ?>><span aria-hidden="true">⚙</span> Configuración</a><?php endif; ?>
                 </nav><?php endif; ?>
-                <?php if ($moduleKey === 'ajustes' && $modulePageData !== null): ?>
+                <?php if ($moduleKey === 'restaurante' && $modulePageData !== null): ?>
+                    <?php require __DIR__.'/restaurant/page.php'; ?>
+                <?php elseif ($moduleKey === 'ajustes' && $modulePageData !== null): ?>
                     <?php require __DIR__.'/settings/page.php'; ?>
                 <?php elseif ($moduleKey === 'dashboard' && ! $isConfiguration && $modulePageData !== null): ?>
                     <?php require __DIR__ . '/dashboard.php'; ?>

@@ -4,6 +4,7 @@ require_once __DIR__.'/company-schema.php';
 
 function transferFieldLabel(string $name): string
 {
+    if($name==='restaurant_enabled')return 'Es para restaurante';
     $labels=['id'=>'ID del registro','version'=>'Versión','company_id'=>'Empresa (ID)','created_by'=>'Creado por (ID)','created_at'=>'Fecha de creación','updated_by'=>'Modificado por (ID)','updated_at'=>'Fecha de modificación',
         'name'=>'Nombre / referencia','description'=>'Descripción','code'=>'Código','entity_kind'=>'Persona o empresa','type_id'=>'Tipo de contacto (ID)','tax_id'=>'Documento / impuesto (ID en líneas)','document_type_id'=>'Tipo de documento (ID)',
         'email'=>'Correo','phone'=>'Teléfono','mobile'=>'Móvil','website'=>'Sitio web','address'=>'Dirección','postal_code'=>'Código postal','country_id'=>'País (ID)','state_id'=>'Estado (ID)','city_id'=>'Ciudad (ID)','notes'=>'Notas','active'=>'Activo',

@@ -22,11 +22,13 @@ function permissionWhere(string $resource,string $alias,string $action='read'): 
 {
     if(!preg_match('/^[a-zA-Z_][a-zA-Z0-9_]*$/D',$alias))throw new LogicException('Alias de permisos inválido.');
     $scope=permissionScope($resource,$action);if($scope==='all')return '1=1';
+    if($scope==='own'&&$resource==='restaurante.accounts')return permissionAssignedWhere($resource,$alias,0);
     $contact=permissionContact();if($scope!=='own'||!permissionContacts())return '1=0';
     return permissionAssignedWhere($resource,$alias,$contact);
 }
 function permissionAssignedWhere(string $resource,string $alias,int $contact): string
 {
+    if($resource==='restaurante.accounts')return $alias.'.waiter_id='.(int)permissionUser()['id'];
     $ids=permissionRuntime()?permissionContacts():array_filter([$contact]);
     if(!$ids)return '1=0';$list=implode(',',$ids);
     return match($resource) {
@@ -48,6 +50,7 @@ function permissionRecord(string $resource,int $id,string $action='read'): bool
 {
     if(permissionScope($resource,$action)==='all')return true;
     $table=match($resource){'contactos.contacts'=>'contacts','ventas.orders'=>'sales_quotations',
+        'restaurante.accounts'=>'restaurant_accounts','restaurante.tables'=>'restaurant_tables',
         'inventario.deliveries'=>'inventory_operations','contabilidad.customer_invoices','ventas.commissions'=>'accounting_invoices',
         'ventas.commission_payments'=>'sales_commission_payments',default=>null};
     if(!$table)return false;
@@ -91,6 +94,8 @@ function permissionRoute(string $path,array $query): ?string
     }
     if($file==='configuracion.php')return $module==='dashboard'?null:$module.'.configuration';
     return match($module.'/'.$file){
+        'restaurante/index.php','restaurante/mesa.php'=>'restaurante.tables',
+        'restaurante/cuenta.php','restaurante/cuentas.php'=>'restaurante.accounts',
         'contactos/index.php'=>'contactos.contacts',
         'ventas/index.php','ventas/producto.php'=>'ventas.orders',
         'ventas/comisiones.php'=>'ventas.commissions','ventas/pagos-comisiones.php'=>'ventas.commission_payments',
@@ -112,6 +117,10 @@ function permissionAction(string $resource,mixed $action,?int $id): ?string
 {
     if(!is_string($action))return null;
     if(str_ends_with($resource,'.configuration'))return 'configure';
+    if(in_array($action,['move_account','attach_table','detach_table','change_table_service'],true))return 'edit';
+    if($action==='close_empty_account')return 'cancel';
+    if(in_array($action,['pos_add','pos_quantity','pos_remove','pos_note'],true))return 'edit';
+    if($action==='pos_checkout')return 'confirm';
     if(str_starts_with($action,'save_'))return $resource==='ajustes.company'?'edit':($id?'edit':'create');
     return match($action){'toggle_active'=>'archive','mark_sent','mark_invoice_sent'=>'send',
         'confirm_sale','confirm_purchase','confirm_invoice','confirm_operation','post_payment','confirm_treasury'=>'confirm',
@@ -126,6 +135,7 @@ function permissionModuleUrl(string $module): ?string
 {
     $routes=match($module){
         'dashboard'=>['index.php'], 'contactos'=>['index.php','configuracion.php'],
+        'restaurante'=>['index.php','cuentas.php','configuracion.php'],
         'ventas'=>['index.php','comisiones.php','pagos-comisiones.php','configuracion.php'],
         'compras'=>['index.php','configuracion.php'],
         'inventario'=>['index.php','operaciones.php?type=delivery','operaciones.php?type=receipt','operaciones.php?type=internal','informes.php?view=stock','informes.php?view=movements','configuracion.php'],

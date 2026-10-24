@@ -185,7 +185,16 @@ function inventoryId(mixed $value): ?int
 
 function loadInventoryCategories(PDO $db): array
 {
-    return $db->query('SELECT id, name, parent_id FROM inventory_categories ORDER BY name, id')->fetchAll();
+    return $db->query('SELECT id, name, parent_id, restaurant_enabled FROM inventory_categories ORDER BY name, id')->fetchAll();
+}
+
+function inventoryRestaurantCategoryIds(array $categories): array
+{
+    $ids=[];
+    foreach($categories as $category)if(empty($category['parent_id'])&&!empty($category['restaurant_enabled'])){
+        $ids=array_merge($ids,inventoryCategoryDescendants($categories,(int)$category['id']));
+    }
+    return array_values(array_unique($ids));
 }
 
 function inventoryCategoryRecord(array $categories, ?int $id): ?array
@@ -237,16 +246,19 @@ function validateInventoryCategory(array $input, array $categories, ?int $id): a
     if ($id && $parent && in_array($parent, inventoryCategoryDescendants($categories, $id), true)) {
         $errors[] = 'La categoría superior no puede ser la misma categoría ni una de sus subcategorías.';
     }
-    return [['name' => $name, 'parent_id' => $parent], $errors];
+    $enabled=$input['restaurant_enabled']??'0';
+    if(!in_array($enabled,['0','1',0,1],true))$errors[]='La opción Es para restaurante no es válida.';
+    return [['name' => $name, 'parent_id' => $parent,'restaurant_enabled'=>$parent?0:(int)($enabled==='1'||$enabled===1)], $errors];
 }
 
 function saveInventoryCategory(PDO $db, array $data, ?int $id): int
 {
+    $data['restaurant_enabled']=!empty($data['parent_id'])?0:(int)($data['restaurant_enabled']??0);
     if ($id) {
         $data['id'] = $id;
-        $statement = $db->prepare('UPDATE inventory_categories SET name = :name, parent_id = :parent_id WHERE id = :id');
+        $statement = $db->prepare('UPDATE inventory_categories SET name = :name, parent_id = :parent_id, restaurant_enabled = :restaurant_enabled WHERE id = :id');
     } else {
-        $statement = $db->prepare('INSERT INTO inventory_categories (name, parent_id) VALUES (:name, :parent_id)');
+        $statement = $db->prepare('INSERT INTO inventory_categories (name, parent_id, restaurant_enabled) VALUES (:name, :parent_id, :restaurant_enabled)');
     }
     $statement->execute($data);
     return $id ?? (int) $db->lastInsertId();
