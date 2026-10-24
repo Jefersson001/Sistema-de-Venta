@@ -14,6 +14,7 @@ require_once __DIR__ . '/sales-delivery-schema.php';
 require_once __DIR__ . '/external-locations-schema.php';
 require_once __DIR__.'/commission-schema.php';
 require_once __DIR__.'/inventory-restaurant-schema.php';
+require_once __DIR__.'/product-variants-schema.php';
 
 try {
     $db = createDatabaseConnection();
@@ -48,6 +49,7 @@ try {
     installExternalLocations($db);
     installProductCommissions($db);
     installInventoryRestaurantCategories($db);
+    installProductVariants($db);
     echo "Productos, operaciones y existencias de Inventario instalados.\n";
 } catch (Throwable $exception) {
     fwrite(STDERR, 'No se pudo instalar Inventario: ' . $exception->getMessage() . "\n");

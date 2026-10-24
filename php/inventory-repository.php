@@ -2,6 +2,7 @@
 
 declare(strict_types=1);
 require_once __DIR__.'/commission-math.php';
+require_once __DIR__.'/product-variants-repository.php';
 
 function inventoryConfigurationDefinitions(): array
 {
@@ -152,12 +153,28 @@ function validateInventoryProduct(array $input, array $categories = [], array $p
         $commission=productCommissionUnit($data['sale_price'],$type,$value)??'0.00';
         if (bccomp(bcadd($data['sale_price'],$commission,2),'9999999999.99',2)>0) $errors[]='El precio para vendedor supera el máximo permitido.';
     }
+    if(array_key_exists('parent_product_id',$input)){
+        $data['parent_product_id']=inventoryId($input['parent_product_id']);
+        if($input['parent_product_id']!==null&&$input['parent_product_id']!==''&&!$data['parent_product_id'])$errors[]='Selecciona un producto principal válido.';
+    }
     return [$data, $errors];
 }
 
 function saveInventoryProduct(PDO $db, array $data, ?int $id): int
 {
     $data+=['commission_type'=>'none','commission_value'=>'0.0000'];
+    $ownTransaction=!$db->inTransaction();if($ownTransaction)$db->beginTransaction();
+    try{
+    $old=null;
+    if($id){$q=$db->prepare('SELECT id,parent_product_id FROM inventory_products WHERE id=?');$q->execute([$id]);$old=$q->fetch();if(!$old)throw new InvalidArgumentException('El producto ya no está disponible.');}
+    $data['parent_product_id']??=$old['parent_product_id']??null;
+    $parent=$data['parent_product_id'];
+    if($id&&$parent!=($old['parent_product_id']??null))throw new InvalidArgumentException('No puedes cambiar el producto principal de un producto ya creado.');
+    if($parent){
+        if($id===(int)$parent)throw new InvalidArgumentException('Una variante no puede ser su propio producto principal.');
+        inventoryProductParent($db,(int)$parent,true);
+    }
+    if($id){$q=$db->prepare('SELECT id FROM inventory_products WHERE id=? FOR UPDATE');$q->execute([$id]);if(!$q->fetchColumn())throw new InvalidArgumentException('El producto ya no está disponible.');}
     if ($id && $data['product_type']==='service') {
         $q=$db->prepare('SELECT COUNT(*) FROM inventory_operation_lines WHERE product_id=?');$q->execute([$id]);
         if($q->fetchColumn())throw new InvalidArgumentException('Un producto con movimientos de inventario debe conservar el tipo Mercancía.');
@@ -165,13 +182,18 @@ function saveInventoryProduct(PDO $db, array $data, ?int $id): int
     if ($id) {
         $data['id'] = $id;
         $sql = 'UPDATE inventory_products SET name = :name, sale_enabled = :sale_enabled, purchase_enabled = :purchase_enabled,
-            sale_price = :sale_price, category_id = :category_id, purchase_tax_id = :purchase_tax_id, sale_tax_id = :sale_tax_id, product_type=:product_type, invoice_policy=:invoice_policy, cost_price=:cost_price, currency_code=:currency_code, commission_type=:commission_type, commission_value=:commission_value WHERE id = :id';
+            sale_price = :sale_price, category_id = :category_id, purchase_tax_id = :purchase_tax_id, sale_tax_id = :sale_tax_id, product_type=:product_type, invoice_policy=:invoice_policy, cost_price=:cost_price, currency_code=:currency_code, commission_type=:commission_type, commission_value=:commission_value, parent_product_id=:parent_product_id WHERE id = :id';
     } else {
-        $sql = 'INSERT INTO inventory_products (name, sale_enabled, purchase_enabled, sale_price, category_id, purchase_tax_id, sale_tax_id, product_type, invoice_policy, cost_price, currency_code,commission_type,commission_value)
-            VALUES (:name, :sale_enabled, :purchase_enabled, :sale_price, :category_id, :purchase_tax_id, :sale_tax_id, :product_type, :invoice_policy, :cost_price, :currency_code,:commission_type,:commission_value)';
+        $sql = 'INSERT INTO inventory_products (name, sale_enabled, purchase_enabled, sale_price, category_id, purchase_tax_id, sale_tax_id, product_type, invoice_policy, cost_price, currency_code,commission_type,commission_value,parent_product_id)
+            VALUES (:name, :sale_enabled, :purchase_enabled, :sale_price, :category_id, :purchase_tax_id, :sale_tax_id, :product_type, :invoice_policy, :cost_price, :currency_code,:commission_type,:commission_value,:parent_product_id)';
     }
     $db->prepare($sql)->execute($data);
-    return $id ?? (int) $db->lastInsertId();
+    $saved=$id??(int)$db->lastInsertId();if($ownTransaction)$db->commit();return $saved;
+    }catch(Throwable $e){
+        if($ownTransaction&&$db->inTransaction())$db->rollBack();
+        if($e instanceof PDOException&&($e->errorInfo[1]??null)===1062&&($data['parent_product_id']??null))throw new InvalidArgumentException('Ya existe una variante con ese nombre dentro del producto principal.');
+        throw $e;
+    }
 }
 
 function inventoryId(mixed $value): ?int

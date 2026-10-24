@@ -59,10 +59,11 @@ try {
     $pages = $xpath->query('//*[@data-notebook-page]');
     expectProduct($pages->length === 6, 'Faltan páginas del notebook.');
     foreach ($pages as $page) {
-        if (!in_array($page->getAttribute('id'),['product-page-general','product-page-sales','product-page-purchases'],true)) {
+        if (!in_array($page->getAttribute('id'),['product-page-general','product-page-variants','product-page-sales','product-page-purchases'],true)) {
             expectProduct(trim($page->textContent) === '' && $page->childNodes->length === 0, 'Una pestaña pendiente no está vacía.');
         }
     }
+    expectProduct(str_contains($form,'Guarda primero el producto para añadir sus variantes.'),'Falta la indicación para crear variantes después de guardar el principal.');
     expectProduct($xpath->query('//*[@id="product-page-inventory"]//table')->length === 0, 'La pestaña Inventario conserva el detalle de existencias.');
     expectProduct($xpath->query('//*[@id="product-page-general"]//input[@name="sale_price"]')->length === 1
         && $xpath->query('//*[@id="product-page-general"]//select[@name="purchase_tax_id"]')->length === 1

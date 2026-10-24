@@ -100,7 +100,7 @@ function permissionRoute(string $path,array $query): ?string
         'ventas/index.php','ventas/producto.php'=>'ventas.orders',
         'ventas/comisiones.php'=>'ventas.commissions','ventas/pagos-comisiones.php'=>'ventas.commission_payments',
         'compras/index.php','compras/orden.php'=>'compras.orders',
-        'inventario/index.php'=>'inventario.products',
+        'inventario/index.php','inventario/variantes.php'=>'inventario.products',
         'inventario/operaciones.php'=>permissionOperationResource(is_string($query['type']??null)?$query['type']:'delivery'),
         'inventario/informes.php'=>match($query['view']??'movements'){'stock'=>'inventario.stock','sold'=>'ventas.orders','purchased'=>'compras.orders',default=>'inventario.movements'},
         'contabilidad/index.php'=>permissionInvoiceResource(is_string($query['type']??null)?$query['type']:'customer'),
@@ -258,7 +258,9 @@ function permissionGuardInput(PDO $db,string $resource,?int $id,string $action,b
         if(is_array($_POST['credit_quantities']??null)){$q=$db->prepare('SELECT id,quantity FROM accounting_invoice_lines WHERE invoice_id=?');$q->execute([$id]);$lines=$q->fetchAll(PDO::FETCH_KEY_PAIR);foreach($_POST['credit_quantities'] as $line=>$quantity)if(isset($lines[$line])&&is_string($quantity)&&is_numeric($quantity)&&bccomp($quantity,$lines[$line],3)!==0)permissionRequire($resource,'edit',$id,$json);}
     }
     if($resource==='inventario.products'&&in_array($action,['create','edit'],true)) {
-        $q=$db->prepare('SELECT cost_price,commission_type,commission_value FROM inventory_products WHERE id=?');$q->execute([$id]);$old=$q->fetch()?:['cost_price'=>'0.00','commission_type'=>'none','commission_value'=>'0.0000'];
+        $variantCreation=!$id&&$action==='create'&&str_ends_with(str_replace('\\','/',$_SERVER['SCRIPT_NAME']??''),'/inventario/variantes.php');
+        $q=$db->prepare('SELECT cost_price,commission_type,commission_value FROM inventory_products WHERE id=?'.($variantCreation?' AND parent_product_id IS NULL AND company_id=?':''));
+        $q->execute($variantCreation?[accessId($_POST['parent_product_id']??null),companyActiveId()]:[$id]);$old=$q->fetch()?:['cost_price'=>'0.00','commission_type'=>'none','commission_value'=>'0.0000'];
         if(!permissionHas($resource,'view_cost')){if(isset($_POST['cost_price'])&&is_string($_POST['cost_price'])&&is_numeric($_POST['cost_price'])&&bccomp($_POST['cost_price'],$old['cost_price'],2)!==0)authStop(403,'No puedes modificar el costo del producto.',$json);$_POST['cost_price']=$old['cost_price'];unset($_POST['supplier_prices']);}
         if(!permissionHas($resource,'set_commission')){if((isset($_POST['commission_type'])&&$_POST['commission_type']!==$old['commission_type'])||(isset($_POST['commission_value'])&&is_string($_POST['commission_value'])&&is_numeric($_POST['commission_value'])&&bccomp($_POST['commission_value'],$old['commission_value'],4)!==0))authStop(403,'No puedes modificar la configuración de comisión.',$json);$_POST['commission_type']=$old['commission_type'];$_POST['commission_value']=$old['commission_value'];}
     }

@@ -312,3 +312,4 @@
     .module-workspace .workspace-empty-table thead { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
     .module-workspace .workspace-empty-table .workspace-empty { padding: 20px 4px; }
 }
+.module-workspace .contact-sheet:has(#product-page-variants:not([hidden])) > .contact-form-actions { position: static; margin-top: 24px; }

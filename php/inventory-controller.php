@@ -15,7 +15,7 @@ function inventoryEscape(mixed $value): string
     return htmlspecialchars((string) ($value ?? ''), ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
 }
 
-function renderInventoryProducts(): void
+function renderInventoryProducts(bool $variantCreation=false): void
 {
     if (session_status() !== PHP_SESSION_ACTIVE) {
         session_start();
@@ -30,7 +30,21 @@ function renderInventoryProducts(): void
         $db = createDatabaseConnection();
         $page['databaseStatus']['connected'] = true;
         $page['available'] = true;
+        $page['variantCreation']=$variantCreation;
+        if($variantCreation){
+            $page['area']='variant_form';
+            $page['variantParents']=$db->query('SELECT id,name FROM inventory_products WHERE parent_product_id IS NULL AND company_id='.($db instanceof CompanyConnection?$db->activeCompanyId():1).' ORDER BY name,id')->fetchAll();
+            $parentValue=$_SERVER['REQUEST_METHOD']==='POST'?($_POST['parent_product_id']??null):($_GET['parent_id']??null);
+            $parentId=inventoryId($parentValue);
+            if($parentValue!==null&&$parentValue!==''&&!$parentId)throw new InvalidArgumentException('Selecciona un producto principal válido.');
+            if($parentId){
+                $parent=inventoryProductParent($db,$parentId);
+                $page['record']=array_intersect_key($parent,array_flip(['name','sale_enabled','purchase_enabled','sale_price','category_id','purchase_tax_id','sale_tax_id','product_type','invoice_policy','cost_price','currency_code','commission_type','commission_value']));
+                $page['record']['parent_product_id']=$parentId;
+            }
+        }
         $id = inventoryId($_GET['id'] ?? null);
+        if($variantCreation&&isset($_GET['id']))throw new InvalidArgumentException('Crea la variante sin indicar un producto existente.');
         $page['view'] = $id || isset($_GET['new']) ? 'form' : 'list';
         if (isset($_GET['id']) && ! $id) {
             http_response_code(404);
@@ -38,7 +52,7 @@ function renderInventoryProducts(): void
             $page['errors'][] = 'El producto solicitado no existe.';
         }
         if ($id) {
-            $statement = $db->prepare('SELECT id, name, sale_enabled, purchase_enabled, sale_price, category_id, purchase_tax_id, sale_tax_id, product_type, invoice_policy, cost_price, currency_code, commission_type, commission_value FROM inventory_products WHERE id = ?');
+            $statement = $db->prepare('SELECT id, name, sale_enabled, purchase_enabled, sale_price, category_id, purchase_tax_id, sale_tax_id, product_type, invoice_policy, cost_price, currency_code, commission_type, commission_value,parent_product_id FROM inventory_products WHERE id = ?');
             $statement->execute([$id]);
             $page['record'] = $statement->fetch() ?: [];
             if (! $page['record']) {
@@ -48,6 +62,11 @@ function renderInventoryProducts(): void
             }
         }
         if ($page['view'] === 'form' && $page['available']) {
+            $page['variants']=$id?inventoryProductVariants($db,$id):[];
+            $page['variantParent']=null;
+            if(!empty($page['record']['parent_product_id'])){
+                $q=$db->prepare('SELECT id,name FROM inventory_products WHERE id=?');$q->execute([$page['record']['parent_product_id']]);$page['variantParent']=$q->fetch();$page['area']='variant_form';
+            }
             $page['settings']=accountingCurrencies($db);
             $page['categories'] = loadInventoryCategories($db);
             $page['purchaseTaxes'] = loadBusinessTaxes($db, 'compras');
@@ -56,7 +75,7 @@ function renderInventoryProducts(): void
             $page['productIndicators'] = $id ? loadInventoryProductIndicators($db, $id) : ['incoming' => '0', 'outgoing' => '0', 'sold' => '0.000', 'purchased' => '0.000'];
             $page['storage'] = loadStorageRelations($db);
             $page['suppliers']=$db->query("SELECT c.id,c.name FROM contacts c JOIN contact_types t ON t.id=c.type_id WHERE t.system_key='supplier' AND c.active=1 ORDER BY c.name")->fetchAll();
-            $prices=$db->prepare('SELECT * FROM product_supplier_prices WHERE product_id=? ORDER BY id');$prices->execute([$id]);$page['supplierPrices']=$prices->fetchAll();
+            $prices=$db->prepare('SELECT * FROM product_supplier_prices WHERE product_id=? ORDER BY id');$prices->execute([$id??($variantCreation?($page['record']['parent_product_id']??null):null)]);$page['supplierPrices']=$prices->fetchAll();
         }
         if ($_SERVER['REQUEST_METHOD'] === 'POST' && $page['available']) {
             $token = $_POST['csrf'] ?? null;
@@ -68,6 +87,8 @@ function renderInventoryProducts(): void
                 $page['errors'][] = 'La operación solicitada no es válida.';
             } else {
                 $input=$_POST;$input['currency_code']??=$page['record']['currency_code']??$page['settings']['primary_code'];
+                $input['parent_product_id']=$page['record']['parent_product_id']??null;
+                if($variantCreation&&!$input['parent_product_id'])$page['errors'][]='Selecciona el producto principal de la variante.';
                 $input['commission_type']??=$page['record']['commission_type']??'none';
                 $input['commission_value']??=$page['record']['commission_value']??'0.0000';
                 if(!in_array($input['currency_code'],array_merge(accountingCurrencyCodes($page['settings']),[$page['record']['currency_code']??null]),true)){$page['errors'][]='Selecciona una moneda configurada.';}
@@ -88,32 +109,36 @@ function renderInventoryProducts(): void
                         if(permissionHas('inventario.products','view_cost')){
                             $db->prepare('DELETE FROM product_supplier_prices WHERE product_id=?')->execute([$saved]);
                             foreach($supplierRows as [$supplier,$price])$db->prepare('INSERT INTO product_supplier_prices (product_id,supplier_id,price) VALUES (?,?,?)')->execute([$saved,$supplier,$price]);
+                        }elseif($variantCreation&&!$id){
+                            foreach($page['supplierPrices'] as $row)$db->prepare('INSERT INTO product_supplier_prices(product_id,supplier_id,price) VALUES(?,?,?)')->execute([$saved,$row['supplier_id'],$row['price']]);
                         }
                         $db->commit();
                     } catch (InvalidArgumentException $e) { if($db->inTransaction())$db->rollBack();$page['errors'][]=$e->getMessage(); }
                     catch (Throwable $e) { if($db->inTransaction())$db->rollBack();throw $e; }
                     if(!$page['errors']) {
-                    $_SESSION['inventory_flash'] = 'Producto guardado correctamente.';
-                    header('Location: index.php', true, 303);
+                    $_SESSION['inventory_flash'] = !empty($data['parent_product_id'])?'Variante guardada correctamente.':'Producto guardado correctamente.';
+                    header('Location: '.(!empty($data['parent_product_id'])?'variantes.php?parent_id='.(int)$data['parent_product_id']:'index.php'), true, 303);
                     exit; }
                 }
             }
         }
         if ($page['view'] === 'list' && $page['available']) {
             $page['search'] = is_string($_GET['q'] ?? null) ? mb_substr(trim($_GET['q']), 0, 160, 'UTF-8') : '';
-            $where = $page['search'] !== '' ? ' WHERE name LIKE :search' : '';
-            $params = $where !== '' ? ['search' => '%' . $page['search'] . '%'] : [];
-            $count = $db->prepare('SELECT COUNT(*) FROM inventory_products' . $where);
+            $where = ' WHERE p.parent_product_id IS NULL'.($page['search'] !== '' ? ' AND p.name LIKE :search' : '');
+            $params = $page['search'] !== '' ? ['search' => '%' . $page['search'] . '%'] : [];
+            $count = $db->prepare('SELECT COUNT(*) FROM inventory_products p' . $where);
             $count->execute($params);
             $page['total'] = (int) $count->fetchColumn();
             $page['pages'] = max(1, (int) ceil($page['total'] / 20));
             $page['currentPage'] = min(inventoryId($_GET['page'] ?? null) ?? 1, $page['pages']);
             $offset = ($page['currentPage'] - 1) * 20;
-            $list = $db->prepare('SELECT id, name, sale_enabled, purchase_enabled FROM inventory_products'
-                . $where . ' ORDER BY name, id LIMIT 20 OFFSET ' . $offset);
+            $list = $db->prepare('SELECT p.id,p.name,p.sale_enabled,p.purchase_enabled,(SELECT COUNT(*) FROM inventory_products v WHERE v.parent_product_id=p.id) AS variants_count FROM inventory_products p'
+                . $where . ' ORDER BY p.name,p.id LIMIT 20 OFFSET ' . $offset);
             $list->execute($params);
             $page['products'] = $list->fetchAll();
         }
+    } catch (InvalidArgumentException $exception) {
+        http_response_code(422);$page['available']=false;$page['errors'][]=$exception->getMessage();
     } catch (PDOException $exception) {
         error_log('Productos: ' . $exception->getMessage());
         http_response_code(503);
