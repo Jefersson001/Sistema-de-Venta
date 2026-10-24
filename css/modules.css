@@ -269,3 +269,46 @@
 }
 
 .module-workspace :is(input, select, textarea) { scroll-margin-top: 160px; scroll-margin-bottom: 120px; }
+
+/* Finishing details: compact headings, readable product lines and empty lists. */
+.module-workspace .module-page { padding-top: 18px; }
+.module-workspace .back-link { margin-bottom: 12px; }
+.module-workspace .module-navigation { margin-bottom: 18px; }
+.module-workspace .contact-toolbar { margin-bottom: 18px; }
+.module-workspace .contact-toolbar h1 { margin-top: 4px; margin-bottom: 5px; }
+.module-workspace .contact-toolbar > div > .overview-link { font-size: 13px; }
+.module-workspace .workspace-icon { display: inline-block; width: 17px; height: 17px; flex: 0 0 17px; vertical-align: middle; }
+.module-workspace .transfer-menu > summary { display: inline-flex; align-items: center; gap: 7px; }
+.module-workspace .contact-icon-button svg { width: 17px; height: 17px; }
+.module-workspace .quotation-status li:not([aria-current]):not(.is-active) { border-color: transparent; color: #677c89; background: #edf2f5; font-size: 11px; font-weight: 500; }
+.module-workspace .quotation-status li:is([aria-current], .is-active) { font-weight: 700; box-shadow: 0 1px 3px #183c4f0a; }
+.module-workspace .quotation-lines { min-width: 1120px; }
+.module-workspace .quotation-lines:has([data-line-reference]) { min-width: 1320px; }
+.module-workspace .quotation-lines :is(th, td) { padding: 12px; }
+.module-workspace .quotation-lines :is(th, td):first-child { width: 30%; min-width: 310px; padding-left: 16px; }
+.module-workspace .quotation-lines :is([data-line-product], [data-order-product], select[aria-label="Producto"]) { min-width: 280px; }
+.module-workspace .quotation-lines :is([data-line-quantity], [data-order-quantity]) { min-width: 88px; }
+.module-workspace .quotation-lines :is([data-line-price], [data-order-price], [data-line-reference]) { min-width: 108px; }
+.module-workspace .quotation-lines :is([data-line-tax], [data-order-tax]) { min-width: 140px; }
+.module-workspace .quotation-lines .quotation-money { min-width: 92px; }
+.module-workspace .workspace-empty-wrap { background: #fff; }
+.module-workspace .workspace-empty-table .workspace-empty { display: flex; align-items: center; flex-direction: column; gap: 12px; max-width: 520px; margin: 0 auto; padding: 28px 18px; text-align: center; }
+.module-workspace .workspace-empty-table tbody tr:hover { background: #fff; }
+.module-workspace .workspace-empty-icon { display: grid; width: 52px; height: 52px; place-items: center; border: 1px solid #d6e7ed; border-radius: 14px; color: #48768a; background: #f0f7fa; }
+.module-workspace .workspace-empty-icon .workspace-icon { width: 26px; height: 26px; }
+.module-workspace .workspace-empty > strong { color: #294b5d; font-size: 16px; font-weight: 600; }
+.module-workspace .workspace-empty > p { margin: 0; color: var(--muted); font-size: 13px; line-height: 1.7; white-space: normal; }
+.module-workspace .workspace-empty-action { margin-top: 5px; }
+
+@media (max-width: 720px) {
+    .module-workspace .module-page { padding-top: 14px; }
+    .module-workspace .module-navigation { margin-bottom: 16px; }
+    .module-workspace .contact-toolbar { flex-direction: row; flex-wrap: wrap; align-items: center; gap: 12px; margin-bottom: 16px; }
+    .module-workspace .contact-toolbar > div:first-child { flex: 1 1 100%; }
+    .module-workspace .contact-toolbar > .transfer-menu { margin-inline-start: auto; }
+    .module-workspace .quotation-lines :is(th, td):first-child { min-width: 270px; }
+    .module-workspace .quotation-lines :is([data-line-product], [data-order-product], select[aria-label="Producto"]) { min-width: 240px; }
+    .module-workspace .workspace-empty-table { min-width: 0; }
+    .module-workspace .workspace-empty-table thead { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
+    .module-workspace .workspace-empty-table .workspace-empty { padding: 20px 4px; }
+}

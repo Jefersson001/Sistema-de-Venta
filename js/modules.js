@@ -13,6 +13,44 @@
     };
     const numericColumn = text => /^(total|importe|saldo|pagado|pendiente|precio|base imponible|comision|cantidad|existencias|sin aplicar|movimiento confirmado)(\b|$)/.test(normalize(text));
 
+    function workspaceIcon(kind) {
+        const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+        for (const [name, value] of Object.entries({ viewBox:'0 0 24 24', fill:'none', stroke:'currentColor', 'stroke-width':'1.7', 'stroke-linecap':'round', 'stroke-linejoin':'round', 'aria-hidden':'true', focusable:'false', class:'workspace-icon' })) svg.setAttribute(name, value);
+        const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+        path.setAttribute('d', kind === 'empty'
+            ? 'M4 5h16v14H4z M4 13h5l2 3h2l2-3h5 M8 9h8'
+            : 'M12 8a4 4 0 1 0 0 8 4 4 0 0 0 0-8 M9 3h6l1 3 3 1 2 5-2 5-3 1-1 3H9l-1-3-3-1-2-5 2-5 3-1z');
+        svg.append(path);
+        return svg;
+    }
+
+    function enhanceEmptyTable(table, wrap) {
+        const rows = [...table.tBodies].flatMap(body => [...body.rows]);
+        const cell = rows.length === 1 && rows[0].cells.length === 1 ? rows[0].cells[0] : null;
+        const empty = !!cell && cell.colSpan > 1 && !cell.querySelector('input, select, textarea, button')
+            && (cell.classList.contains('contact-empty') || /^(no hay|no se encontraron|sin registros)/.test(normalize(cell.textContent)));
+        table.classList.toggle('workspace-empty-table', empty);
+        wrap.classList.toggle('workspace-empty-wrap', empty);
+        if (!empty || cell.querySelector('.workspace-empty') || cell.querySelector('a')) return empty;
+        const message = cell.textContent.trim();
+        const content = document.createElement('div'); content.className = 'workspace-empty';
+        const icon = document.createElement('span'); icon.className = 'workspace-empty-icon'; icon.append(workspaceIcon('empty'));
+        const title = document.createElement('strong'); title.textContent = 'No hay registros para mostrar';
+        const description = document.createElement('p'); description.textContent = message;
+        content.append(icon, title, description);
+        const section = table.closest('section');
+        // Reuse only links already rendered by the server's permission checks.
+        const action = section?.querySelector('.contact-toolbar a.contact-button-primary[href]')
+            || [...(section?.querySelectorAll('.contact-filters a[href]') || [])].find(link => normalize(link.textContent) === 'limpiar');
+        if (action) {
+            const link = action.cloneNode(true); link.removeAttribute('id');
+            for (const child of link.querySelectorAll('[id]')) child.removeAttribute('id');
+            link.classList.add('workspace-empty-action'); content.append(link);
+        }
+        cell.replaceChildren(content);
+        return empty;
+    }
+
     function enhanceTable(table) {
         const headings = [...(table.tHead?.rows[0]?.cells || [])];
         if (!headings.length || table.tHead.rows.length !== 1 || headings.some(cell => cell.colSpan !== 1)) return;
@@ -47,13 +85,14 @@
         wrap.setAttribute('role', 'region');
         if (!wrap.hasAttribute('aria-label')) wrap.setAttribute('aria-label', 'Listado de registros');
         if (!wrap.hasAttribute('tabindex')) wrap.tabIndex = 0;
+        const empty = enhanceEmptyTable(table, wrap);
         const cards = !table.closest('.contact-sheet, [data-dashboard]')
             && !!table.querySelector('a.contact-name')
             && !table.querySelector('form, input, select, textarea, [data-report-group], [data-report-group-toggle]')
             && [...table.tBodies].every(body => [...body.rows].every(row => row.cells.length === headings.length && [...row.cells].every(cell => cell.colSpan === 1)));
         table.classList.toggle('workspace-record-list', cards);
         wrap.classList.toggle('workspace-card-list', cards);
-        wrap.classList.toggle('workspace-scroll-table', !cards);
+        wrap.classList.toggle('workspace-scroll-table', !cards && !empty);
         // Preserve table semantics when mobile CSS lays out records as cards.
         if (cards) {
             table.setAttribute('role', 'table');
@@ -93,6 +132,14 @@
         if (root.matches?.('.contact-table')) tables.add(root);
         for (const table of tables) enhanceTable(table);
         for (const step of root.querySelectorAll('.quotation-status li')) step.dataset.tone = statusTone(step.textContent);
+        for (const icon of root.querySelectorAll('.module-navigation-link > span[aria-hidden="true"]')) {
+            if (icon.textContent.trim().startsWith('⚙')) icon.replaceWith(workspaceIcon('settings'));
+        }
+        for (const summary of root.querySelectorAll('.transfer-menu > summary')) {
+            if (!summary.querySelector('.workspace-icon') && summary.textContent.trim().startsWith('⚙')) {
+                summary.replaceChildren(workspaceIcon('settings'), document.createTextNode(' Opciones'));
+            }
+        }
         enhanceActions(root);
     }
     enhance(document);

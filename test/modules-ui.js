@@ -77,6 +77,9 @@ const path = require('node:path');
         await evaluate(`document.querySelector('.brand').click()`);
 
         await navigate('sale');
+        assert.ok(await evaluate(`document.querySelector('[data-line-product]').getBoundingClientRect().width>=280`), 'Product selectors must have readable width.');
+        assert.equal(await evaluate(`!!document.querySelector('.module-navigation-link > .workspace-icon')`), true);
+        assert.equal(await evaluate(`!!document.querySelector('.transfer-menu > summary > .workspace-icon')`), true);
         await evaluate(`document.querySelectorAll('.module-navigation details > summary')[0].click()`);
         assert.equal(await evaluate(`document.querySelectorAll('.module-navigation details')[0].open`), true);
         await evaluate(`document.querySelectorAll('.module-navigation details > summary')[1].click()`);
@@ -134,6 +137,13 @@ const path = require('node:path');
         await navigate('treasury');
         assert.equal(await evaluate(`document.querySelectorAll('.workspace-form-section').length`), 3);
         assert.ok(await evaluate(`!!document.querySelector('[name="destination_account_id"]')`));
+        await navigate('emptyproducts');
+        assert.ok(await evaluate(`document.querySelector('.workspace-empty > strong').textContent.includes('No hay registros')`));
+        assert.equal(await evaluate(`document.querySelector('.workspace-empty-action').getAttribute('href')`), 'index.php?new=1');
+        await screenshot('productos-vacios-escritorio');
+        await viewport(390,844,true);
+        assert.equal(await evaluate(`document.documentElement.scrollWidth<=390`), true, 'Empty lists must fit mobile screens.');
+        await screenshot('productos-vacios-movil');
         assert.deepEqual(browserErrors, [], 'No browser JavaScript exceptions.');
         console.log('PASS: real rendered views, desktop/mobile layouts, inline validation, hidden tabs, persistent totals, form sections and unchanged home.');
     } finally {

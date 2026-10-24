@@ -27,11 +27,13 @@ try {
     $routes=['home'=>'/index.php','sale'=>'/modules/ventas/index.php?new=1',
         'contact'=>'/modules/contactos/index.php?new=1','contacts'=>'/modules/contactos/index.php',
         'purchase'=>'/modules/compras/index.php?new=1','payment'=>'/modules/contabilidad/pagos.php?type=customer&new=1',
-        'treasury'=>'/modules/contabilidad/tesoreria.php?new=1&kind=transfer'];
+        'treasury'=>'/modules/contabilidad/tesoreria.php?new=1&kind=transfer',
+        'emptyproducts'=>'/modules/inventario/index.php?q=sin-resultados-'.bin2hex(random_bytes(12))];
     $css=preg_replace('/^@import[^\r\n]+[\r\n]*/m', '', file_get_contents(dirname(__DIR__).'/css/app.css'));
     $css.=file_get_contents(dirname(__DIR__).'/css/modules.css');
     $js=file_get_contents(dirname(__DIR__).'/js/app.js')."\n".file_get_contents(dirname(__DIR__).'/js/modules.js')."\n".file_get_contents(dirname(__DIR__).'/js/navigation.js');
     foreach($routes as $name=>$route){
+        echo 'RENDER '.$name.PHP_EOL;
         $response=authTestRequest($server,$route,$cookie);
         if($response[0]!==200)throw new RuntimeException('No abre '.$route);
         $html=preg_replace('~<script\b[^>]*\bsrc="[^"]*"[^>]*>\s*</script>~i','',$response[1]);
