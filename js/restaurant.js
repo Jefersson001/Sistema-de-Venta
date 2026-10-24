@@ -169,6 +169,7 @@
             const result = await response.json();
             if (!response.ok || !result.ok) throw new Error(result.error || result.message || 'No se pudo guardar. Recarga para comprobar el estado.');
             pos.querySelector('[data-pos-cart]').innerHTML = result.html;
+            pos.dispatchEvent(new Event('restaurant:cart-updated'));
             root.querySelectorAll('[name=version]').forEach(input => { input.value = result.version; });
             if (form.isConnected && window.crypto?.getRandomValues) {
                 form.querySelector('[name=request_key]').value = [...crypto.getRandomValues(new Uint8Array(32))].map(value => value.toString(16).padStart(2, '0')).join('');
@@ -176,11 +177,14 @@
             if (payload.get('action') === 'pos_checkout') {
                 try {
                     const preferences = {};
-                    pos.querySelectorAll('[data-pos-preference]').forEach(select => { if (select.name !== 'customer_id') preferences[select.name] = select.value; });
+                    pos.querySelectorAll('[data-pos-preference]').forEach(select => {
+                        const key = select.dataset.posPreference;
+                        if (key !== 'customer_id' && !(key in preferences)) preferences[key] = select.value;
+                    });
                     sessionStorage.setItem(preferenceKey, JSON.stringify(preferences));
                 } catch (_) { /* Optional convenience only. */ }
             }
-            if (result.closed) location.reload();
+            if (result.closed) location.assign(result.receipt_url || location.href);
         } catch (error) {
             const message = error instanceof TypeError || error instanceof SyntaxError
                 ? 'No se pudo confirmar la respuesta. Reintenta la misma acción; no se duplicará. Si cambiaste de empresa, recarga la página.' : error.message;

@@ -95,7 +95,7 @@ function permissionRoute(string $path,array $query): ?string
     if($file==='configuracion.php')return $module==='dashboard'?null:$module.'.configuration';
     return match($module.'/'.$file){
         'restaurante/index.php','restaurante/mesa.php'=>'restaurante.tables',
-        'restaurante/cuenta.php','restaurante/cuentas.php'=>'restaurante.accounts',
+        'restaurante/cuenta.php','restaurante/cuentas.php','restaurante/comprobante.php'=>'restaurante.accounts',
         'contactos/index.php'=>'contactos.contacts',
         'ventas/index.php','ventas/producto.php'=>'ventas.orders',
         'ventas/comisiones.php'=>'ventas.commissions','ventas/pagos-comisiones.php'=>'ventas.commission_payments',

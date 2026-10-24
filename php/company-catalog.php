@@ -66,7 +66,7 @@ function companyRouteTable(string $path,array $query): ?string
         'concepts'=>'accounting_cash_concepts','currencies'=>'accounting_currencies','taxes'=>'business_taxes',default=>null,
     };
     return match($route){
-        'restaurante/cuenta.php'=>'restaurant_accounts','restaurante/mesa.php'=>'restaurant_tables',
+        'restaurante/cuenta.php','restaurante/comprobante.php'=>'restaurant_accounts','restaurante/mesa.php'=>'restaurant_tables',
         'contactos/index.php'=>'contacts','inventario/index.php','ventas/producto.php'=>'inventory_products',
         'ventas/index.php'=>'sales_quotations','compras/index.php','compras/orden.php'=>'purchase_orders',
         'inventario/operaciones.php'=>'inventory_operations','contabilidad/index.php','ventas/comisiones.php'=>'accounting_invoices',

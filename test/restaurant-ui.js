@@ -5,7 +5,7 @@ const path = require('node:path');
 const http = require('node:http');
 (async () => {
     const fixtureServer=http.createServer((request,response)=>{
-        const match=/^\/(map|pos|configuration|new|account|accounts|table)\.html$/.exec(request.url);
+        const match=/^\/(map|pos|configuration|new|account|accounts|table|receipt)\.html$/.exec(request.url);
         if(!match){response.writeHead(404);response.end();return;}
         response.writeHead(200,{'Content-Type':'text/html; charset=utf-8','Cache-Control':'no-store'});
         response.end(fs.readFileSync(path.join(process.argv[2],match[1]+'.html')));
@@ -43,7 +43,7 @@ const http = require('node:http');
     };
     const capture=async name=>{
         fs.mkdirSync(process.argv[3],{recursive:true});
-        await evaluate('window.scrollTo(0,0);new Promise(resolve=>requestAnimationFrame(()=>requestAnimationFrame(resolve)))');
+        await evaluate('window.scrollTo(0,0);document.querySelectorAll("dialog[open]").forEach(dialog=>{dialog.scrollTop=0;});new Promise(resolve=>requestAnimationFrame(()=>requestAnimationFrame(resolve)))');
         const result=await call('Page.captureScreenshot',{format:'png',captureBeyondViewport:true});
         fs.writeFileSync(path.join(process.argv[3],name+'.png'),Buffer.from(result.data,'base64'));
     };
@@ -51,10 +51,10 @@ const http = require('node:http');
         await call('Page.enable');await call('Runtime.enable');
         for(const width of [1440,390]){
             await call('Emulation.setDeviceMetricsOverride',{width,height:900,deviceScaleFactor:1,mobile:width===390});
-            for(const name of (process.argv[4]==='pos'?['map','pos']:['map','configuration','new','account','accounts','table','pos'])){
+            for(const name of (process.argv[4]==='pos'?['map','pos','receipt']:['map','configuration','new','account','accounts','table','pos'])){
                 console.log('CHECK restaurant '+name+' '+width);
                 await navigate(name);
-                assert.ok(await evaluate('!!document.querySelector(".restaurant-workspace")'));
+                assert.ok(await evaluate(name==='receipt'?'!!document.querySelector(".receipt")':'!!document.querySelector(".restaurant-workspace")'));
                 assert.ok(await evaluate('document.documentElement.scrollWidth')<=width,'Horizontal page overflow: '+name);
                 if(name==='map'){
                     assert.ok(await evaluate('document.querySelectorAll(".restaurant-table").length')>=(process.argv[4]==='pos'?1:6));
@@ -73,6 +73,15 @@ const http = require('node:http');
                     assert.equal(await evaluate('[...document.querySelectorAll("[data-restaurant-account-state=closed]")].every(a=>a.hidden)'),true);
                     await evaluate('document.querySelector("[data-restaurant-account-filter=all]").click()');
                     assert.equal(await evaluate('[...document.querySelectorAll("[data-restaurant-account-state=closed]")].every(a=>!a.hidden)'),true);
+                }
+                if(name==='receipt'){
+                    assert.ok(await evaluate('document.querySelector(".receipt").textContent.includes("Cambio: 1.00 USD")'));
+                    assert.equal(await evaluate('{let printed=false;const old=window.print;window.print=()=>{printed=true};document.querySelector("[data-receipt-print]").click();window.print=old;printed}'),true);
+                    if(width===1440){
+                        const pdf=await call('Page.printToPDF',{printBackground:true});
+                        const bytes=Buffer.from(pdf.data,'base64');assert.equal(bytes.subarray(0,4).toString(),'%PDF');
+                        fs.writeFileSync(path.join(process.argv[3],'comprobante-prueba.pdf'),bytes);
+                    }
                 }
                 if(name==='pos'){
                     assert.ok(await evaluate('!!document.querySelector("[data-pos-cart]")'));
@@ -136,6 +145,51 @@ const http = require('node:http');
                     await evaluate('document.querySelector("[data-pos-open-checkout]").click()');
                     assert.equal(await evaluate('document.querySelector("[data-pos-checkout-dialog]").open'),true);
                     assert.ok(await evaluate('document.querySelector("[data-pos-checkout-dialog]").getBoundingClientRect().width')<=width);
+                    const checkout = await evaluate(`(() => {
+                        const form=document.querySelector('[data-pos-checkout-form]');
+                        const data=JSON.parse(document.querySelector('[data-pos-checkout-data]').textContent);
+                        const set=(input,value)=>{input.value=value;input.dispatchEvent(new Event('change',{bubbles:true}));};
+                        const customer=form.querySelector('[name=customer_id]');set(customer,[...customer.options].find(option=>option.value).value);
+                        const remember=form.querySelector('[data-checkout-default-customer]');remember.checked=true;remember.dispatchEvent(new Event('change',{bubbles:true}));
+                        const mode=form.querySelector('[data-checkout-mode]');set(mode,'amount');
+                        form.querySelector('[data-checkout-add]').click();form.querySelector('[data-checkout-even]').click();
+                        const rows=[...form.querySelectorAll('.restaurant-checkout-payment')];
+                        for(const row of rows){
+                            const method=row.querySelector('[data-payment-field=method_id]');set(method,[...method.options].find(option=>option.dataset.allowChange==='1').value);
+                            const account=row.querySelector('[data-payment-field=account_id]');set(account,[...account.options].find(option=>option.dataset.accountType==='cash').value);
+                        }
+                        const firstAmount=Number(rows[0].querySelector('[data-payment-field=amount]').value);
+                        set(rows[0].querySelector('[data-payment-field=received_amount]'),(firstAmount+1).toFixed(2));
+                        return {total:form.querySelector('[data-checkout-total]').textContent,expected:data.total+' '+data.currency,
+                            sum:rows.reduce((sum,row)=>sum+Number(row.querySelector('[data-payment-field=amount]').value),0).toFixed(2),
+                            change:rows[0].querySelector('[data-payment-change]').textContent,
+                            valid:mode.checkValidity(),saved:localStorage.getItem(form.dataset.posCustomerKey)===customer.value,
+                            width:form.scrollWidth,dialogWidth:document.querySelector('[data-pos-checkout-dialog]').clientWidth};
+                    })()`);
+                    assert.equal(checkout.total,checkout.expected);assert.equal(checkout.sum,checkout.expected.split(' ')[0]);
+                    assert.ok(checkout.change.includes('1.00'));assert.equal(checkout.valid,true);assert.equal(checkout.saved,true);
+                    assert.ok(checkout.width<=checkout.dialogWidth,'Checkout form overflow');
+                    const productSplit=await evaluate(`(() => {
+                        const form=document.querySelector('[data-pos-checkout-form]');const mode=form.querySelector('[data-checkout-mode]');
+                        const set=(input,value)=>{input.value=value;input.dispatchEvent(new Event('change',{bubbles:true}));};
+                        const data=JSON.parse(document.querySelector('[data-pos-checkout-data]').textContent);set(mode,'products');
+                        const rows=[...form.querySelectorAll('.restaurant-checkout-payment')];
+                        for(const item of data.items){set(rows[0].querySelector('[data-payment-item="'+item.id+'"]'),'1');set(rows[1].querySelector('[data-payment-item="'+item.id+'"]'),(Number(item.quantity)-1).toFixed(3));}
+                        const valid=mode.checkValidity();const amounts=rows.map(row=>row.querySelector('[data-payment-field=amount]').value);
+                        set(rows[1].querySelector('[data-payment-item]'),'0');const rejectsMissing=!mode.checkValidity();
+                        set(mode,'amount');form.querySelector('[data-checkout-even]').click();
+                        return {valid,amounts,total:data.total,rejectsMissing};
+                    })()`);
+                    assert.equal(productSplit.valid,true);assert.equal(productSplit.rejectsMissing,true);
+                    assert.equal(productSplit.amounts.reduce((sum,value)=>sum+Number(value),0).toFixed(2),productSplit.total);
+                    const pinnedTotal=await evaluate(`(async()=>{
+                        const dialog=document.querySelector('[data-pos-checkout-dialog]');dialog.scrollTop=dialog.scrollHeight;
+                        await new Promise(resolve=>requestAnimationFrame(resolve));
+                        const bounds=dialog.getBoundingClientRect(),total=document.querySelector('[data-checkout-total]').getBoundingClientRect();
+                        return total.top>=bounds.top&&total.bottom<=bounds.bottom;
+                    })()`);
+                    assert.equal(pinnedTotal,true,'Keep the total visible while reviewing several payments.');
+                    await capture('checkout-'+width);
                     await evaluate('document.querySelector("[data-pos-close-checkout]").click()');
                     const command = await evaluate(`(async () => {
                         const form = [...document.querySelectorAll('[data-pos-product]')].find(product => !product.hidden);

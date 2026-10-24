@@ -56,9 +56,9 @@ function renderRestaurantPage(string $view): void
                 if($action==='pos_checkout')restaurantCheckout($db,$id,$_POST);else restaurantCartCommand($db,$id,$_POST);
                 if(str_contains($_SERVER['HTTP_ACCEPT']??'','application/json')){
                     $cart=restaurantCart($db,$id);$h='restaurantEscape';ob_start();require dirname(__DIR__).'/html/restaurant/cart.php';$html=ob_get_clean();
-                    header('Content-Type: application/json; charset=utf-8');echo json_encode(['ok'=>true,'html'=>$html,'version'=>$cart['account']['version'],'closed'=>$cart['account']['status']==='closed'],JSON_THROW_ON_ERROR);return;
+                    header('Content-Type: application/json; charset=utf-8');echo json_encode(['ok'=>true,'html'=>$html,'version'=>$cart['account']['version'],'closed'=>$cart['account']['status']==='closed','receipt_url'=>!empty($cart['header']['invoice_id'])?restaurantUrl('comprobante.php',['id'=>$id]):null],JSON_THROW_ON_ERROR);return;
                 }
-                $destination=restaurantUrl('cuenta.php',['id'=>$id]);$message=$action==='pos_checkout'?'Factura emitida y cobro registrado.':'Pedido guardado.';
+                $destination=restaurantUrl($action==='pos_checkout'?'comprobante.php':'cuenta.php',['id'=>$id]);$message=$action==='pos_checkout'?'Factura emitida y cobro registrado.':'Pedido guardado.';
             }elseif($view==='configuration'){
                 if($action==='setup_tables'){
                     restaurantQuickSetup($db,$_POST);$destination='index.php';$message='Mesas creadas. Toca una para agregar productos.';
@@ -123,8 +123,8 @@ function renderRestaurantPage(string $view): void
                 if(permissionRecord('restaurante.accounts',$id,'confirm') && permissionRecord('restaurante.accounts',$id,'pay')){
                     $page['clients']=restaurantRows($db,"SELECT c.id,c.name FROM contacts c JOIN contact_types t ON t.id=c.type_id WHERE c.active=1 AND t.system_key='client' ORDER BY c.name");
                     $page['locations']=restaurantRows($db,"SELECT id,name FROM inventory_locations WHERE location_type='internal' ORDER BY name");
-                    $page['cashAccounts']=restaurantRows($db,'SELECT id,name FROM accounting_payment_accounts WHERE currency_code IS NULL OR currency_code=? ORDER BY name',[$page['cart']['currency']]);
-                    $page['methods']=restaurantRows($db,'SELECT id,name FROM accounting_payment_methods ORDER BY name');
+                    $page['cashAccounts']=restaurantRows($db,'SELECT id,name,account_type FROM accounting_payment_accounts WHERE currency_code IS NULL OR currency_code=? ORDER BY name',[$page['cart']['currency']]);
+                    $page['methods']=restaurantRows($db,'SELECT id,name,allow_change FROM accounting_payment_methods ORDER BY name');
                 }
             }
         }elseif($view==='table' && $id){

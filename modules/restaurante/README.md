@@ -5,9 +5,18 @@
 1. Abrir Restaurante. Si no hay mesas, indicar cuántas se necesitan y pulsar **Crear mis mesas**.
 2. Tocar una mesa libre muestra la carta sin crear una cuenta ni ocupar la mesa. El primer producto abre la cuenta a nombre del usuario y guarda el artículo en una sola transacción. Salir sin agregar productos deja la mesa libre. Tocar una ocupada abre su pedido.
 3. Agregar productos desde la carta, buscar por nombre o filtrar categorías. Ajustar cantidades con −/+, quitar artículos o añadir observaciones. El pedido se guarda sin salir de la pantalla.
-4. Pulsar **Facturar y cobrar**, elegir cliente, medio, caja y ubicación, y confirmar. Se usan los documentos y servicios existentes de ventas, inventario, facturas y pagos. Si un selector tiene una sola opción, ya aparece seleccionada. La caja, medio y ubicación elegidos se recuerdan durante la sesión; el cliente no se cambia automáticamente para otra mesa.
+4. Pulsar **Facturar y cobrar**: revisar el total y los productos, elegir cliente y ubicación, registrar uno o varios pagos y confirmar. La caja, medio y ubicación elegidos se recuerdan durante la sesión. La casilla **Usar este cliente por defecto en este dispositivo** guarda una preferencia por usuario y empresa en el navegador; desmarcarla elimina la preferencia. Solo se recuperan clientes que siguen disponibles en el selector y el servidor valida el cliente de cada venta.
 
-El cierre rápido registra el cobro completo con un medio de pago. La mesa queda pendiente de limpieza y el comprobante se consulta en Facturas, según los permisos del usuario. El botón **Opciones de mesa**, arriba del pedido, reúne el detalle de la atención, traslado, unión, separación, historial y cierre sin consumo. Cada cambio abre un asistente de dos pasos: seleccionar la mesa y registrar el motivo, luego revisar y confirmar. Separar solo aparece cuando hay varias mesas unidas; las acciones respetan los permisos del usuario. El historial se consulta en su propia ventana, sin desplegar formularios debajo de los productos.
+El cierre registra el cobro completo con uno o varios medios. La mesa queda pendiente de limpieza y se abre su comprobante, con accesos a **Imprimir / Guardar PDF** y **Volver a las mesas**. Guardar como PDF utiliza la ventana de impresión del navegador. La factura también se consulta en Contabilidad según los permisos. El botón **Opciones de mesa**, arriba del pedido, reúne el detalle de la atención, traslado, unión, separación, historial y cierre sin consumo. Cada cambio abre un asistente de dos pasos: seleccionar la mesa y registrar el motivo, luego revisar y confirmar. Separar solo aparece cuando hay varias mesas unidas; las acciones respetan los permisos del usuario. El historial se consulta en su propia ventana, sin desplegar formularios debajo de los productos.
+
+### Cobro combinado y reparto
+
+- **Un pago o varios medios:** agregar filas con su medio, caja/banco e importe. Todos los importes deben sumar el total de la mesa.
+- **Dividir por importe / persona:** identificar cada parte y su pago. **Repartir en partes iguales** distribuye también los céntimos restantes.
+- **Dividir por productos:** indicar las cantidades de cada artículo que paga cada persona. El servidor comprueba que se repartan todas las unidades y calcula sus importes con el precio e impuesto originales. El redondeo acumulado asigna cada céntimo una sola vez, incluso con cantidades fraccionadas.
+- **Efectivo y cambio:** cuando el medio tiene **Permitir vuelto** y la cuenta es de tipo **Caja**, indicar el efectivo recibido. El cambio se calcula y registra con el mecanismo existente de pagos y tesorería; solo el neto se aplica a la factura.
+
+El reparto genera una factura para el cliente seleccionado y varios pagos vinculados, no una factura por persona. Confirmar significa que se recibieron todos los pagos: no se permite cerrar con diferencias ni guardar anticipos en este flujo. Los pagos, referencias de las personas y reparto de productos quedan auditados. Si falla cualquier pago o su vuelto, se revierten también los demás pagos, la venta, factura, entrega y cierre. Reintentar la misma solicitud devuelve el resultado original. No se necesitan cambios de esquema para estas mejoras.
 
 Los precios e impuestos aplicados se conservan en el pedido. En este flujo sin envío a cocina, cargar productos guarda un borrador: el punto único de salida de inventario es confirmar la facturación y cobro. La venta, entrega, factura, pago y liberación de mesa se coordinan en una transacción; una falta de existencias revierte todo. Los reintentos devuelven el documento original.
 
@@ -21,11 +30,11 @@ La instalación agrega `inventory_categories.restaurant_enabled` con valor inici
 
 La búsqueda por nombre se combina con la categoría elegida. La selección se conserva al cambiar de mesa durante la sesión y dentro de la misma selección de empresas. El filtro no modifica productos ni existencias.
 
-Se conservan como ampliaciones pendientes la cocina y sus comandas, pagos parciales/múltiples y ambas modalidades de división de facturas elegidas por el usuario. Esas opciones no están habilitadas en el cobro rápido de esta entrega. Al incorporar cocina deberá revisarse el punto de confirmación del consumo, sin descontar dos veces.
+Se conservan como ampliaciones pendientes la cocina y sus comandas, anticipos/pagos parciales durante el servicio y facturas independientes por comensal. El reparto de pagos sobre una factura compartida ya está disponible. Al incorporar cocina deberá revisarse el punto de confirmación del consumo, sin descontar dos veces.
 
 Permisos para facturar y cobrar desde Restaurante: **Facturar** y **Cobrar** en Cuentas del restaurante. Los permisos se validan en servidor, además de ocultar los botones. Un mesero con Crear/Editar propios puede tomar pedidos sin recibir acceso de cobro.
 
-Prueba del circuito rápido: `php test/restaurant-pos.php`. Cubre precio histórico, reintentos de productos y cobro, borradores sin movimientos, venta/factura/pago únicos, existencias y rollback por falta de stock.
+Prueba del circuito rápido: `php test/restaurant-pos.php`. Cubre precio histórico, reintentos, borradores sin movimientos, pagos combinados y vuelto, reparto por productos con impuestos y cantidades fraccionadas, protección de comprobantes, existencias y rollback completo. Con navegador CDP temporal, `php test/restaurant-pos.php <carpeta-de-capturas>` también comprueba el cobro en escritorio y móvil y genera un PDF de prueba.
 
 ## Base de mesas y cuentas
 

@@ -12,6 +12,7 @@
     <?php if($moduleKey==='restaurante'): ?>
     <link rel="stylesheet" href="../../css/restaurant.css?v=<?= filemtime(dirname(__DIR__).'/css/restaurant.css') ?>">
     <script src="../../js/restaurant.js?v=<?= filemtime(dirname(__DIR__).'/js/restaurant.js') ?>" defer></script>
+    <script src="../../js/restaurant-checkout.js?v=<?= filemtime(dirname(__DIR__).'/js/restaurant-checkout.js') ?>" defer></script>
     <?php endif; ?>
 </head>
 <body class="module-workspace">

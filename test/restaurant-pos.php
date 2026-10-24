@@ -4,6 +4,7 @@ if(PHP_SAPI!=='cli'){http_response_code(404);exit;}
 require_once __DIR__.'/auth-server.php';
 require_once dirname(__DIR__).'/php/restaurant-schema.php';
 require_once dirname(__DIR__).'/php/restaurant-controller.php';
+require_once dirname(__DIR__).'/php/restaurant-receipt.php';
 require_once dirname(__DIR__).'/php/company-connection.php';
 require_once dirname(__DIR__).'/php/bcv-sync.php';
 require_once dirname(__DIR__).'/php/company-repository.php';
@@ -115,9 +116,75 @@ try{
     posCheck(in_array((int)$child['id'],inventoryRestaurantCategoryIds(loadInventoryCategories($db)),true),'La subcategoría no heredó su relación principal.');
     $r=authTestRequest($s,$categoryRoute.'&id='.$markedRoot['id'],$cookie,['csrf'=>$categoryToken,'action'=>'save_category','name'=>$categoryName,'parent_id'=>'']);posCheck($r[0]===303,'No se pudo desmarcar la categoría.');
     posCheck(!in_array((int)$child['id'],inventoryRestaurantCategoryIds(loadInventoryCategories($db)),true),'Desmarcar la principal no retiró sus descendientes.');
+    echo "RUN mixed payments, change, invalid totals and transactional rollback\n";
+    $cashMethod=(int)$db->query("SELECT id FROM accounting_payment_methods WHERE allow_change=1 LIMIT 1")->fetchColumn();
+    $manualMethod=(int)$db->query("SELECT id FROM accounting_payment_methods WHERE system_key='manual'")->fetchColumn();
+    $db->prepare("INSERT INTO accounting_payment_accounts(name,account_type,currency_code) VALUES(?,'bank','USD')")->execute(['Banco '.$prefix]);$bank=(int)$db->lastInsertId();
+    $collectionArea=restaurantSaveArea($db,['name'=>'Cobros '.$prefix,'active'=>1]);
+    $newCollection=static function(string $name,int $column,int $productId)use($db,$collectionArea,$actor):int{
+        $tableId=restaurantSaveTable($db,['area_id'=>$collectionArea,'name'=>$name,'position_x'=>$column,'position_y'=>1,'capacity'=>4,'active'=>1]);
+        $accountId=restaurantOpenAccount($db,['table_id'=>$tableId,'table_version'=>1,'waiter_id'=>$actor,'guests'=>1,'request_key'=>bin2hex(random_bytes(32))]);
+        restaurantCartCommand($db,$accountId,['action'=>'pos_add','product_id'=>$productId,'version'=>1,'request_key'=>bin2hex(random_bytes(32))]);return $accountId;
+    };
+    $mixedAccount=$newCollection('Mixto',1,$product);
+    $mixed=['customer_id'=>$customer,'location_id'=>$location,'version'=>2,'request_key'=>bin2hex(random_bytes(32)),'split_mode'=>'amount','payments'=>[
+        ['label'=>'Ana','method_id'=>$cashMethod,'account_id'=>$cash,'amount'=>'4.00','received_amount'=>'5.00'],
+        ['label'=>'Luis','method_id'=>$manualMethod,'account_id'=>$bank,'amount'=>'5.00']]];
+    $beforeMixed=(int)$db->query('SELECT COUNT(*) FROM accounting_payments')->fetchColumn();
+    $beforeMixedStock=(int)$db->query('SELECT COUNT(*) FROM inventory_stock_moves')->fetchColumn();
+    $beforeMixedOperations=(int)$db->query('SELECT COUNT(DISTINCT operation_id) FROM inventory_stock_moves')->fetchColumn();
+    $badMixed=$mixed;$badMixed['payments'][1]['amount']='4.99';posReject(fn()=>restaurantCheckout($db,$mixedAccount,$badMixed));
+    $badMixed=$mixed;$badMixed['payments'][1]['amount']='5.01';posReject(fn()=>restaurantCheckout($db,$mixedAccount,$badMixed));
+    $badMixed=$mixed;$badMixed['payments'][1]['received_amount']='6.00';posReject(fn()=>restaurantCheckout($db,$mixedAccount,$badMixed));
+    posCheck((int)$db->query('SELECT COUNT(*) FROM accounting_payments')->fetchColumn()===$beforeMixed,'Un cobro inválido dejó pagos parciales.');
+    posCheck((int)$db->query('SELECT COUNT(*) FROM inventory_stock_moves')->fetchColumn()===$beforeMixedStock,'Un fallo de vuelto dejó una entrega parcial.');
+    $mixedInvoice=restaurantCheckout($db,$mixedAccount,$mixed);posCheck(restaurantCheckout($db,$mixedAccount,$mixed)===$mixedInvoice,'El reintento de pagos mixtos duplicó factura.');
+    $mixedReceipt=restaurantLoadReceipt($db,$mixedAccount);
+    posCheck(count($mixedReceipt['payments'])===2&&$mixedReceipt['invoice']['payment_state']==='paid','No se registraron ambos medios de pago.');
+    posCheck($mixedReceipt['payments'][0]['received_amount']==='5.00'&&$mixedReceipt['payments'][0]['change_amount']==='1.00'&&$mixedReceipt['payments'][0]['amount']==='4.00','El efectivo y el cambio no coinciden con el neto aplicado.');
+    posCheck((int)$db->query('SELECT COUNT(*) FROM accounting_payments')->fetchColumn()===$beforeMixed+2,'Se duplicaron pagos al reintentar.');
+    posCheck((int)$db->query('SELECT COUNT(DISTINCT operation_id) FROM inventory_stock_moves')->fetchColumn()===$beforeMixedOperations+1,'El reparto duplicó la entrega de inventario.');
+    $q=$db->prepare('SELECT quantity FROM inventory_stock WHERE product_id=? AND location_id=?');$q->execute([$product,$location]);posCheck(bccomp((string)$q->fetchColumn(),'7',3)===0,'El reparto descontó más unidades que las consumidas.');
+    $changedRetry=$mixed;$changedRetry['payments'][0]['received_amount']='6.00';posReject(fn()=>restaurantCheckout($db,$mixedAccount,$changedRetry));
+    $r=authTestRequest($s,'/modules/restaurante/comprobante.php?id='.$mixedAccount,$cookie);
+    posCheck($r[0]===200&&str_contains($r[1],'Guardar PDF')&&str_contains($r[1],'Ana')&&str_contains($r[1],'Cambio: 1.00 USD'),'No se puede consultar el comprobante con reparto y vuelto.');
+    posCheck(authTestRequest($s,'/modules/restaurante/comprobante.php?id='.$second,$cookie)[0]===404,'Se imprimió una mesa sin facturar.');
+    echo "RUN product division, fractional quantities and exact tax rounding\n";
+    $db->prepare("INSERT INTO business_taxes(name,module_key,rate) VALUES(?,'ventas',16)")->execute(['IVA cobro '.$prefix]);$splitTax=(int)$db->lastInsertId();
+    $db->prepare("INSERT INTO inventory_products(name,sale_enabled,sale_price,currency_code,product_type,category_id,sale_tax_id) VALUES(?,1,3.33,'USD','service',?,?)")->execute(['Servicio divisible '.bin2hex(random_bytes(5)),$restaurantRoot,$splitTax]);$splitProduct=(int)$db->lastInsertId();
+    $splitAccount=$newCollection('Por productos',2,$splitProduct);$splitCart=restaurantCart($db,$splitAccount);$splitItem=$splitCart['items'][0]['id'];
+    $split=['customer_id'=>$customer,'location_id'=>$location,'version'=>2,'request_key'=>bin2hex(random_bytes(32)),'split_mode'=>'products','payments'=>[
+        ['label'=>'Persona 1','method_id'=>$cashMethod,'account_id'=>$cash,'amount'=>'999.00','items'=>[$splitItem=>'0.333']],
+        ['label'=>'Persona 2','method_id'=>$manualMethod,'account_id'=>$bank,'amount'=>'999.00','items'=>[$splitItem=>'0.667']]]];
+    $splitPlan=restaurantPaymentPlan($splitCart,$split);posCheck(array_column($splitPlan,'amount')===['1.29','2.57'],'El reparto perdió céntimos de impuestos o confió en importes del navegador.');
+    $badSplit=$split;$badSplit['payments'][1]['items'][$splitItem]='0.666';posReject(fn()=>restaurantCheckout($db,$splitAccount,$badSplit));
+    $badSplit=$split;$badSplit['payments'][1]['items'][$splitItem]='0.668';posReject(fn()=>restaurantCheckout($db,$splitAccount,$badSplit));
+    $badSplit=$split;$badSplit['payments'][1]['items'][999999]='1';posReject(fn()=>restaurantCheckout($db,$splitAccount,$badSplit));
+    $splitInvoice=restaurantCheckout($db,$splitAccount,$split);posCheck(restaurantCheckout($db,$splitAccount,$split)===$splitInvoice,'El reparto por productos duplicó la factura.');
+    $splitReceipt=restaurantLoadReceipt($db,$splitAccount);
+    posCheck($splitReceipt['invoice']['total_amount']==='3.86'&&$splitReceipt['invoice']['payment_state']==='paid'&&array_column($splitReceipt['payments'],'amount')===['1.29','2.57'],'El reparto no cubrió exactamente la factura.');
+    echo "RUN checkout endpoint, lost response and protected receipt\n";
+    $httpAccount=$newCollection('Cobro HTTP',3,$splitProduct);
+    $httpCheckout=['csrf'=>$jsonCommand['csrf'],'company_scope'=>$jsonCommand['company_scope'],'action'=>'pos_checkout','customer_id'=>$customer,'location_id'=>$location,'version'=>2,'request_key'=>bin2hex(random_bytes(32)),
+        'split_mode'=>'full','payments'=>[['method_id'=>$manualMethod,'account_id'=>$bank,'amount'=>'3.86']]];
+    foreach([1,2] as $attempt){
+        $curl=curl_init($s['url'].'/modules/restaurante/cuenta.php?id='.$httpAccount);
+        curl_setopt_array($curl,[CURLOPT_RETURNTRANSFER=>true,CURLOPT_COOKIEFILE=>$cookie,CURLOPT_TIMEOUT=>10,CURLOPT_HTTPHEADER=>['Accept: application/json'],CURLOPT_POSTFIELDS=>http_build_query($httpCheckout)]);
+        $body=curl_exec($curl);$status=curl_getinfo($curl,CURLINFO_RESPONSE_CODE);curl_close($curl);$result=json_decode((string)$body,true);
+        posCheck($status===200&&($result['closed']??false)&&$result['receipt_url']==='comprobante.php?id='.$httpAccount,'El cobro no devuelve su comprobante o falla al reintentar: '.(string)$body);
+    }
+    $raw->prepare('INSERT INTO access_groups(name,description) VALUES(?,?)')->execute(['Mesero de cobros '.$prefix,'Solo cuentas propias']);$receiptGroup=(int)$raw->lastInsertId();
+    $raw->prepare("INSERT INTO access_group_permissions(group_id,permission_code,record_scope) VALUES(?,'restaurante.accounts.read','own')")->execute([$receiptGroup]);
+    $receiptLogin='receipt.'.bin2hex(random_bytes(5));
+    $raw->prepare('INSERT INTO auth_users(name,login,password_hash,must_change_password) VALUES(?,?,?,0)')->execute(['Mesero ajeno',$receiptLogin,password_hash($password,PASSWORD_DEFAULT)]);$receiptUser=(int)$raw->lastInsertId();
+    $raw->prepare('INSERT INTO auth_user_groups(user_id,group_id) VALUES(?,?)')->execute([$receiptUser,$receiptGroup]);$raw->prepare('INSERT INTO company_user_access(user_id,company_id) VALUES(?,1)')->execute([$receiptUser]);
+    $limitedCookie=tempnam(sys_get_temp_dir(),'nexo-receipt-cookie-');$cookies[]=$limitedCookie;
+    $r=authTestRequest($s,'/login.php',$limitedCookie);$r=authTestRequest($s,'/login.php',$limitedCookie,['csrf'=>authTestToken($r[1]),'login'=>$receiptLogin,'password'=>$password]);posCheck($r[0]===303,'No inicia sesión el mesero de prueba.');
+    posCheck(authTestRequest($s,'/modules/restaurante/comprobante.php?id='.$mixedAccount,$limitedCookie)[0]===403,'Se filtró un comprobante de otra cuenta al mesero.');
     echo "RUN POS initial table setup\n";
     $otherCompany=createBusinessCompany($raw,['name'=>'Prueba de inicio rápido'],$actor);
     $other=new CompanyConnection('mysql:host='.$c['host'].';port='.$c['port'].';dbname='.$s['database'].';charset=utf8mb4',$c['username'],$c['password'],[PDO::ATTR_ERRMODE=>PDO::ERRMODE_EXCEPTION,PDO::ATTR_DEFAULT_FETCH_MODE=>PDO::FETCH_ASSOC,PDO::ATTR_EMULATE_PREPARES=>false],[$otherCompany],$otherCompany,$actor,$raw->query('SELECT table_name FROM company_schema_tables')->fetchAll(PDO::FETCH_COLUMN));
+    posReject(fn()=>restaurantLoadReceipt($other,$mixedAccount));
     $GLOBALS['company_context']=['active'=>$otherCompany];$setup=['table_count'=>3,'request_key'=>bin2hex(random_bytes(32))];
     $setupArea=restaurantQuickSetup($other,$setup);posCheck(restaurantQuickSetup($other,$setup)===$setupArea,'El reintento duplicó la configuración.');
     posCheck((int)$other->query('SELECT COUNT(*) FROM restaurant_tables')->fetchColumn()===3,'La creación rápida no generó las mesas solicitadas.');
@@ -137,13 +204,15 @@ try{
         $barProduct=$addCategoryProduct('Bebida del bar',$barCategory);$uncategorizedProduct=$addCategoryProduct('Sin clasificar',null);
         $shopCategory=$addCategory('Tienda '.$prefix);$shopProduct=$addCategoryProduct('Producto de tienda',$shopCategory);
         $categoryFixture=['root'=>$rootCategory,'kitchen'=>$kitchenCategory,'chicken'=>$chickenCategory,'drinks'=>$drinksCategory,'bar'=>$barCategory,
-            'rootProducts'=>[$product,$drinkProduct,$directProduct],'chickenProducts'=>[$product],'drinksProducts'=>[$drinkProduct],'barProducts'=>[$barProduct],'uncategorizedProduct'=>$uncategorizedProduct,'shopCategory'=>$shopCategory,'shopProduct'=>$shopProduct];
+            'rootProducts'=>[$product,$drinkProduct,$directProduct,$splitProduct],'chickenProducts'=>[$product],'drinksProducts'=>[$drinkProduct],'barProducts'=>[$barProduct],'uncategorizedProduct'=>$uncategorizedProduct,'shopCategory'=>$shopCategory,'shopProduct'=>$shopProduct];
         $fixtures=sys_get_temp_dir().'/nexo-pos-fixtures-'.bin2hex(random_bytes(6));mkdir($fixtures,0700);
         $css=preg_replace('/^@import[^\r\n]+[\r\n]*/m','',file_get_contents(dirname(__DIR__).'/css/app.css')).file_get_contents(dirname(__DIR__).'/css/modules.css').file_get_contents(dirname(__DIR__).'/css/restaurant.css');
-        $js=file_get_contents(dirname(__DIR__).'/js/app.js')."\n".file_get_contents(dirname(__DIR__).'/js/modules.js')."\n".file_get_contents(dirname(__DIR__).'/js/navigation.js')."\n".file_get_contents(dirname(__DIR__).'/js/restaurant.js');
-        foreach(['map'=>'/modules/restaurante/index.php','pos'=>'/modules/restaurante/cuenta.php?id='.$second] as $name=>$route){
+        $js=file_get_contents(dirname(__DIR__).'/js/app.js')."\n".file_get_contents(dirname(__DIR__).'/js/modules.js')."\n".file_get_contents(dirname(__DIR__).'/js/navigation.js')."\n".file_get_contents(dirname(__DIR__).'/js/restaurant.js')."\n".file_get_contents(dirname(__DIR__).'/js/restaurant-checkout.js');
+        foreach(['map'=>'/modules/restaurante/index.php','pos'=>'/modules/restaurante/cuenta.php?id='.$second,'receipt'=>'/modules/restaurante/comprobante.php?id='.$mixedAccount] as $name=>$route){
             echo 'RENDER POS '.$name.PHP_EOL;$r=authTestRequest($s,$route,$cookie);posCheck($r[0]===200,'Vista no disponible.');
-            $html=preg_replace('~<script\b[^>]*\bsrc="[^"]*"[^>]*>\s*</script>|<link\b[^>]*rel="stylesheet"[^>]*>~i','',$r[1]);$html=str_replace('</head>','<style>'.$css.'</style></head>',$html);$html=str_replace('</body>','<script type="application/json" id="pos-category-fixture">'.json_encode($categoryFixture,JSON_THROW_ON_ERROR).'</script><script>'.$js.'</script></body>',$html);file_put_contents($fixtures.'/'.$name.'.html',$html);
+            $fixtureCss=$name==='receipt'?file_get_contents(dirname(__DIR__).'/css/restaurant-receipt.css'):$css;
+            $fixtureJs=$name==='receipt'?file_get_contents(dirname(__DIR__).'/js/restaurant-receipt.js'):$js;
+            $html=preg_replace('~<script\b[^>]*\bsrc="[^"]*"[^>]*>\s*</script>|<link\b[^>]*rel="stylesheet"[^>]*>~i','',$r[1]);$html=str_replace('</head>','<style>'.$fixtureCss.'</style></head>',$html);$html=str_replace('</body>','<script type="application/json" id="pos-category-fixture">'.json_encode($categoryFixture,JSON_THROW_ON_ERROR).'</script><script>'.$fixtureJs.'</script></body>',$html);file_put_contents($fixtures.'/'.$name.'.html',$html);
         }
         $p=proc_open(['node',__DIR__.'/restaurant-ui.js',$fixtures,$argv[1],'pos'],[0=>['pipe','r'],1=>STDOUT,2=>STDERR],$pipes,dirname(__DIR__),null,['bypass_shell'=>true,'create_new_console'=>false]);fclose($pipes[0]);posCheck(proc_close($p)===0,'Falló la revisión visual POS.');
     }

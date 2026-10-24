@@ -1,12 +1,12 @@
 # Restaurante: auditoría y diseño propuesto
 
-Fecha: 24 de octubre de 2026. Estado: base instalada localmente con pedido editable y facturación/cobro rápido. Cocina, pagos parciales/múltiples y división de facturas siguen pendientes. InfinityFree gratuito queda fuera de los requisitos por indicación del usuario. Instalación, alcance y pruebas: [Restaurante](../modules/restaurante/README.md).
+Fecha: 24 de octubre de 2026. Estado: base instalada localmente con pedido editable, facturación, pagos combinados, vuelto y reparto por importe o productos sobre una factura compartida. Cocina, anticipos durante el servicio y facturas independientes por comensal siguen pendientes. InfinityFree gratuito queda fuera de los requisitos por indicación del usuario. Instalación, alcance y pruebas: [Restaurante](../modules/restaurante/README.md).
 
 ## Ajuste de experiencia solicitado: flujo corto
 
 El usuario pidió simplificar la experiencia a **mesas → productos → facturar**. Esta decisión sustituye el recorrido principal de apertura manual y pantallas operativas separadas descrito originalmente. La configuración inicial permite crear varias mesas de una vez; el mesero se asigna al usuario que toca la mesa. Pedidos e importes aparecen juntos y las opciones avanzadas quedan plegadas.
 
-Se incorporó un pedido editable mediante `restaurant_account_carts` y `restaurant_account_items`, enlazado al catálogo y documentos existentes. El cobro rápido inicial emite una factura y confirma el pago completo con un medio, de forma atómica. Las dos modalidades de división solicitadas se conservan como requisitos pendientes, al igual que cocina y cobros parciales/múltiples. El README indica el alcance operativo actual.
+Se incorporó un pedido editable mediante `restaurant_account_carts` y `restaurant_account_items`, enlazado al catálogo y documentos existentes. El cobro emite una factura y confirma el pago completo con uno o varios medios, de forma atómica. Permite repartir por persona/importe o productos, conservando una factura compartida. El efectivo y vuelto se registran con el mecanismo de Tesorería existente. Al terminar se ofrece un comprobante imprimible y guardable como PDF desde el navegador. El cliente habitual es una preferencia por usuario y empresa guardada en el dispositivo. Las facturas independientes por comensal, cocina y anticipos siguen pendientes. El README indica el alcance operativo actual.
 
 **Inventario del flujo corto:** mientras no haya envío a cocina, agregar productos solo guarda un borrador. Confirmar factura y cobro es el único punto que valida y descuenta existencias. La propuesta original de consumir al enviar una comanda corresponde al desarrollo posterior de cocina; no se aplicarán simultáneamente ambos descuentos.
 

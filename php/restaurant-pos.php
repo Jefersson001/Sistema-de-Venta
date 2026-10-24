@@ -5,6 +5,7 @@ require_once __DIR__.'/sales-repository.php';
 require_once __DIR__.'/workflow-invoices.php';
 require_once __DIR__.'/operation-status-repository.php';
 require_once __DIR__.'/payments-repository.php';
+require_once __DIR__.'/restaurant-checkout.php';
 
 function restaurantPosFields(array $cart,string $action): void
 {
@@ -88,14 +89,16 @@ function restaurantCheckout(PDO $db,int $id,array $input): int
     permissionRequire('restaurante.accounts','confirm',$id);permissionRequire('restaurante.accounts','pay',$id);
     if(!$db instanceof CompanyConnection)throw new LogicException('El cobro requiere una conexión de empresa.');
     $customer=restaurantInt($input['customer_id']??null);$location=restaurantInt($input['location_id']??null);
-    $cash=restaurantInt($input['account_id']??null);$method=restaurantInt($input['method_id']??null);
-    return $db->atomicTransfer(function()use($db,$id,$input,$customer,$location,$cash,$method,$trace){
+    $requestPayments=$input['payments']??['account_id'=>$input['account_id']??null,'method_id'=>$input['method_id']??null,'received_amount'=>$input['received_amount']??null];
+    if(!is_array($requestPayments)||count($requestPayments)>20)throw new InvalidArgumentException('Revisa el reparto de los pagos.');
+    return $db->atomicTransfer(function()use($db,$id,$input,$customer,$location,$requestPayments,$trace){
         $account=restaurantRecord($db,'restaurant_accounts',$id,true);
-        return restaurantRequest($db,'pos_checkout',restaurantText($input['request_key']??null,64),[$id,$customer,$location,$cash,$method],function()use($db,$id,$input,$account,$customer,$location,$cash,$method,$trace){
+        return restaurantRequest($db,'pos_checkout',restaurantText($input['request_key']??null,64),[$id,$customer,$location,$input['split_mode']??'full',$requestPayments],function()use($db,$id,$input,$account,$customer,$location,$trace){
             restaurantVersion($account,$input['version']??null);
             if($account['status']!=='open')throw new InvalidArgumentException('La mesa ya fue facturada. Recarga para ver su comprobante.',409);
             $cart=restaurantCart($db,$id);if(!$cart['items'])throw new InvalidArgumentException('Agrega productos antes de facturar.');
             if($cart['header']['invoice_id'])throw new InvalidArgumentException('La mesa ya tiene una factura.',409);
+            restaurantPaymentPlan($cart,$input);
             $q=$db->prepare("SELECT c.* FROM contacts c JOIN contact_types t ON t.id=c.type_id WHERE c.id=? AND c.active=1 AND t.system_key='client'");$q->execute([$customer]);$contact=$q->fetch();if(!$contact)throw new InvalidArgumentException('Selecciona un cliente activo.');
             $q=$db->prepare("SELECT * FROM inventory_locations WHERE id=? AND location_type='internal'");$q->execute([$location]);$origin=$q->fetch();if(!$origin)throw new InvalidArgumentException('Selecciona una ubicación interna para las existencias.');
             $header=$cart['header'];$date=commerceToday();
@@ -114,21 +117,14 @@ function restaurantCheckout(PDO $db,int $id,array $input): int
             $trace('invoice');$invoice=workflowCreateInvoice($db,'sale',$sale);
             // Same date/rate validation and payment-state computation used by invoice registration.
             $db->prepare("UPDATE accounting_invoices SET status='posted',version=version+1 WHERE id=? AND status='draft'")->execute([$invoice]);
-            if(bccomp($cart['total'],'0',2)>0){
-                $trace('payment');$payment=validateAccountingPayment($db,['partner_type'=>'customer','direction'=>'inbound','contact_id'=>$customer,'amount'=>$cart['total'],
-                    'payment_date'=>$date,'currency_code'=>$header['currency_code'],'account_id'=>$cash,'method_id'=>$method,'reference'=>$account['name']]);
-                $paymentId=insertAccountingPayment($db,$payment,'pending',hash('sha256','restaurant:'.$id.':'.$invoice));
-                $q=$db->prepare('SELECT * FROM accounting_invoices WHERE id=?');$q->execute([$invoice]);$invoiceRow=$q->fetch();
-                paymentApplyLocked($db,loadAccountingPayment($db,$paymentId),$invoiceRow,$cart['total']);
-                transitionAccountingPayment($db,$paymentId,1,'settle_payment');
-            }
+            $trace('payment');$collection=restaurantCollectPayments($db,$id,$account,$invoice,$cart,$customer,$input);
             $trace('close');$q=$db->prepare('SELECT * FROM accounting_invoices WHERE id=?');$q->execute([$invoice]);$invoiceRow=$q->fetch();invoiceRecomputePaymentState($db,$invoiceRow);
             $details=invoicePaymentDetails($db,$invoice);if(bccomp($details['settled'],$cart['total'],2)!==0)throw new LogicException('El cobro no coincide con la factura.');
             $db->prepare('UPDATE restaurant_account_carts SET sale_id=?,invoice_id=? WHERE account_id=?')->execute([$sale,$invoice,$id]);
             $q=$db->prepare('SELECT table_id FROM restaurant_active_tables WHERE account_id=? ORDER BY table_id');$q->execute([$id]);$tableIds=array_map('intval',$q->fetchAll(PDO::FETCH_COLUMN));
             foreach($tableIds as $table)restaurantReleaseTable($db,$id,$table,'Facturación y cobro completados','cleaning');
             $db->prepare("UPDATE restaurant_accounts SET status='closed',closed_at=CURRENT_TIMESTAMP,version=version+1 WHERE id=?")->execute([$id]);
-            restaurantAudit($db,'pos_checkout',['account_id'=>$id,'sale_id'=>$sale,'invoice_id'=>$invoice,'amount'=>$cart['total']]);return $invoice;
+            restaurantAudit($db,'pos_checkout',['account_id'=>$id,'sale_id'=>$sale,'invoice_id'=>$invoice,'amount'=>$cart['total']]+$collection);return $invoice;
         });
     });
 }
