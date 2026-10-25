@@ -34,8 +34,8 @@
     const decimal = value => `${value / 100n}.${String(value % 100n).padStart(2, '0')}`;
     const money = value => decimal(value) + ' ' + data.currency;
     const lineTotal = (item, quantity) => {
-        const base = (quantity * scaled(item.unit_price) + 500n) / 1000n;
-        const tax = (base * scaled(item.tax_rate, 4) + 500000n) / 1000000n;
+        const base = (quantity * scaled(item.unit_price) + 50n) / 100n;
+        const tax = (base * scaled(item.tax_rate, 2) + 5000n) / 10000n;
         return base + tax;
     };
     const rows = () => [...list.querySelectorAll('.restaurant-checkout-payment')];
@@ -51,7 +51,7 @@
             const label = create('label', '');
             label.append(create('span', item.product_name + ' · ' + item.quantity + ' disponibles'));
             const input = document.createElement('input');
-            Object.assign(input, {type: 'number', min: '0', max: item.quantity, step: '0.001', value: '0', inputMode: 'decimal'});
+            Object.assign(input, {type: 'number', min: '0', max: item.quantity, step: '0.01', value: '0', inputMode: 'decimal'});
             input.dataset.paymentItem = item.id; input.setAttribute('aria-label', 'Cantidad de ' + item.product_name);
             label.append(input); lines.append(label);
         });
@@ -83,10 +83,10 @@
                 const input = row.querySelector(`[data-payment-item="${item.id}"]`);
                 input.disabled = !productMode; input.name = `payments[${index}][items][${item.id}]`;
                 if (!productMode) return;
-                const quantity = scaled(input.value, 3), previous = assigned.get(String(item.id));
+                const quantity = scaled(input.value, 2), previous = assigned.get(String(item.id));
                 if (quantity === null) { problem = 'Revisa las cantidades de cada producto.'; return; }
                 const next = previous + quantity;
-                if (next > scaled(item.quantity, 3)) problem = 'Se repartieron más productos que los cargados.';
+                if (next > scaled(item.quantity, 2)) problem = 'Se repartieron más productos que los cargados.';
                 productAmount += lineTotal(item, next) - lineTotal(item, previous);
                 assigned.set(String(item.id), next);
             });
@@ -107,7 +107,7 @@
             } else if (amount !== null) { change = received - amount; changeTotal += change; }
             row.querySelector('[data-payment-change]').textContent = allowChange ? 'Cambio: ' + money(change) : '';
         });
-        if (mode.value === 'products' && data.items.some(item => assigned.get(String(item.id)) !== scaled(item.quantity, 3))) {
+        if (mode.value === 'products' && data.items.some(item => assigned.get(String(item.id)) !== scaled(item.quantity, 2))) {
             problem ||= 'Falta repartir todos los productos de la mesa.';
         }
         if (paid !== total) problem ||= paid < total ? 'Falta repartir ' + money(total - paid) : 'El reparto supera el total en ' + money(paid - total);

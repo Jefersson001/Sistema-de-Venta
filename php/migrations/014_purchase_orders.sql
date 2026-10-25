@@ -11,7 +11,7 @@ CREATE TABLE IF NOT EXISTS purchase_order_lines (
     id INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
     order_id INT UNSIGNED NOT NULL,
     product_id INT UNSIGNED NOT NULL,
-    quantity DECIMAL(12,3) NOT NULL,
+    quantity DECIMAL(11,2) NOT NULL,
     unit_price DECIMAL(12,2) NOT NULL DEFAULT 0.00,
     FOREIGN KEY (order_id) REFERENCES purchase_orders(id),
     FOREIGN KEY (product_id) REFERENCES inventory_products(id)

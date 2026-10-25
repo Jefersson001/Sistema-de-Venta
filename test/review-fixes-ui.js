@@ -13,7 +13,7 @@ const payload = new FormData();
 payload.set('action', 'pos_checkout');
 for (let person = 0; person < 20; person++) {
     payload.set(`payments[${person}][label]`, `Persona ${person + 1}`);
-    for (let item = 1; item <= 100; item++) payload.set(`payments[${person}][items][${item}]`, '0.050');
+    for (let item = 1; item <= 100; item++) payload.set(`payments[${person}][items][${item}]`, '0.05');
 }
 checkout.restaurantPackPayments(payload);
 assert.equal([...payload.keys()].length, 2);

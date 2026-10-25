@@ -79,7 +79,7 @@ try {
             [$status, $body] = operationRequest('type=internal&new=1', $cookie, $invalid); checkOperation($status === 200 && str_contains($body, 'deben ser diferentes'), 'Se permitió un traslado al mismo destino.');
         }
     }
-    $createStockOperation = function (string $type, string $quantity, string $demand = '12.000', ?array $lines = null) use ($db, $cookie, $prefix, $contacts, $location, $destinationLocation, $product): array {
+    $createStockOperation = function (string $type, string $quantity, string $demand = '12.00', ?array $lines = null) use ($db, $cookie, $prefix, $contacts, $location, $destinationLocation, $product): array {
         [$status, $form] = operationRequest('type=' . $type . '&new=1', $cookie);
         checkOperation(preg_match('/name="csrf" value="([a-f0-9]+)"/', $form, $matches) === 1, 'No se encontró CSRF.');
         $data = ['csrf' => $matches[1], 'action' => 'save_operation', 'scheduled_date' => '2026-10-10', 'notes' => $prefix,
@@ -116,53 +116,53 @@ try {
         }
         return operationRequest('type=' . $type . '&id=' . $id, $cookie, $post);
     };
-    [$receiptId, $receiptPost] = $createStockOperation('receipt', '10.125');
+    [$receiptId, $receiptPost] = $createStockOperation('receipt', '10.12');
     checkOperation(loadInventoryProductIndicators($db, $product)['incoming'] === '0', 'Entrada cuenta un borrador como movimiento realizado.');
-    checkOperation(loadInventoryProductStock($db, $product)['total'] === '0.000', 'Guardar un borrador modificó el stock.');
+    checkOperation(loadInventoryProductStock($db, $product)['total'] === '0.00', 'Guardar un borrador modificó el stock.');
     $receiptLines = loadInventoryOperationLines($db, $receiptId);
-    checkOperation($receiptLines[0]['demand'] === '12.000' && $receiptLines[0]['quantity'] === '10.125', 'Se confundieron demanda y cantidad.');
+    checkOperation($receiptLines[0]['demand'] === '12.00' && $receiptLines[0]['quantity'] === '10.12', 'Se confundieron demanda y cantidad.');
     [$status, $body] = operationRequest('type=receipt&id=' . $receiptId, $cookie, ['action' => 'validate_operation', 'csrf' => $receiptPost['csrf'], 'version' => '1']);
-    checkOperation($status === 200 && str_contains($body, 'Listo') && loadInventoryProductStock($db, $product)['total'] === '0.000', 'Se validó directamente un borrador.');
+    checkOperation($status === 200 && str_contains($body, 'Listo') && loadInventoryProductStock($db, $product)['total'] === '0.00', 'Se validó directamente un borrador.');
     [$status] = operationRequest('type=receipt&id=' . $receiptId, $cookie, ['action' => 'confirm_operation', 'csrf' => $receiptPost['csrf'], 'version' => '1']);
     checkOperation($status === 303, 'No pasó de Borrador a En espera.');
     [$status] = operationRequest('type=receipt&id=' . $receiptId, $cookie, ['action' => 'check_ready', 'csrf' => $receiptPost['csrf'], 'version' => '2']);
-    checkOperation($status === 303 && loadInventoryProductStock($db, $product)['total'] === '0.000', 'Comprobar disponibilidad movió existencias.');
+    checkOperation($status === 303 && loadInventoryProductStock($db, $product)['total'] === '0.00', 'Comprobar disponibilidad movió existencias.');
     $changedReceipt = $receiptPost + ['version' => '3'];
     [$status] = operationRequest('type=receipt&id=' . $receiptId, $cookie, $changedReceipt);
     $stateQuery = $db->prepare('SELECT status FROM inventory_operations WHERE id = ?'); $stateQuery->execute([$receiptId]);
     checkOperation($status === 303 && $stateQuery->fetchColumn() === 'waiting', 'Editar una operación lista no obliga a comprobar de nuevo.');
     [$status] = $validateStock('receipt', $receiptId, $receiptPost['csrf']); checkOperation($status === 303, 'No se validó la recepción.');
     $stateQuery->execute([$receiptId]); checkOperation($stateQuery->fetchColumn() === 'done', 'Validar no dejó Hecho.');
-    checkOperation(loadInventoryProductStock($db, $product)['total'] === '10.125', 'La recepción no sumó la cantidad real.');
+    checkOperation(loadInventoryProductStock($db, $product)['total'] === '10.12', 'La recepción no sumó la cantidad real.');
     checkOperation(loadInventoryProductIndicators($db, $product)['incoming'] === '1', 'Entrada no cuenta la recepción realizada.');
     [$status, $body] = $validateStock('receipt', $receiptId, $receiptPost['csrf']);
-    checkOperation($status === 200 && str_contains($body, 'no admite cambios') && loadInventoryProductStock($db, $product)['total'] === '10.125', 'Una segunda validación duplicó existencias.');
+    checkOperation($status === 200 && str_contains($body, 'no admite cambios') && loadInventoryProductStock($db, $product)['total'] === '10.12', 'Una segunda validación duplicó existencias.');
     [$status, $body] = operationRequest('type=receipt&id=' . $receiptId, $cookie, $receiptPost);
     checkOperation($status === 200 && str_contains($body, 'no admite cambios'), 'Se editó una operación realizada.');
-    [$internalId, $internalPost] = $createStockOperation('internal', '3.125');
+    [$internalId, $internalPost] = $createStockOperation('internal', '3.12');
     [$status] = $validateStock('internal', $internalId, $internalPost['csrf']); checkOperation($status === 303, 'No se validó el traslado.');
     $balances = loadInventoryProductStock($db, $product);
-    checkOperation($balances['total'] === '10.125' && $balances['locations'][0]['quantity'] === '7.000' && $balances['locations'][1]['quantity'] === '3.125', 'El interno no conservó el total o no movió entre ubicaciones.');
-    [$deliveryId, $deliveryPost] = $createStockOperation('delivery', '2.000');
+    checkOperation($balances['total'] === '10.12' && $balances['locations'][0]['quantity'] === '7.00' && $balances['locations'][1]['quantity'] === '3.12', 'El interno no conservó el total o no movió entre ubicaciones.');
+    [$deliveryId, $deliveryPost] = $createStockOperation('delivery', '2.00');
     checkOperation(loadInventoryProductIndicators($db, $product)['outgoing'] === '0', 'Salida cuenta un borrador como movimiento realizado.');
     [$status] = $validateStock('delivery', $deliveryId, $deliveryPost['csrf']); checkOperation($status === 303, 'No se validó la entrega.');
-    checkOperation(loadInventoryProductStock($db, $product)['total'] === '8.125', 'La entrega no descontó existencias.');
+    checkOperation(loadInventoryProductStock($db, $product)['total'] === '8.12', 'La entrega no descontó existencias.');
     $externalBalance = $db->prepare('SELECT quantity FROM inventory_stock WHERE product_id = ? AND location_id = ?');
-    $externalBalance->execute([$product, $externalLocations['client']]); checkOperation($externalBalance->fetchColumn() === '2.000', 'No se registraron las unidades que salieron al cliente.');
-    $externalBalance->execute([$product, $externalLocations['supplier']]); checkOperation($externalBalance->fetchColumn() === '-10.125', 'No se registró el origen proveedor de la recepción.');
+    $externalBalance->execute([$product, $externalLocations['client']]); checkOperation($externalBalance->fetchColumn() === '2.00', 'No se registraron las unidades que salieron al cliente.');
+    $externalBalance->execute([$product, $externalLocations['supplier']]); checkOperation($externalBalance->fetchColumn() === '-10.12', 'No se registró el origen proveedor de la recepción.');
     $indicators = loadInventoryProductIndicators($db, $product);
-    checkOperation($indicators['outgoing'] === '1' && $indicators['sold'] === '0.000' && $indicators['purchased'] === '0.000', 'No se cuenta la salida realizada o una entrega manual alteró ventas o compras.');
-    [$failedId, $failedPost] = $createStockOperation('internal', '5.000', '5.000', [
-        ['product_id' => $product, 'demand' => '5.000', 'quantity' => '5.000'],
-        ['product_id' => $product, 'demand' => '5.000', 'quantity' => '5.000']]);
+    checkOperation($indicators['outgoing'] === '1' && $indicators['sold'] === '0.00' && $indicators['purchased'] === '0.00', 'No se cuenta la salida realizada o una entrega manual alteró ventas o compras.');
+    [$failedId, $failedPost] = $createStockOperation('internal', '5.00', '5.00', [
+        ['product_id' => $product, 'demand' => '5.00', 'quantity' => '5.00'],
+        ['product_id' => $product, 'demand' => '5.00', 'quantity' => '5.00']]);
     [$status, $body] = $validateStock('internal', $failedId, $failedPost['csrf']);
-    checkOperation($status === 200 && str_contains($body, 'suficiente') && loadInventoryProductStock($db, $product)['total'] === '8.125', 'Se permitió stock negativo con líneas duplicadas o hubo movimientos parciales.');
+    checkOperation($status === 200 && str_contains($body, 'suficiente') && loadInventoryProductStock($db, $product)['total'] === '8.12', 'Se permitió stock negativo con líneas duplicadas o hubo movimientos parciales.');
     $stateQuery->execute([$failedId]); checkOperation($stateQuery->fetchColumn() === 'waiting', 'Una operación sin disponibilidad debe seguir En espera.');
     $query = $db->prepare('SELECT COUNT(*) FROM inventory_stock_moves WHERE operation_id = ?'); $query->execute([$failedId]);
     checkOperation((int) $query->fetchColumn() === 0, 'Una validación fallida dejó movimientos.');
     $curl = testHttpCurl('http://localhost/project/modules/inventario/index.php?id=' . $product, $cookie ?? $cookieJar ?? $cookieFile ?? null);
     curl_setopt($curl, CURLOPT_RETURNTRANSFER, true); $productForm = curl_exec($curl); curl_close($curl);
-    checkOperation(is_string($productForm) && str_contains($productForm, '8.125') && str_contains($productForm, 'view=stock&amp;product_id=' . $product) && ! str_contains($productForm, '<h2 class="notebook-page-title">Existencias por ubicación'), 'Cantidad a la mano no abre directamente su informe o la pestaña mantiene el detalle.');
+    checkOperation(is_string($productForm) && str_contains($productForm, '8.12') && str_contains($productForm, 'view=stock&amp;product_id=' . $product) && ! str_contains($productForm, '<h2 class="notebook-page-title">Existencias por ubicación'), 'Cantidad a la mano no abre directamente su informe o la pestaña mantiene el detalle.');
     foreach (['movements', 'stock', 'outgoing', 'incoming'] as $reportView) {
         $curl = testHttpCurl('http://localhost/project/modules/inventario/informes.php?view=' . $reportView . '&product_id=' . $product, $cookie ?? $cookieJar ?? $cookieFile ?? null);
         curl_setopt($curl, CURLOPT_RETURNTRANSFER, true); $report = curl_exec($curl); $reportStatus = curl_getinfo($curl, CURLINFO_RESPONSE_CODE); curl_close($curl);
@@ -170,9 +170,9 @@ try {
         $reportDom = new DOMDocument(); libxml_use_internal_errors(true); $reportDom->loadHTML('<?xml encoding="UTF-8">' . $report);
         $reportXpath = new DOMXPath($reportDom);
         checkOperation($reportXpath->query('//table/tbody/tr')->length === ($reportView === 'movements' ? 3 : ($reportView === 'stock' ? 2 : 1)), 'El informe duplica movimientos o mezcla estados.');
-        checkOperation(str_contains($report, match ($reportView) { 'movements', 'incoming' => '10.125', 'outgoing' => '2.000', default => '1.125' }), 'El informe no muestra cantidades reales del movimiento.');
+        checkOperation(str_contains($report, match ($reportView) { 'movements', 'incoming' => '10.12', 'outgoing' => '2.00', default => '1.12' }), 'El informe no muestra cantidades reales del movimiento.');
     }
-    [$secondReceiptId, $secondReceiptPost] = $createStockOperation('receipt', '1.000');
+    [$secondReceiptId, $secondReceiptPost] = $createStockOperation('receipt', '1.00');
     [$status] = $validateStock('receipt', $secondReceiptId, $secondReceiptPost['csrf']); checkOperation($status === 303, 'No se validó la segunda recepción.');
     checkOperation(loadInventoryProductIndicators($db, $product)['incoming'] === '2', 'Las recepciones individuales se agruparon en un solo movimiento.');
     $curl = testHttpCurl('http://localhost/project/modules/inventario/informes.php?view=incoming&product_id=' . $product, $cookie ?? $cookieJar ?? $cookieFile ?? null);

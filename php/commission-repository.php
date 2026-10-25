@@ -61,8 +61,8 @@ function loadSalesCommissions(PDO $db, ?array $range = null, ?int $sellerId = nu
         $row['commission_generated'] = '0.00';
         $lineQuery->execute([$row['id']]); $row['commission_lines'] = $lineQuery->fetchAll();
         foreach ($row['commission_lines'] as &$line) {
-            $quantity = bcsub($line['quantity'], $line['returned_quantity'], 3);
-            if (bccomp($quantity,'0',3)<0) $quantity='0.000';
+            $quantity = bcsub($line['quantity'], $line['returned_quantity'], 2);
+            if (bccomp($quantity,'0',2)<0) $quantity='0.00';
             $line['commission_amount'] = salesCommissionPortion($quantity,$line['unit_price'],$line['commission_reference_price'],$line['prior_quantity'],$line['commission_unit_amount']);
             $row['commission_generated'] = bcadd($row['commission_generated'],$line['commission_amount'],2);
         }

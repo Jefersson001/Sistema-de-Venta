@@ -24,7 +24,7 @@ CREATE TABLE IF NOT EXISTS sales_quotation_lines (
     position INT UNSIGNED NOT NULL,
     product_id INT UNSIGNED NOT NULL,
     product_name VARCHAR(160) NOT NULL,
-    quantity DECIMAL(12,3) NOT NULL,
+    quantity DECIMAL(11,2) NOT NULL,
     unit_price DECIMAL(12,2) NOT NULL,
     tax_id INT UNSIGNED NULL,
     tax_name VARCHAR(120) NULL,

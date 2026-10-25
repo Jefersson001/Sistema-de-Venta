@@ -33,7 +33,7 @@ try {
         [, $form] = statusRequest($module . '/index.php?new=1', $cookie); $orderToken = statusToken($form);
         $orderPost = ['csrf' => $orderToken, 'action' => $kind === 'sale' ? 'save_quotation' : 'save_purchase', 'order_type' => 'invoice', 'order_date' => commerceToday(),
             $kind === 'sale' ? 'customer_id' : 'supplier_id' => $fixtures[$kind === 'sale' ? 'client' : 'supplier'],
-            'lines' => [['product_id' => $fixtures['product'], 'quantity' => '1.000', 'unit_price' => '100.00']]];
+            'lines' => [['product_id' => $fixtures['product'], 'quantity' => '1.00', 'unit_price' => '100.00']]];
         $orderId = statusCreated(statusRequest($module . '/index.php?new=1', $cookie, $orderPost)); $orders[] = [$kind, $orderId];
         statusCreated(statusRequest($module . '/index.php?id=' . $orderId, $cookie, ['csrf' => $orderToken, 'version' => '1', 'action' => $kind === 'sale' ? 'confirm_sale' : 'confirm_purchase']));
         $id = statusCreated(statusRequest($module . '/index.php?id=' . $orderId, $cookie, ['csrf' => $orderToken, 'action' => 'create_invoice'])); $invoiceIds[] = $id;

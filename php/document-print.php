@@ -37,7 +37,7 @@ function businessDocumentData(PDO $db,array $m,int $id): array
         }
     }
     $taxes=[];
-    if(!$stock)foreach($lines as $line){$key=($line['tax_name']??'Impuesto').'|'.($line['tax_rate']??'0');if(bccomp((string)($line['tax_amount']??'0'),'0',2)!==0){$taxes[$key]??=['name'=>($line['tax_name']?:'Impuesto').' ('.rtrim(rtrim((string)$line['tax_rate'],'0'),'.').' %)','amount'=>'0.00'];$taxes[$key]['amount']=bcadd($taxes[$key]['amount'],$line['tax_amount'],2);}}
+    if(!$stock)foreach($lines as $line){$key=($line['tax_name']??'Impuesto').'|'.($line['tax_rate']??'0');if(bccomp((string)($line['tax_amount']??'0'),'0',2)!==0){$taxes[$key]??=['name'=>($line['tax_name']?:'Impuesto').' ('.bcadd((string)$line['tax_rate'],'0',2).' %)','amount'=>'0.00'];$taxes[$key]['amount']=bcadd($taxes[$key]['amount'],$line['tax_amount'],2);}}
     return compact('row','kind','stock','contact','company','lines','title','status','meta','references','taxes');
 }
 

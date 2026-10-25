@@ -3,6 +3,17 @@
 .restaurant-heading,.restaurant-section-heading,.restaurant-table-top,.restaurant-toolbar,.restaurant-actions { display:flex;align-items:center;justify-content:space-between;gap:16px; }
 .restaurant-heading h1 { margin:5px 0 8px;font-size:clamp(25px,3vw,34px);letter-spacing:-.035em;color:#192e3b; }
 .restaurant-heading p { margin:0; }
+.restaurant-heading > div:first-child { min-width:0; }
+.restaurant-heading > .transfer-menu { margin-left:auto; flex-shrink:0; }
+.restaurant-configuration-list .restaurant-section-heading { align-items:flex-start; flex-wrap:wrap; }
+.restaurant-configuration-list .restaurant-list-caption { margin:7px 0 0; font-size:12px; }
+.restaurant-configuration-list .restaurant-section-heading > .button { flex-shrink:0; }
+.restaurant-configuration-list .contact-table-wrap { margin-top:4px; }
+.restaurant-configuration-list .contact-table th { white-space:nowrap; }
+.restaurant-configuration-list .record-selection input { width:17px; height:17px; min-height:17px; padding:0; margin:0; vertical-align:middle; }
+.restaurant-configuration-list .restaurant-state--active { color:#216b56; background:#e8f6ef; }
+.restaurant-configuration-list .restaurant-state--inactive { color:#687580; background:#edf1f4; }
+.restaurant-configuration-list .restaurant-empty h3 { margin:0; font-size:18px; color:#284656; }
 .restaurant-service-tag { display:inline-flex;align-items:center;gap:8px;white-space:nowrap;color:#0e7490;background:#e3f3f5;border:1px solid #c7e5eb;border-radius:999px;padding:9px 13px;font-size:12px;font-weight:600; }
 .restaurant-panel { min-width:0;padding:25px;border:1px solid #dce5ec;border-radius:18px;background:white;box-shadow:0 5px 20px #192e3b04; }
 .restaurant-panel h2 { margin:0 0 12px;font-size:19px;color:#192e3b;letter-spacing:-.025em; }

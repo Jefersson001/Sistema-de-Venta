@@ -1,0 +1,17 @@
+const assert = require('node:assert/strict');
+const fs = require('node:fs');
+const vm = require('node:vm');
+const context = {document: {querySelector: () => null, querySelectorAll: () => []}};
+vm.createContext(context);
+vm.runInContext(fs.readFileSync(require.resolve('../js/currency.js'), 'utf8'), context);
+const pair = {primary_code:'USD',alternate_code:'VES',exchange_rate:'40.12'};
+assert.equal(context.convertOrderMoney('1.25','USD','VES',pair),'50.15');
+assert.equal(context.convertOrderMoney('50.15','VES','USD',pair),'1.25');
+assert.equal(context.convertOrderMoney('0.01','USD','VES',pair),'0.40');
+assert.equal(context.convertOrderMoney('9999999999999999.99','USD','USD',pair),'9999999999999999.99');
+assert.throws(()=>context.convertOrderMoney('1.001','USD','VES',pair));
+assert.throws(()=>context.convertOrderMoney('1','USD','VES',{...pair,exchange_rate:'40.123'}));
+const {productCommissionPricing} = require('../js/product-commissions.js');
+assert.equal(productCommissionPricing('19.99','percent','16.25').commission,'3.25');
+assert.throws(()=>productCommissionPricing('19.99','percent','16.255'));
+console.log('PASS: conversiones y comisiones exactas con dos decimales, sin truncar entradas inválidas.');

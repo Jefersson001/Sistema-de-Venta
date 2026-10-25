@@ -72,7 +72,7 @@ function renderInventoryProducts(bool $variantCreation=false): void
             $page['purchaseTaxes'] = loadBusinessTaxes($db, 'compras');
             $page['saleTaxes'] = loadBusinessTaxes($db, 'ventas');
             $page['productStock'] = $id && permissionHas('inventario.stock') ? loadInventoryProductStock($db, $id) : ['total' => null, 'reserved'=>null,'available'=>null,'locations' => []];
-            $page['productIndicators'] = $id ? loadInventoryProductIndicators($db, $id) : ['incoming' => '0', 'outgoing' => '0', 'sold' => '0.000', 'purchased' => '0.000'];
+            $page['productIndicators'] = $id ? loadInventoryProductIndicators($db, $id) : ['incoming' => '0', 'outgoing' => '0', 'sold' => '0.00', 'purchased' => '0.00'];
             $page['storage'] = loadStorageRelations($db);
             $page['suppliers']=$db->query("SELECT c.id,c.name FROM contacts c JOIN contact_types t ON t.id=c.type_id WHERE t.system_key='supplier' AND c.active=1 ORDER BY c.name")->fetchAll();
             $prices=$db->prepare('SELECT * FROM product_supplier_prices WHERE product_id=? ORDER BY id');$prices->execute([$id??($variantCreation?($page['record']['parent_product_id']??null):null)]);$page['supplierPrices']=$prices->fetchAll();
@@ -98,7 +98,7 @@ function renderInventoryProducts(bool $variantCreation=false): void
                 $input['parent_product_id']=$page['record']['parent_product_id']??null;
                 if($variantCreation&&!$input['parent_product_id'])$page['errors'][]='Selecciona el producto principal de la variante.';
                 $input['commission_type']??=$page['record']['commission_type']??'none';
-                $input['commission_value']??=$page['record']['commission_value']??'0.0000';
+                $input['commission_value']??=$page['record']['commission_value']??'0.00';
                 if(!in_array($input['currency_code'],array_merge(accountingCurrencyCodes($page['settings']),[$page['record']['currency_code']??null]),true)){$page['errors'][]='Selecciona una moneda configurada.';}
                 [$data, $productErrors] = validateInventoryProduct($input, $page['categories'], $page['purchaseTaxes'], $page['saleTaxes']);
                 $page['errors']=array_merge($page['errors'],$productErrors);

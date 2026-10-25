@@ -23,7 +23,7 @@ if (operationForm && operationForm.dataset.permissionReadonly!=='true') {
             if (!available) continue;
             const product = row.querySelector('[data-operation-product]').value;
             const balance = stock.find(item => String(item.product_id) === product && String(item.location_id) === location?.value);
-            available.textContent = balance?.quantity || '0.000';
+            available.textContent = balance?.quantity || '0.00';
         }
     }
     function setupRow(row) {

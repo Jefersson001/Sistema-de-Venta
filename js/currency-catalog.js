@@ -9,12 +9,12 @@ if (currencyForm) {
         const inverse = row.querySelector('[data-rate-inverse]');
         function updateInverse() {
             const text = value.value.trim().replace(',', '.');
-            if (!/^[0-9]{1,12}(\.[0-9]{1,8})?$/.test(text)) { inverse.value = ''; return; }
+            if (!/^[0-9]{1,12}(\.[0-9]{1,2})?$/.test(text)) { inverse.value = ''; return; }
             const [whole, fraction = ''] = text.split('.');
-            const units = BigInt(whole + fraction.padEnd(8, '0'));
+            const units = BigInt(whole + fraction.padEnd(2, '0'));
             if (units === 0n) { inverse.value = ''; return; }
-            const result = 10000000000000000n / units;
-            inverse.value = `${result / 100000000n}.${String(result % 100000000n).padStart(8, '0')}`;
+            const result = (10000n + units / 2n) / units;
+            inverse.value = `${result / 100n}.${String(result % 100n).padStart(2, '0')}`;
         }
         value.addEventListener('input', updateInverse); updateInverse();
         const remove = row.querySelector('[data-remove-currency-rate]');

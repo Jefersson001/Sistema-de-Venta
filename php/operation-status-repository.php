@@ -25,16 +25,16 @@ function transitionInventoryOperation(PDO $db,int $id,?int $version,string $acti
             if($source['location_type']!==$sourceType || $dest['location_type']!==$destinationType)throw new InvalidArgumentException('Guarda ubicaciones válidas para el tipo de operación.');
             validateLinkedOperationLines($db,$o,$lines);
             $needed=[];
-            $hasQuantities=(bool)array_filter($lines,static fn($l)=>bccomp($l['quantity'],'0',3)>0);
+            $hasQuantities=(bool)array_filter($lines,static fn($l)=>bccomp($l['quantity'],'0',2)>0);
             foreach($lines as $l){
                 $p=$db->prepare('SELECT product_type FROM inventory_products WHERE id=?');$p->execute([$l['product_id']]);if($p->fetchColumn()!=='goods')throw new InvalidArgumentException('Los servicios no generan movimientos de inventario.');
-                $qty=$hasQuantities?$l['quantity']:$l['demand'];if(bccomp($qty,'0',3)>0)$needed[(int)$l['product_id']]=bcadd($needed[(int)$l['product_id']]??'0.000',$qty,3);
+                $qty=$hasQuantities?$l['quantity']:$l['demand'];if(bccomp($qty,'0',2)>0)$needed[(int)$l['product_id']]=bcadd($needed[(int)$l['product_id']]??'0.00',$qty,2);
             }
             ksort($needed);
             if($source['location_type']==='internal') foreach($needed as $product=>$qty){
                 $db->prepare('INSERT INTO inventory_stock (product_id,location_id) VALUES (?,?) ON DUPLICATE KEY UPDATE product_id=VALUES(product_id)')->execute([$product,$source['id']]);
-                $q=$db->prepare('SELECT quantity FROM inventory_stock WHERE product_id=? AND location_id=? FOR UPDATE');$q->execute([$product,$source['id']]);$available=bcsub((string)$q->fetchColumn(),inventoryReserved($db,$product,(int)$source['id'],$id),3);
-                if(bccomp($available,$qty,3)<0)throw new InvalidArgumentException('No hay cantidad suficiente disponible después de las reservas. La operación permanece En espera.');
+                $q=$db->prepare('SELECT quantity FROM inventory_stock WHERE product_id=? AND location_id=? FOR UPDATE');$q->execute([$product,$source['id']]);$available=bcsub((string)$q->fetchColumn(),inventoryReserved($db,$product,(int)$source['id'],$id),2);
+                if(bccomp($available,$qty,2)<0)throw new InvalidArgumentException('No hay cantidad suficiente disponible después de las reservas. La operación permanece En espera.');
                 $db->prepare('INSERT INTO inventory_reservations (operation_id,product_id,location_id,quantity) VALUES (?,?,?,?)')->execute([$id,$product,$source['id'],$qty]);
             }
             $target='ready';

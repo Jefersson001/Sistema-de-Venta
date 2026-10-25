@@ -29,7 +29,7 @@ function workflowCreateInvoice(PDO $db,string $kind,int $id): int
         if(!$order || $order['status']!==($sale?'sale':'purchase'))throw new InvalidArgumentException('Confirma la orden antes de generar la factura.');
         $q=$db->prepare("SELECT id FROM accounting_invoices WHERE $fk=? AND document_type='invoice' AND status='draft' ORDER BY id DESC LIMIT 1");$q->execute([$id]);$draft=$q->fetchColumn();
         if($draft){$db->commit();return (int)$draft;}
-        $lines=array_values(array_filter(commerceLineProgress($db,$kind,$id),static fn($l)=>bccomp($l['to_invoice'],'0',3)>0));
+        $lines=array_values(array_filter(commerceLineProgress($db,$kind,$id),static fn($l)=>bccomp($l['to_invoice'],'0',2)>0));
         if(!$lines){
             $q=$db->prepare("SELECT id FROM accounting_invoices WHERE $fk=? AND document_type='invoice' AND status='posted' ORDER BY id DESC LIMIT 1");$q->execute([$id]);$previous=$q->fetchColumn();
             if($previous){$db->commit();return (int)$previous;}
@@ -84,8 +84,8 @@ function createCreditNote(PDO $db,int $id,?int $version,string $reason): int
         $q=$db->prepare("SELECT id FROM accounting_invoices WHERE reversal_of_id=? AND status='draft' AND document_type='credit' LIMIT 1");$q->execute([$id]);$draft=$q->fetchColumn();if($draft){$db->commit();return (int)$draft;}
         $q=$db->prepare('SELECT * FROM accounting_invoice_lines WHERE invoice_id=? ORDER BY position,id');$q->execute([$id]);$lines=[];$base='0.00';$tax='0.00';$total='0.00';
         foreach($q->fetchAll() as $l){
-            $used=$db->prepare("SELECT COALESCE(SUM(l.quantity),0) FROM accounting_invoice_lines l JOIN accounting_invoices c ON c.id=l.invoice_id WHERE l.original_line_id=? AND c.status!='cancel'");$used->execute([$l['id']]);$qty=bcsub($l['quantity'],(string)$used->fetchColumn(),3);
-            if(bccomp($qty,'0',3)<=0)continue;
+            $used=$db->prepare("SELECT COALESCE(SUM(l.quantity),0) FROM accounting_invoice_lines l JOIN accounting_invoices c ON c.id=l.invoice_id WHERE l.original_line_id=? AND c.status!='cancel'");$used->execute([$l['id']]);$qty=bcsub($l['quantity'],(string)$used->fetchColumn(),2);
+            if(bccomp($qty,'0',2)<=0)continue;
             $l=array_merge($l,commerceAmounts($qty,$l['unit_price'],$l['tax_rate']),['quantity'=>$qty]);$lines[]=$l;$base=bcadd($base,$l['base_amount'],2);$tax=bcadd($tax,$l['tax_amount'],2);$total=bcadd($total,$l['total_amount'],2);
         }
         if(!$lines)throw new InvalidArgumentException('La factura ya fue revertida por sus notas de crédito.');
@@ -104,11 +104,11 @@ function saveCreditNoteQuantities(PDO $db,array $invoice,array $input): void
 {
     $q=$db->prepare('SELECT * FROM accounting_invoice_lines WHERE invoice_id=? ORDER BY id');$q->execute([$invoice['id']]);$lines=$q->fetchAll();$base='0.00';$tax='0.00';$total='0.00';$positive=false;
     foreach($lines as $l){
-        $qty=salesDecimal($input[(string)$l['id']]??$l['quantity'],9,3);if($qty===null)throw new InvalidArgumentException('Indica cantidades válidas en la nota de crédito.');
+        $qty=salesDecimal($input[(string)$l['id']]??$l['quantity'],9,2);if($qty===null)throw new InvalidArgumentException('Indica cantidades válidas en la nota de crédito.');
         $orig=$db->prepare('SELECT quantity FROM accounting_invoice_lines WHERE id=?');$orig->execute([$l['original_line_id']]);$maximum=(string)$orig->fetchColumn();
         $used=$db->prepare("SELECT COALESCE(SUM(l.quantity),0) FROM accounting_invoice_lines l JOIN accounting_invoices i ON i.id=l.invoice_id WHERE l.original_line_id=? AND i.status!='cancel' AND i.id!=?");$used->execute([$l['original_line_id'],$invoice['id']]);
-        if(bccomp($qty,bcsub($maximum,(string)$used->fetchColumn(),3),3)>0)throw new InvalidArgumentException('La nota de crédito supera la cantidad facturada pendiente de revertir.');
-        $a=commerceAmounts($qty,$l['unit_price'],$l['tax_rate']);$positive=$positive||bccomp($qty,'0',3)>0;
+        if(bccomp($qty,bcsub($maximum,(string)$used->fetchColumn(),2),2)>0)throw new InvalidArgumentException('La nota de crédito supera la cantidad facturada pendiente de revertir.');
+        $a=commerceAmounts($qty,$l['unit_price'],$l['tax_rate']);$positive=$positive||bccomp($qty,'0',2)>0;
         $db->prepare('UPDATE accounting_invoice_lines SET quantity=?,base_amount=?,tax_amount=?,total_amount=? WHERE id=?')->execute([$qty,$a['base_amount'],$a['tax_amount'],$a['total_amount'],$l['id']]);
         $base=bcadd($base,$a['base_amount'],2);$tax=bcadd($tax,$a['tax_amount'],2);$total=bcadd($total,$a['total_amount'],2);
     }

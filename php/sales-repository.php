@@ -17,9 +17,9 @@ function salesTaxBreakdown(array $lines): array
     foreach ($lines as $line) {
         if (empty($line['tax_id'])) continue;
         $name=(string)($line['tax_name']??'Impuesto');
-        $rate=bcadd((string)($line['tax_rate']??'0'),'0',4);
+        $rate=bcadd((string)($line['tax_rate']??'0'),'0',2);
         $key=$line['tax_id'].'/'.$rate.'/'.$name;
-        $groups[$key]??=['name'=>$name,'rate'=>rtrim(rtrim($rate,'0'),'.'),'amount'=>'0.00'];
+        $groups[$key]??=['name'=>$name,'rate'=>bcadd($rate,'0',2),'amount'=>'0.00'];
         $groups[$key]['amount']=bcadd($groups[$key]['amount'],(string)($line['tax_amount']??'0'),2);
     }
     return array_values($groups);
@@ -156,7 +156,7 @@ function validateSalesQuotation(array $input, array $catalogs, ?array $existing 
         $productId = salesId($raw['product_id'] ?? null);
         $product = salesRecord($catalogs['products'], $productId);
         if (! $product) { $errors[] = 'Línea ' . $number . ': selecciona un producto habilitado para Venta.'; }
-        $quantity = salesDecimal($raw['quantity'] ?? '1', 9, 3);
+        $quantity = salesDecimal($raw['quantity'] ?? '1', 9, 2);
         $oldLine = isset($raw['line_id']) ? salesRecord($existing['lines']??[],salesId($raw['line_id'])) : ($existing['lines'][$position] ?? null);
         $sameProduct = $oldLine && (int)$oldLine['product_id'] === $productId;
         $reference=null;$commissionUnit=null;$defaultPrice=$product['sale_price']??'0';
@@ -174,7 +174,7 @@ function validateSalesQuotation(array $input, array $catalogs, ?array $existing 
             } catch (InvalidArgumentException $exception) { $errors[]=$exception->getMessage(); }
         }
         $price = salesDecimal($raw['unit_price'] ?? $defaultPrice, 10, 2);
-        if ($quantity === null || bccomp($quantity, '0', 3) <= 0) { $errors[] = 'Línea ' . $number . ': la cantidad debe ser positiva, con hasta tres decimales.'; }
+        if ($quantity === null || bccomp($quantity, '0', 2) <= 0) { $errors[] = 'Línea ' . $number . ': la cantidad debe ser positiva, con hasta dos decimales.'; }
         if ($price === null) { $errors[] = 'Línea ' . $number . ': el precio unitario debe ser un importe no negativo con hasta dos decimales.'; }
         $taxInput=$raw['tax_id']??(!empty($catalogs['commission_enabled'])?($sameProduct?($oldLine['tax_id']??''):($product['sale_tax_id']??'')):'');
         $taxId = salesId($taxInput);

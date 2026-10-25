@@ -1,5 +1,6 @@
 <?php
 declare(strict_types=1);
+require_once __DIR__.'/decimal.php';
 
 const BCV_SOURCE_URL='https://www.bcv.org.ve/';
 
@@ -17,7 +18,9 @@ function bcvParsePublication(string $html): array
         $date=substr($dateNode?->getAttribute('content')??'',0,10);
         $parsed=DateTimeImmutable::createFromFormat('!Y-m-d',$date);
         if(!$parsed||$parsed->format('Y-m-d')!==$date)throw new RuntimeException('El BCV no devolvió una Fecha Valor reconocible.');
-        return ['rate'=>bcadd($rate,'0',8),'effective_date'=>$date,'source'=>'bcv','url'=>BCV_SOURCE_URL];
+        $rate=decimalRound($rate);
+        if(bccomp($rate,'0',2)<=0)throw new RuntimeException('La tasa publicada es menor a 0.01.');
+        return ['rate'=>$rate,'effective_date'=>$date,'source'=>'bcv','url'=>BCV_SOURCE_URL];
     }finally{libxml_clear_errors();libxml_use_internal_errors($previous);}
 }
 

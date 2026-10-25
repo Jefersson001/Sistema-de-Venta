@@ -112,7 +112,7 @@ function commerceLinks(PDO $db, string $kind, int $id): array
     $q=$db->prepare('SELECT id,name,status,operation_type,return_of_id FROM inventory_operations WHERE '.($kind==='sale'?'quotation_id':'purchase_order_id').'=? ORDER BY id'); $q->execute([$id]);$operations=$q->fetchAll();
     $q=$db->prepare('SELECT id,name,status,invoice_type,document_type FROM accounting_invoices WHERE '.($kind==='sale'?'sale_id':'purchase_id').'=? ORDER BY id');$q->execute([$id]);$invoices=$q->fetchAll();
     $progress=commerceLineProgress($db,$kind,$id);$can=false;$stock=false;
-    foreach($progress as $l){$can=$can||bccomp($l['to_invoice'],'0',3)>0;$stock=$stock||($l['product_type']==='goods' && bccomp($l['pending'],'0',3)>0);}
+    foreach($progress as $l){$can=$can||bccomp($l['to_invoice'],'0',2)>0;$stock=$stock||($l['product_type']==='goods' && bccomp($l['pending'],'0',2)>0);}
     $active=array_values(array_filter($invoices,static fn($i)=>$i['status']!=='cancel' && $i['document_type']==='invoice'));
     $confirmed=$source && $source['status']===($kind==='sale'?'sale':'purchase');
     return ['source'=>$source,'operation'=>$operations[0]??null,'invoice'=>$active?end($active):null,'operations'=>$operations,'invoices'=>$invoices,'progress'=>$progress,'can_invoice'=>$confirmed&&$can,'can_stock'=>$confirmed&&$stock];

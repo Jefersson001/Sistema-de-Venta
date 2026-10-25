@@ -12,7 +12,7 @@ currencyCheck(preg_match('/^nexo_currency_test_[a-f0-9]{16}$/',$testDatabase)===
 $db->exec('CREATE DATABASE `'.$testDatabase.'` CHARACTER SET utf8mb4');
 try {
     $db->exec('USE `'.$testDatabase.'`');
-    $db->exec('CREATE TABLE accounting_currency_settings(id TINYINT PRIMARY KEY,primary_code CHAR(3),alternate_code CHAR(3),exchange_rate DECIMAL(20,8),version INT)');
+    $db->exec('CREATE TABLE accounting_currency_settings(id TINYINT PRIMARY KEY,primary_code CHAR(3),alternate_code CHAR(3),exchange_rate DECIMAL(14,2),version INT)');
     $db->exec("INSERT INTO accounting_currency_settings VALUES(1,'USD','VES',150,1)");
     foreach (['inventory_products','sales_quotations','purchase_orders','accounting_invoices','accounting_payments','accounting_payment_accounts'] as $table) $db->exec('CREATE TABLE '.$table.'(currency_code CHAR(3),currency_primary_code CHAR(3),currency_alternate_code CHAR(3),primary_code CHAR(3),alternate_code CHAR(3))');
     installCurrencyCatalog($db); installCurrencyCatalog($db);
@@ -24,8 +24,8 @@ try {
     $tomorrow=(new DateTimeImmutable(commerceToday()))->modify('+1 day')->format('Y-m-d');
     $rates=[['rate_date'=>$yesterday,'base_currency_id'=>(string)$ids['USD'],'rate'=>'0.80'],['rate_date'=>$tomorrow,'base_currency_id'=>(string)$ids['USD'],'rate'=>'0.90']];
     saveCurrencyRecord($db,$data+['rates'=>$rates],$id,1);
-    currencyCheck(currencyRateForPair($db,'USD','EUR',commerceToday())==='0.80000000' && currencyRateForPair($db,'USD','EUR',$tomorrow)==='0.90000000','Se usa una tasa futura antes de su fecha.');
-    currencyCheck(currencyRateForPair($db,'EUR','USD',commerceToday())==='1.25000000','La tasa inversa es incorrecta.');
+    currencyCheck(currencyRateForPair($db,'USD','EUR',commerceToday())==='0.80' && currencyRateForPair($db,'USD','EUR',$tomorrow)==='0.90','Se usa una tasa futura antes de su fecha.');
+    currencyCheck(currencyRateForPair($db,'EUR','USD',commerceToday())==='1.25','La tasa inversa es incorrecta.');
     currencyRejected(fn()=>saveCurrencyRecord($db,$data,$id,1));
     currencyRejected(fn()=>saveCurrencyRecord($db,array_replace($data,['code'=>'GBP']),$id,2));
     currencyRejected(fn()=>saveCurrencyRecord($db,$data+['rates'=>[['rate_date'=>'2026-02-31','base_currency_id'=>$ids['USD'],'rate'=>'1']]],$id,2));
@@ -43,11 +43,11 @@ try {
     currencyRejected(fn()=>saveBusinessCurrencies($db,['primary_id'=>$ids['USD'],'alternate_id'=>$ids['USD'],'version'=>'1']));
     saveBusinessCurrencies($db,['primary_id'=>$ids['USD'],'alternate_id'=>$id,'version'=>'1']);
     $settings=accountingCurrencies($db);
-    currencyCheck($settings['primary_code']==='USD' && $settings['alternate_code']==='EUR' && $settings['exchange_rate']==='0.80000000','La selección principal/alterna no usa la tasa vigente.');
-    currencyCheck(accountingCurrencies($db,$tomorrow)['exchange_rate']==='0.90000000','La tasa no cambia al llegar su fecha.');
+    currencyCheck($settings['primary_code']==='USD' && $settings['alternate_code']==='EUR' && $settings['exchange_rate']==='0.80','La selección principal/alterna no usa la tasa vigente.');
+    currencyCheck(accountingCurrencies($db,$tomorrow)['exchange_rate']==='0.90','La tasa no cambia al llegar su fecha.');
     currencyRejected(fn()=>saveBusinessCurrencies($db,['primary_id'=>$id,'alternate_id'=>$ids['USD'],'version'=>'1']));
     saveBusinessCurrencies($db,['primary_id'=>$id,'alternate_id'=>$ids['USD'],'version'=>'2']);
-    currencyCheck(accountingCurrencies($db)['exchange_rate']==='1.25000000','Cambiar la principal no conserva el sentido de conversión.');
+    currencyCheck(accountingCurrencies($db)['exchange_rate']==='1.25','Cambiar la principal no conserva el sentido de conversión.');
     saveCurrencyRecord($db,array_replace($data,['code'=>'GBP','name'=>'Libra','active'=>'0']),$other,1);
     currencyRejected(fn()=>saveBusinessCurrencies($db,['primary_id'=>$id,'alternate_id'=>$other,'version'=>'3']));
     // Saving only the displayed rates preserves the rows on other notebook pages.
@@ -64,7 +64,7 @@ try {
         currencyCheck(currencyCodeIsUsed($db,loadCurrencyRecord($db,$protected)),'Tesorería no protege el código utilizado.');
         currencyRejected(fn()=>saveCurrencyRecord($db,array_replace($protectedData,['code'=>'CHF']),$protected,1));
     }
-    $snapshot=['primary_code'=>'USD','alternate_code'=>'VES','exchange_rate'=>'150.00000000'];
+    $snapshot=['primary_code'=>'USD','alternate_code'=>'VES','exchange_rate'=>'150.00'];
     currencyCheck(accountingConvert('10.00','USD','VES',$snapshot)==='1500.00','El catálogo nuevo reinterpreta la tasa guardada de un documento.');
     echo "PASS: catálogo de monedas, migración repetible, tasas fechadas/futuras/inversas, versiones, validaciones, principal/alterna, archivo, historial paginado y snapshots.\n";
 } finally {
@@ -94,7 +94,7 @@ try {
     currencyCheck($status===303&&preg_match('/id=(\d+)/',$redirect,$m)===1,'No se guardó la ficha de moneda.');$fixture=(int)$m[1];
     [$status,$html]=currencyHttp('configuracion.php?section=currencies&id='.$fixture,$cookie);
     $dom=new DOMDocument();@$dom->loadHTML('<?xml encoding="UTF-8">'.$html);$xpath=new DOMXPath($dom);
-    currencyCheck($xpath->query('//form//form')->length===0&&$xpath->query('//*[@id="currency-rates"]//input[@data-rate-inverse and @value="0.40000000"]')->length===1,'El notebook de tasas no conserva la relación o la inversa.');
+    currencyCheck($xpath->query('//form//form')->length===0&&$xpath->query('//*[@id="currency-rates"]//input[@data-rate-inverse and @value="0.40"]')->length===1,'El notebook de tasas no conserva la relación o la inversa.');
     foreach(['code','name','active','symbol','unit_label','subunit_label','symbol_position'] as $field)currencyCheck($xpath->query('//form//*[@name="'.$field.'"]')->length===1,'Falta un campo de la moneda.');
     $post['version']='1';unset($post['rates']);$post['symbol']='TT';
     currencyCheck(currencyHttp('configuracion.php?section=currencies&id='.$fixture,$cookie,$post)[0]===303,'No se actualizó la ficha.');

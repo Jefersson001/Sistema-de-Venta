@@ -3,6 +3,7 @@ declare(strict_types=1);
 require_once __DIR__.'/http-session.php';
 if (PHP_SAPI!=='cli') { http_response_code(404);exit; }
 require_once dirname(__DIR__).'/php/connection.php';
+require_once dirname(__DIR__).'/php/bcv-sync.php';
 require_once dirname(__DIR__).'/php/commission-repository.php';
 require_once dirname(__DIR__).'/php/commerce-repository.php';
 require_once dirname(__DIR__).'/php/invoice-status-repository.php';
@@ -25,6 +26,8 @@ function commissionRequest(string $path,string $cookie,?array $post=null): array
 }
 $db=createDatabaseConnection();$prefix='Test comisiones '.bin2hex(random_bytes(8));$f=[];$orders=[];$cookie=tempnam(sys_get_temp_dir(),'commissions-');
 try {
+    commissionCheck((bool)preg_match('/^nexo_auth_test_[a-f0-9]{16}$/D',(string)$db->query('SELECT DATABASE()')->fetchColumn()),'Se requiere una base de pruebas aislada.');
+    bcvApplyPublication($db,['rate'=>'100.00','effective_date'=>commerceToday(),'source'=>'bcv']);
     $settings=accountingCurrencies($db);$code=$settings['primary_code'];$today=commerceToday();
     $roles=array_flip($db->query('SELECT id,system_key FROM contact_types WHERE system_key IS NOT NULL')->fetchAll(PDO::FETCH_KEY_PAIR));
     foreach(['salesperson','client'] as $role){$db->prepare('INSERT INTO contacts(name,type_id) VALUES (?,?)')->execute([$prefix.$role,$roles[$role]]);$f[$role]=(int)$db->lastInsertId();}
@@ -32,8 +35,9 @@ try {
     $db->prepare("INSERT INTO inventory_products(name,sale_enabled,sale_price,cost_price,currency_code,product_type,invoice_policy) VALUES (?,1,5,1,?,'service','ordered')")->execute([$prefix,$code]);$f['product']=(int)$db->lastInsertId();
     [, $productForm]=commissionRequest('inventario/index.php?id='.$f['product'],$cookie);
     preg_match('/name="csrf" value="([a-f0-9]+)"/',$productForm,$productToken);
+    preg_match('/name="product_revision" value="([a-f0-9]+)"/',$productForm,$productRevision);
     commissionCheck(str_contains($productForm,'name="commission_type"')&&str_contains($productForm,'name="commission_value"'),'Falta la configuración de comisión por producto.');
-    $productPost=['csrf'=>$productToken[1],'action'=>'save_product','name'=>$prefix,'sale_enabled'=>'1','sale_price'=>'5.00','cost_price'=>'1.00','currency_code'=>$code,'product_type'=>'service','invoice_policy'=>'ordered','commission_type'=>'fixed','commission_value'=>'2.00'];
+    $productPost=['csrf'=>$productToken[1],'product_revision'=>$productRevision[1],'action'=>'save_product','name'=>$prefix,'sale_enabled'=>'1','sale_price'=>'5.00','cost_price'=>'1.00','currency_code'=>$code,'product_type'=>'service','invoice_policy'=>'ordered','commission_type'=>'fixed','commission_value'=>'2.00'];
     [$status]=commissionRequest('inventario/index.php?id='.$f['product'],$cookie,$productPost);commissionCheck($status===303,'No se guardó la comisión fija.');
     foreach([['commission_type'=>'invalid'],['commission_type'=>['bad']],['commission_value'=>['bad']],['commission_value'=>'-1'],['commission_value'=>'1.001'],['commission_type'=>'percent','commission_value'=>'1001']] as $invalid) {
         [$status,$body]=commissionRequest('inventario/index.php?id='.$f['product'],$cookie,array_replace($productPost,$invalid));
@@ -52,7 +56,7 @@ try {
     [$status]=commissionRequest('ventas/producto.php?id=999999999',$cookie);commissionCheck($status===404,'No se informa que el producto no existe.');
     [$status]=commissionRequest('ventas/producto.php?id='.$f['product'],$cookie,[]);commissionCheck($status===405,'El endpoint del producto admite escrituras.');
     $input=['customer_id'=>(string)$f['client'],'order_type'=>'invoice','order_date'=>$today,'currency_code'=>$code,
-        'lines'=>[['product_id'=>(string)$f['product'],'quantity'=>'2.000','tax_id'=>(string)$f['tax']]]];
+        'lines'=>[['product_id'=>(string)$f['product'],'quantity'=>'2.00','tax_id'=>(string)$f['tax']]]];
     [$data,$lines,$errors]=validateSalesQuotation($input,loadSalesCatalogs($db,null));commissionCheck(!$errors,'La venta no se valida: '.implode(' ',$errors));
     commissionCheck($lines[0]['unit_price']==='7.00'&&$lines[0]['commission_unit_amount']==='2.00','La regla fija no cargó el precio automático.');
     $automatic=$input;unset($automatic['lines'][0]['tax_id']);
@@ -60,7 +64,7 @@ try {
     commissionCheck(!$automaticErrors&&$automaticLines[0]['tax_id']===$f['tax'],'No se trae el impuesto del producto al validar la venta.');
     $manual=$input;$manual['lines'][0]['unit_price']='8.00';
     [, $manualLines,$manualErrors]=validateSalesQuotation($manual,loadSalesCatalogs($db,null));
-    commissionCheck(!$manualErrors&&salesCommissionAmount('2.000','8.00',$manualLines[0]['commission_reference_price'],$manualLines[0]['commission_unit_amount'])==='4.00','Editar el precio cambió la comisión fija configurada.');
+    commissionCheck(!$manualErrors&&salesCommissionAmount('2.00','8.00',$manualLines[0]['commission_reference_price'],$manualLines[0]['commission_unit_amount'])==='4.00','Editar el precio cambió la comisión fija configurada.');
     [$store,$storeLines,$storeErrors]=validateSalesQuotation($input+['salesperson_id'=>'','salesperson_explicit'=>'1'],loadSalesCatalogs($db,null));
     commissionCheck(!$storeErrors&&$store['salesperson_id']===null&&$storeLines[0]['unit_price']==='5.00','La venta de tienda recibió un aumento de vendedor.');
     [$converted,$convertedLines,$convertedErrors]=validateSalesQuotation(array_replace($input,['currency_code'=>$settings['alternate_code'],'exchange_rate'=>'100']),loadSalesCatalogs($db,null));
@@ -68,7 +72,9 @@ try {
     $sale=saveSalesQuotation($db,$data,$lines,null,null);$orders[]=$sale;
     commissionCheck(loadSalesQuotation($db,$sale)['commission_estimated']==='4.00','Se confundió comisión con costo o impuesto.');
     if(in_array('--product-browser-review',$argv,true)){echo 'REVIEW '.json_encode(['product'=>$f['product'],'sale'=>$sale,'seller'=>$f['salesperson'],'client'=>$f['client']])."\n";fgets(STDIN);}
-    [$status]=commissionRequest('inventario/index.php?id='.$f['product'],$cookie,array_replace($productPost,['commission_type'=>'percent','commission_value'=>'40']));commissionCheck($status===303,'No se guardó el porcentaje.');
+    [, $productForm]=commissionRequest('inventario/index.php?id='.$f['product'],$cookie);
+    preg_match('/name="product_revision" value="([a-f0-9]+)"/',$productForm,$productRevision);
+    [$status]=commissionRequest('inventario/index.php?id='.$f['product'],$cookie,array_replace($productPost,['product_revision'=>$productRevision[1],'commission_type'=>'percent','commission_value'=>'40']));commissionCheck($status===303,'No se guardó el porcentaje.');
     [, $percentLines,$percentErrors]=validateSalesQuotation($input,loadSalesCatalogs($db,null));
     commissionCheck(!$percentErrors&&$percentLines[0]['unit_price']==='7.00'&&$percentLines[0]['commission_unit_amount']==='2.00','El porcentaje no se aplica al precio en tienda.');
     $db->prepare("UPDATE inventory_products SET sale_price=10,commission_type='percent',commission_value=80 WHERE id=?")->execute([$f['product']]);
@@ -87,7 +93,7 @@ try {
     commissionCheck($status===303,'No se registró la factura.');
     [, $saleForm]=commissionRequest('ventas/index.php?id='.$sale,$cookie);
     $saleDom=new DOMDocument();libxml_use_internal_errors(true);$saleDom->loadHTML('<?xml encoding="UTF-8">'.$saleForm);$saleXpath=new DOMXPath($saleDom);
-    commissionCheck($saleXpath->query('//*[@data-quotation-tax-group]/dd[text()="1.40"]')->length===1&&$saleXpath->query('//*[@data-quotation-tax-group]/dt[contains(text(),"10 %")]')->length===1,'El desglose de impuestos no aparece al abrir una venta guardada.');
+    commissionCheck($saleXpath->query('//*[@data-quotation-tax-group]/dd[text()="1.40"]')->length===1&&$saleXpath->query('//*[@data-quotation-tax-group]/dt[contains(text(),"10.00 %")]')->length===1,'El desglose de impuestos no aparece al abrir una venta guardada.');
     $paymentInput=['amount'=>'1.00','currency_code'=>$code,'movement_date'=>$today,'account_id'=>(string)$f['account'],'method_id'=>(string)$method];
     commissionReject(fn()=>paySalesCommission($db,$invoice,$paymentInput,bin2hex(random_bytes(32))));
     $collect=function(string $amount)use($db,$invoice,$code,$today,$f,$method): void {
@@ -162,7 +168,7 @@ try {
     $reversedPayments=array_filter($history['rows'],static fn($r)=>!empty($r['reversed_by_id']));
     commissionCheck(count($reversedPayments)===1&&$history['total']===3,'El historial elimina el pago revertido o duplica su reversión.');
     [, $html]=commissionRequest('contabilidad/tesoreria.php?id='.$reverse,$cookie);commissionCheck(str_contains($html,'Comisión relacionada'),'La reversión perdió su enlace.');
-    $alternatePay=paySalesCommission($db,$invoice,array_replace($paymentInput,['amount'=>'2.00','currency_code'=>$settings['alternate_code'],'account_id'=>(string)$f['alternate_account'],'exchange_rate'=>'100.00000000']),bin2hex(random_bytes(32)));
+    $alternatePay=paySalesCommission($db,$invoice,array_replace($paymentInput,['amount'=>'2.00','currency_code'=>$settings['alternate_code'],'account_id'=>(string)$f['alternate_account'],'exchange_rate'=>'100.00']),bin2hex(random_bytes(32)));
     $alternateDocument=loadTreasuryDocument($db,$alternatePay);
     commissionCheck($alternateDocument['amount']==='200.00'&&$commission()['commission_paid']==='4.00','Se mezclaron el importe de comisión y la moneda del egreso.');
     $alternateFlow=array_column(loadCashFlowSummary($db,$range,$f['alternate_account'])['currencies'],null,'code')[$settings['alternate_code']];
@@ -170,7 +176,7 @@ try {
     $q=$db->prepare('SELECT version FROM accounting_invoices WHERE id=?');$q->execute([$invoice]);$credit=createCreditNote($db,$invoice,(int)$q->fetchColumn(),$prefix);
     $q=$db->prepare('SELECT * FROM accounting_invoices WHERE id=?');$q->execute([$credit]);$creditRecord=$q->fetch();
     $q=$db->prepare('SELECT id FROM accounting_invoice_lines WHERE invoice_id=?');$q->execute([$credit]);$creditLine=(int)$q->fetchColumn();
-    $db->beginTransaction();saveCreditNoteQuantities($db,$creditRecord,[(string)$creditLine=>'1.000']);$db->commit();
+    $db->beginTransaction();saveCreditNoteQuantities($db,$creditRecord,[(string)$creditLine=>'1.00']);$db->commit();
     [, $html]=commissionRequest('contabilidad/index.php?type=customer&id='.$credit,$cookie);preg_match('/name="csrf" value="([a-f0-9]+)"/',$html,$token);
     [$status]=commissionRequest('contabilidad/index.php?type=customer&id='.$credit,$cookie,['csrf'=>$token[1],'version'=>'1','action'=>'confirm_invoice','invoice_date'=>$today]);commissionCheck($status===303,'No se registró la devolución.');
     commissionCheck($commission()['commission_generated']==='2.00'&&$commission()['commission_overpaid']==='2.00'&&$commission()['commission_state']==='adjustment','La devolución borró el pago o no mostró el ajuste.');
@@ -181,8 +187,8 @@ try {
     $noSeller=invoiceCommissionSummary($db,['id'=>$invoice,'salesperson_id'=>null]);
     commissionCheck($noSeller['total']==='0.00'&&$noSeller['lines'][0]['commission_amount']==='0.00','Una factura sin vendedor muestra comisión.');
     installSalesCommissions($db);commissionCheck($commission()['commission_paid']==='4.00','Reinstalar alteró pagos existentes.');
-    commissionCheck(salesCommissionAmount('3.000','4.00','5.00')==='0.00'&&salesCommissionAmount('1.125','7.00','5.00')==='2.25','Diferencias negativas o cantidades decimales incorrectas.');
-    commissionCheck(bcadd(salesCommissionPortion('0.500','5.01','5.00','0.000'),salesCommissionPortion('0.500','5.01','5.00','0.500'),2)==='0.01','La facturación parcial duplicó un céntimo de comisión.');
+    commissionCheck(salesCommissionAmount('3.00','4.00','5.00')==='0.00'&&salesCommissionAmount('1.12','7.00','5.00')==='2.24','Diferencias negativas o cantidades decimales incorrectas.');
+    commissionCheck(bcadd(salesCommissionPortion('0.50','5.01','5.00','0.00'),salesCommissionPortion('0.50','5.01','5.00','0.50'),2)==='0.01','La facturación parcial duplicó un céntimo de comisión.');
     echo "PASS: referencia congelada, impuestos separados, cobros parciales, comisiones, pagos, CSRF, egresos, dashboard, reversiones y devoluciones.\n";
 } finally {
     if($db->inTransaction())$db->rollBack();

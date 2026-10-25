@@ -101,7 +101,7 @@ En la misma transacción se verifican cantidades netas consumidas frente a canti
 
 ### Precios, descuentos, extras y propinas
 
-Precio, moneda, tasa, impuesto, costo y descripción se congelan al confirmar cada artículo. Un cambio del catálogo solo afecta artículos nuevos. Se conservan importes como DECIMAL y se usa BCMath, con las escalas actuales: cantidades de tres decimales e importes de dos.
+Precio, moneda, tasa, impuesto, costo y descripción se congelan al confirmar cada artículo. Un cambio del catálogo solo afecta artículos nuevos. Se conservan valores como DECIMAL y se usa BCMath: cantidades, importes, porcentajes y tasas tienen dos decimales.
 
 Los extras cobrables deben referenciar productos existentes. Así conservan sus propios impuestos y, si son mercancía, sus propias existencias. Las instrucciones gratuitas se guardan como modificadores/observaciones. No se implementan recetas ni consumo de ingredientes.
 
@@ -113,7 +113,7 @@ La propina será opcional, explícita y separada de ventas e impuestos de produc
 
 Se usarán nombres singulares como en gran parte del esquema actual cuando corresponda; los siguientes nombres nuevos se fijan con prefijo `restaurant_` para distinguir el dominio. Las tablas son necesarias por funcionalidad, pero se crearán por fase, no de una vez.
 
-Todas las tablas empresariales tendrán las columnas y relaciones de empresa/autoría instaladas por `registerCompanyTable()`. IDs referenciados conservarán el tipo `INT UNSIGNED` del esquema actual. Cantidades `DECIMAL(12,3)`, precios `DECIMAL(12,2)` y totales `DECIMAL(18,2)`; las magnitudes acumuladas se comprobarán antes de guardar.
+Todas las tablas empresariales tendrán las columnas y relaciones de empresa/autoría instaladas por `registerCompanyTable()`. IDs referenciados conservarán el tipo `INT UNSIGNED` del esquema actual. Cantidades `DECIMAL(11,2)`, precios `DECIMAL(12,2)` y totales `DECIMAL(18,2)`; las magnitudes acumuladas se comprobarán antes de guardar.
 
 | Tabla nueva | Contenido y relaciones principales | Integridad e índices |
 |---|---|---|

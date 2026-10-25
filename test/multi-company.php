@@ -50,12 +50,12 @@ try {
     $q=$b->prepare('SELECT COUNT(*) FROM contacts WHERE id=?');$q->execute([$other]);mcCheck((int)$q->fetchColumn()===1,'DELETE modificó otra empresa.');
     // A newer rate in another selected company must not change active-company conversions.
     require_once dirname(__DIR__).'/php/currency-repository.php';
-    foreach([[$a,'2026-01-01','10.00000000'],[$b,'2026-10-01','99.00000000']] as [$rateDb,$date,$rate]) {
+    foreach([[$a,'2026-01-01','10.00'],[$b,'2026-10-01','99.00']] as [$rateDb,$date,$rate]) {
         $codes=$rateDb->query('SELECT code,id FROM accounting_currencies')->fetchAll(PDO::FETCH_KEY_PAIR);
         $rateDb->prepare('INSERT INTO accounting_currency_rates(currency_id,base_currency_id,rate_date,rate) VALUES(?,?,?,?) ON DUPLICATE KEY UPDATE rate=VALUES(rate)')->execute([$codes['VES'],$codes['USD'],$date,$rate]);
     }
-    mcCheck(currencyRateForPair($all,'USD','VES','2026-01-01')==='10.00000000','La tasa de otra empresa afectó la conversión.');
-    mcCheck(currencyRateForPair($all,'USD','VES','2026-10-01')!=='99.00000000','Una tasa más reciente de otra empresa afectó la conversión.');
+    mcCheck(currencyRateForPair($all,'USD','VES','2026-01-01')==='10.00','La tasa de otra empresa afectó la conversión.');
+    mcCheck(currencyRateForPair($all,'USD','VES','2026-10-01')!=='99.00','Una tasa más reciente de otra empresa afectó la conversión.');
     // Populate interconnected domain records to exercise deletion order and cycles.
     $b->exec("INSERT INTO inventory_products(name,sale_price) VALUES('Producto empresa 2',5)");$product=(int)$b->lastInsertId();
     $b->prepare("INSERT INTO sales_quotations(customer_id,invoice_address,delivery_address,order_date) VALUES(?,'','','2026-10-01')")->execute([$other]);$sale=(int)$b->lastInsertId();

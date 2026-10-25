@@ -19,6 +19,6 @@ function salesCommissionAmount(string $quantity, string $price, ?string $referen
 
 function salesCommissionPortion(string $quantity,string $price,?string $reference,string $priorQuantity,?string $unitCommission=null): string
 {
-    if (bccomp($priorQuantity,'0',3)<0) $priorQuantity='0.000';
-    return bcsub(salesCommissionAmount(bcadd($priorQuantity,$quantity,3),$price,$reference,$unitCommission),salesCommissionAmount($priorQuantity,$price,$reference,$unitCommission),2);
+    if (bccomp($priorQuantity,'0',2)<0) $priorQuantity='0.00';
+    return bcsub(salesCommissionAmount(bcadd($priorQuantity,$quantity,2),$price,$reference,$unitCommission),salesCommissionAmount($priorQuantity,$price,$reference,$unitCommission),2);
 }

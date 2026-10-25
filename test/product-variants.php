@@ -26,7 +26,7 @@ try{
     $db->prepare('INSERT INTO inventory_categories(name,restaurant_enabled) VALUES(?,1)')->execute(['Pastelería '.$prefix]);$category=(int)$db->lastInsertId();
     $currency=accountingCurrencies($db)['primary_code'];
     $rootData=['name'=>'Torta '.$prefix,'sale_enabled'=>1,'purchase_enabled'=>1,'sale_price'=>'10.00','cost_price'=>'2.00','currency_code'=>$currency,
-        'category_id'=>$category,'sale_tax_id'=>null,'purchase_tax_id'=>null,'product_type'=>'goods','invoice_policy'=>'ordered','commission_type'=>'fixed','commission_value'=>'1.0000'];
+        'category_id'=>$category,'sale_tax_id'=>null,'purchase_tax_id'=>null,'product_type'=>'goods','invoice_policy'=>'ordered','commission_type'=>'fixed','commission_value'=>'1.00'];
     $parent=saveInventoryProduct($db,$rootData,null);$otherParent=saveInventoryProduct($db,array_replace($rootData,['name'=>'Otra torta '.$prefix]),null);
     echo "RUN free-name variants, inheritance, duplicate and hierarchy checks\n";
     $chocolate=inventoryCreateVariant($db,['parent_product_id'=>$parent,'name'=>'Torta de chocolate '.$prefix]);
@@ -48,7 +48,7 @@ try{
     foreach([$parent=>'5',$chocolate=>'3',$strawberry=>'7'] as $productId=>$stock)$db->prepare('INSERT INTO inventory_stock(product_id,location_id,quantity) VALUES(?,?,?)')->execute([$productId,$location,$stock]);
     $stock=static function(int $id)use($db,$location):string{$q=$db->prepare('SELECT quantity FROM inventory_stock WHERE product_id=? AND location_id=?');$q->execute([$id,$location]);return (string)$q->fetchColumn();};
     variantCheck(bccomp($stock($parent),'5',3)===0&&bccomp($stock($chocolate),'3',3)===0&&bccomp($stock($strawberry),'7',3)===0,'Las existencias se mezclaron.');
-    bcvApplyPublication($raw,['rate'=>'100.00000000','effective_date'=>commerceToday(),'source'=>'bcv']);
+    bcvApplyPublication($raw,['rate'=>'100.00','effective_date'=>commerceToday(),'source'=>'bcv']);
     $db->prepare("INSERT INTO contacts(name,type_id) SELECT ?,id FROM contact_types WHERE system_key='client'")->execute(['Cliente variantes '.$prefix]);$customer=(int)$db->lastInsertId();
     $area=restaurantSaveArea($db,['name'=>'Variantes '.$prefix,'active'=>1]);$table=restaurantSaveTable($db,['area_id'=>$area,'name'=>'Mesa de variantes','capacity'=>4,'active'=>1]);
     $account=restaurantOpenAccount($db,['table_id'=>$table,'table_version'=>1,'waiter_id'=>$actor,'guests'=>1,'request_key'=>bin2hex(random_bytes(32))]);
@@ -103,7 +103,7 @@ try{
     unset($restrictedPost['cost_price'],$restrictedPost['commission_type'],$restrictedPost['commission_value']);
     $r=authTestRequest($s,'/modules/inventario/variantes.php?new=1',$creatorCookie,$restrictedPost);variantCheck($r[0]===303,'No crea una variante sin acceso a costos o comisión.');
     $q=$db->prepare('SELECT cost_price,commission_type,commission_value FROM inventory_products WHERE name=? AND parent_product_id=?');$q->execute(['Variante limitada '.$prefix,$parent]);$restricted=$q->fetch();
-    variantCheck($restricted['cost_price']==='2.00'&&$restricted['commission_type']==='fixed'&&$restricted['commission_value']==='1.0000','No se conservaron los datos protegidos del principal.');
+    variantCheck($restricted['cost_price']==='2.00'&&$restricted['commission_type']==='fixed'&&$restricted['commission_value']==='1.00','No se conservaron los datos protegidos del principal.');
     if(isset($argv[1])){
         $fixtures=sys_get_temp_dir().'/nexo-variant-fixtures-'.bin2hex(random_bytes(5));mkdir($fixtures,0700);
         $css=preg_replace('/^@import[^\r\n]+[\r\n]*/m','',file_get_contents(dirname(__DIR__).'/css/app.css')).file_get_contents(dirname(__DIR__).'/css/modules.css');

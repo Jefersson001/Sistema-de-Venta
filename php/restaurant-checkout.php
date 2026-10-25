@@ -21,7 +21,7 @@ function restaurantPaymentPlan(array $cart,array $input): array
     $rows=$input['payments']??[['method_id'=>$input['method_id']??null,'account_id'=>$input['account_id']??null,
         'amount'=>$cart['total'],'received_amount'=>$input['received_amount']??$cart['total']]];
     if(!is_array($rows)||count($rows)<1||count($rows)>20)throw new InvalidArgumentException('Registra entre 1 y 20 pagos.');
-    $items=array_column($cart['items'],null,'id');$quantities=array_fill_keys(array_keys($items),'0.000');$plan=[];$sum='0.00';
+    $items=array_column($cart['items'],null,'id');$quantities=array_fill_keys(array_keys($items),'0.00');$plan=[];$sum='0.00';
     foreach(array_values($rows) as $row){
         if(!is_array($row))throw new InvalidArgumentException('Revisa los datos de cada pago.');
         $amount=salesDecimal($row['amount']??'',16,2);$picked=[];
@@ -31,11 +31,11 @@ function restaurantPaymentPlan(array $cart,array $input): array
             $amount='0.00';
             foreach($selection as $itemId=>$value){
                 if(!isset($items[$itemId]))throw new InvalidArgumentException('Uno de los productos ya no pertenece a esta mesa.');
-                $qty=salesDecimal($value,9,3);
-                if($qty===null||bccomp($qty,'0',3)<0)throw new InvalidArgumentException('Las cantidades a repartir deben ser positivas o cero.');
-                if(bccomp($qty,'0',3)===0)continue;
-                $item=$items[$itemId];$previous=$quantities[$itemId];$next=bcadd($previous,$qty,3);
-                if(bccomp($next,$item['quantity'],3)>0)throw new InvalidArgumentException('Se repartieron más unidades de '.$item['product_name'].' que las cargadas.');
+                $qty=salesDecimal($value,9,2);
+                if($qty===null||bccomp($qty,'0',2)<0)throw new InvalidArgumentException('Las cantidades a repartir deben ser positivas o cero.');
+                if(bccomp($qty,'0',2)===0)continue;
+                $item=$items[$itemId];$previous=$quantities[$itemId];$next=bcadd($previous,$qty,2);
+                if(bccomp($next,$item['quantity'],2)>0)throw new InvalidArgumentException('Se repartieron más unidades de '.$item['product_name'].' que las cargadas.');
                 // Cumulative rounding assigns every cent exactly once, even for fractional quantities.
                 $before=commerceAmounts($previous,$item['unit_price'],$item['tax_rate']);
                 $after=commerceAmounts($next,$item['unit_price'],$item['tax_rate']);
@@ -56,7 +56,7 @@ function restaurantPaymentPlan(array $cart,array $input): array
             'label'=>restaurantText($row['label']??'',80,false),'items'=>$picked];
         $sum=bcadd($sum,$amount,2);
     }
-    if($mode==='products')foreach($items as $itemId=>$item)if(bccomp($quantities[$itemId],$item['quantity'],3)!==0)throw new InvalidArgumentException('Falta repartir todos los productos de la mesa.');
+    if($mode==='products')foreach($items as $itemId=>$item)if(bccomp($quantities[$itemId],$item['quantity'],2)!==0)throw new InvalidArgumentException('Falta repartir todos los productos de la mesa.');
     if(bccomp($sum,$cart['total'],2)!==0)throw new InvalidArgumentException('La suma de los pagos debe coincidir con el total de la mesa.');
     return $plan;
 }

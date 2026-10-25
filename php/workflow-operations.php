@@ -11,7 +11,7 @@ function createLinkedStockOperation(PDO $db, string $kind, int $orderId, ?int $b
         if(!$order || $order['status']!==($sale?'sale':'purchase')) throw new InvalidArgumentException('Confirma la orden antes de generar su movimiento de inventario.');
         $q=$db->prepare("SELECT id FROM inventory_operations WHERE $fk=? AND return_of_id IS NULL AND status IN ('draft','waiting','ready') ORDER BY id DESC LIMIT 1"); $q->execute([$orderId]); $active=$q->fetchColumn();
         if($active) { if(!$insideTransaction)$db->commit(); return (int)$active; }
-        $lines=array_values(array_filter(commerceLineProgress($db,$kind,$orderId),static fn($l)=>$l['product_type']==='goods' && bccomp($l['pending'],'0',3)>0));
+        $lines=array_values(array_filter(commerceLineProgress($db,$kind,$orderId),static fn($l)=>$l['product_type']==='goods' && bccomp($l['pending'],'0',2)>0));
         if(!$lines) {
             $q=$db->prepare("SELECT id FROM inventory_operations WHERE $fk=? AND return_of_id IS NULL AND status='done' ORDER BY id DESC LIMIT 1"); $q->execute([$orderId]); $last=$q->fetchColumn();
             if(!$last)throw new InvalidArgumentException('La orden no tiene mercancía pendiente de entregar o recibir.');
@@ -54,8 +54,8 @@ function createStockReturn(PDO $db,int $id,?int $version): int
         foreach(loadInventoryOperationLines($db,$id) as $l){
             $q=$db->prepare("SELECT COALESCE(SUM(r.demand),0) FROM inventory_operation_lines r JOIN inventory_operations o ON o.id=r.operation_id WHERE r.return_line_id=? AND o.status IN ('draft','waiting','ready')");$q->execute([$l['id']]);$reserved=(string)$q->fetchColumn();
             $q=$db->prepare("SELECT COALESCE(SUM(r.quantity),0) FROM inventory_operation_lines r JOIN inventory_operations o ON o.id=r.operation_id WHERE r.return_line_id=? AND o.status='done'");$q->execute([$l['id']]);
-            $left=bcsub(bcsub($l['quantity'],(string)$q->fetchColumn(),3),$reserved,3);
-            if(bccomp($left,'0',3)>0)$lines[]=array_merge($l,['remaining'=>$left]);
+            $left=bcsub(bcsub($l['quantity'],(string)$q->fetchColumn(),2),$reserved,2);
+            if(bccomp($left,'0',2)>0)$lines[]=array_merge($l,['remaining'=>$left]);
         }
         if(!$lines)throw new InvalidArgumentException('No quedan cantidades de esta operación por devolver.');
         $db->prepare('INSERT INTO inventory_operations (operation_type,quotation_id,purchase_order_id,contact_id,scheduled_date,source_location_id,destination_location_id,source_warehouse_id,destination_warehouse_id,return_of_id,notes) VALUES (?,?,?,?,?,?,?,?,?,?,?)')

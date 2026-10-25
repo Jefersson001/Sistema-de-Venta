@@ -90,7 +90,7 @@ function transferNormalize(PDO $db,string $name,string $value,array $field): mix
         throw new InvalidArgumentException($field['label'].': usa 1 o 0.');
     }
     if($field['type']==='int'&&!preg_match('/^[0-9]+$/D',$value))throw new InvalidArgumentException($field['label'].': utiliza un entero no negativo.');
-    if($field['type']==='decimal'){$value=str_replace(',','.',$value);if(!preg_match('/^-?[0-9]+(?:\.[0-9]+)?$/D',$value))throw new InvalidArgumentException($field['label'].': importe inválido.');}
+    if($field['type']==='decimal'){$value=str_replace(',','.',$value);if(!preg_match('/^-?[0-9]+(?:\.[0-9]{1,2})?$/D',$value))throw new InvalidArgumentException($field['label'].': indica un valor con hasta dos decimales.');$value=bcadd($value,'0',2);}
     if($field['type']==='date'){$d=DateTimeImmutable::createFromFormat('!Y-m-d',$value);if(!$d||$d->format('Y-m-d')!==$value)throw new InvalidArgumentException($field['label'].': usa AAAA-MM-DD.');}
     if(!empty($field['enum'])&&!in_array($value,$field['enum'],true))throw new InvalidArgumentException($field['label'].': valores permitidos: '.implode(', ',$field['enum']).'.');
     if(preg_match('/^(?:var)?char\(([0-9]+)\)/',$field['sql_type']??'',$m)&&mb_strlen($value,'UTF-8')>(int)$m[1])throw new InvalidArgumentException($field['label'].': supera '.$m[1].' caracteres.');

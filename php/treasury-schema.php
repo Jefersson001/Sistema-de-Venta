@@ -24,7 +24,7 @@ function installTreasury(PDO $db): void
         account_id INT UNSIGNED NOT NULL,destination_account_id INT UNSIGNED NULL,
         currency_code CHAR(3) NOT NULL,destination_currency_code CHAR(3) NULL,
         amount DECIMAL(18,2) NOT NULL,destination_amount DECIMAL(18,2) NULL,
-        primary_code CHAR(3) NOT NULL,alternate_code CHAR(3) NOT NULL,exchange_rate DECIMAL(20,8) NULL,
+        primary_code CHAR(3) NOT NULL,alternate_code CHAR(3) NOT NULL,exchange_rate DECIMAL(14,2) NULL,
         movement_date DATE NOT NULL,concept_id INT UNSIGNED NULL,contact_id INT UNSIGNED NULL,method_id INT UNSIGNED NULL,
         reference VARCHAR(255) NOT NULL DEFAULT '',reversal_of_id INT UNSIGNED NULL UNIQUE,
         payment_id INT UNSIGNED NULL UNIQUE,creation_key CHAR(64) NULL UNIQUE,

@@ -26,8 +26,8 @@ function validateBusinessTax(array $input): array
         $errors[] = 'Escribe un nombre de impuesto de entre 1 y 120 caracteres.';
     }
     $rate = is_string($input['rate']??null) ? str_replace(',', '.', trim($input['rate'])) : '0';
-    if (!preg_match('/^[0-9]{1,3}(\.[0-9]{1,4})?$/',$rate) || bccomp($rate,'100',4)>0) { $errors[]='El porcentaje debe estar entre 0 y 100, con hasta cuatro decimales.'; $rate='0'; }
-    return [['name' => $name, 'rate' => $rate], $errors];
+    if (!preg_match('/^[0-9]{1,3}(\.[0-9]{1,2})?$/',$rate) || bccomp($rate,'100',2)>0) { $errors[]='El porcentaje debe estar entre 0 y 100, con hasta dos decimales.'; $rate='0'; }
+    return [['name' => $name, 'rate' => bcadd($rate,'0',2)], $errors];
 }
 
 function saveBusinessTax(PDO $db, string $moduleKey, array $data, ?int $id): int

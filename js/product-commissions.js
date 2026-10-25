@@ -8,9 +8,9 @@ function productCommissionPricing(price,type,value) {
     const base=productCommissionUnits(price||'0',2);let unit=0n;
     if(type==='fixed')unit=productCommissionUnits(value||'0',2);
     else if(type==='percent'){
-        const rate=productCommissionUnits(value||'0',4,4);
-        if(rate>10000000n)throw new Error('El porcentaje máximo es 1000 %.');
-        unit=(base*rate+500000n)/1000000n;
+        const rate=productCommissionUnits(value||'0',2,4);
+        if(rate>100000n)throw new Error('El porcentaje máximo es 1000 %.');
+        unit=(base*rate+5000n)/10000n;
     }else if(type!=='none')throw new Error('Selecciona un tipo de comisión válido.');
     if(base+unit>999999999999n)throw new Error('El precio para vendedor supera el máximo permitido.');
     return {price:productCommissionMoney(base),commission:type==='none'?null:productCommissionMoney(unit),sellerPrice:productCommissionMoney(base+unit)};

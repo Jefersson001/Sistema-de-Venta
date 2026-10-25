@@ -67,14 +67,14 @@ function restaurantCartCommand(PDO $db,int $id,array $input): int
                 if(salesDecimal($price,10,2)===null||salesDecimal($cost,10,2)===null)throw new InvalidArgumentException('El precio convertido supera el máximo admitido.');
                 $q=$db->prepare('SELECT id,quantity FROM restaurant_account_items WHERE account_id=? AND product_id=? AND unit_price=? AND tax_rate=? AND notes=? ORDER BY id LIMIT 1');
                 $q->execute([$id,$target,$price,$product['tax_rate']??'0','']);$old=$q->fetch();
-                if($old){$next=bcadd($old['quantity'],'1',3);if(salesDecimal($next,9,3)===null)throw new InvalidArgumentException('Cantidad fuera de rango.');$db->prepare('UPDATE restaurant_account_items SET quantity=? WHERE id=?')->execute([$next,$old['id']]);}
+                if($old){$next=bcadd($old['quantity'],'1',2);if(salesDecimal($next,9,2)===null)throw new InvalidArgumentException('Cantidad fuera de rango.');$db->prepare('UPDATE restaurant_account_items SET quantity=? WHERE id=?')->execute([$next,$old['id']]);}
                 else $db->prepare('INSERT INTO restaurant_account_items(account_id,product_id,product_name,quantity,unit_price,unit_cost,tax_id,tax_name,tax_rate,product_type) VALUES(?,?,?,1,?,?,?,?,?,?)')
                     ->execute([$id,$target,$product['name'],$price,$cost,$product['sale_tax_id'],$product['tax_name'],$product['tax_rate']??'0',$product['product_type']]);
             }else{
                 $q=$db->prepare('SELECT * FROM restaurant_account_items WHERE id=? AND account_id=?');$q->execute([$target,$id]);$item=$q->fetch();if(!$item)throw new InvalidArgumentException('El artículo ya no está en esta mesa.',409);
                 if($action==='pos_remove')$db->prepare('DELETE FROM restaurant_account_items WHERE id=?')->execute([$target]);
                 elseif($action==='pos_note')$db->prepare('UPDATE restaurant_account_items SET notes=? WHERE id=?')->execute([restaurantText($notes,255,false),$target]);
-                else{$qty=salesDecimal($quantity,9,3);if($qty===null||bccomp($qty,'0',3)<=0)throw new InvalidArgumentException('La cantidad debe ser positiva.');$db->prepare('UPDATE restaurant_account_items SET quantity=? WHERE id=?')->execute([$qty,$target]);}
+                else{$qty=salesDecimal($quantity,9,2);if($qty===null||bccomp($qty,'0',2)<=0)throw new InvalidArgumentException('La cantidad debe ser positiva.');$db->prepare('UPDATE restaurant_account_items SET quantity=? WHERE id=?')->execute([$qty,$target]);}
             }
             $fresh=restaurantCart($db,$id);if(bccomp($fresh['total'],'9999999999999999.99',2)>0)throw new InvalidArgumentException('El pedido supera el importe máximo.');
             $db->prepare('UPDATE restaurant_accounts SET version=version+1 WHERE id=?')->execute([$id]);

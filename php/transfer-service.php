@@ -148,7 +148,7 @@ function transferExportRows(PDO $db,array $m,array $filters,array $columns=[]): 
     $output=[];
     foreach($rows as $row) {
         $row['company_name']=$names[(int)($row['company_id']??0)]??'';
-        if($m['key']==='stock'){$q=$db->prepare('SELECT COALESCE(SUM(quantity),0) FROM inventory_reservations WHERE product_id=? AND location_id=?');$q->execute([$row['product_id'],$row['location_id']]);$row['reserved']=(string)$q->fetchColumn();$row['available']=bcsub($row['quantity'],$row['reserved'],3);}
+        if($m['key']==='stock'){$q=$db->prepare('SELECT COALESCE(SUM(quantity),0) FROM inventory_reservations WHERE product_id=? AND location_id=?');$q->execute([$row['product_id'],$row['location_id']]);$row['reserved']=(string)$q->fetchColumn();$row['available']=bcsub($row['quantity'],$row['reserved'],2);}
         if($m['save']==='invoices')$row['source_order_id']=$row[$m['type']==='customer'?'sale_id':'purchase_id'];
         if($m['save']==='users'){$row['groups']=implode('|',loadAuthUser($db,(int)$row['id'])['group_ids']);$q=$db->prepare('SELECT company_id FROM company_user_access WHERE user_id=? ORDER BY company_id');$q->execute([$row['id']]);$row['company_ids']=implode('|',$q->fetchAll(PDO::FETCH_COLUMN));}
         if($m['save']==='groups'){$permissions=loadAccessGroup($db,(int)$row['id'])['permissions'];$row['permissions']=implode('|',array_keys($permissions));$scopes=[];foreach($permissions as $code=>$scope)$scopes[substr($code,0,strrpos($code,'.'))]=$scope;$row['scopes']=json_encode($scopes,JSON_UNESCAPED_UNICODE|JSON_THROW_ON_ERROR);}
@@ -162,6 +162,7 @@ function transferExportRows(PDO $db,array $m,array $filters,array $columns=[]): 
 function transferCsvCell(mixed $value,array $field): string
 {
     $value=$value===null?'':(is_array($value)?json_encode($value,JSON_UNESCAPED_UNICODE|JSON_THROW_ON_ERROR):(string)$value);
+    if($field['type']==='decimal'&&$value!=='')return decimalRound($value);
     if(!in_array($field['type'],['int','decimal','boolean'],true)&&preg_match('/^[\s]*[=+@\-\t\r]/u',$value))return "'".$value;
     return $value;
 }

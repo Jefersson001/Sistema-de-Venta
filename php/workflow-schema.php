@@ -9,7 +9,7 @@ function workflowColumn(PDO $db, string $table, string $name, string $definition
 
 function installCommerceWorkflow(PDO $db): void
 {
-    workflowColumn($db, 'business_taxes', 'rate', 'DECIMAL(7,4) NOT NULL DEFAULT 0');
+    workflowColumn($db, 'business_taxes', 'rate', 'DECIMAL(5,2) NOT NULL DEFAULT 0');
     workflowColumn($db, 'accounting_payment_terms', 'days', 'SMALLINT UNSIGNED NOT NULL DEFAULT 0');
     workflowColumn($db, 'inventory_products', 'product_type', "ENUM('goods','service') NOT NULL DEFAULT 'goods'");
     workflowColumn($db, 'inventory_products', 'invoice_policy', "ENUM('ordered','delivered') NOT NULL DEFAULT 'delivered'");
@@ -21,7 +21,7 @@ function installCommerceWorkflow(PDO $db): void
     ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4");
     foreach (['sales_quotations', 'purchase_orders', 'accounting_invoices'] as $table) workflowColumn($db, $table, 'tax_amount', 'DECIMAL(18,2) NOT NULL DEFAULT 0');
     foreach (['sales_quotation_lines', 'purchase_order_lines', 'accounting_invoice_lines'] as $table) {
-        workflowColumn($db, $table, 'tax_rate', 'DECIMAL(7,4) NOT NULL DEFAULT 0');
+        workflowColumn($db, $table, 'tax_rate', 'DECIMAL(5,2) NOT NULL DEFAULT 0');
         workflowColumn($db, $table, 'tax_amount', 'DECIMAL(18,2) NOT NULL DEFAULT 0');
         workflowColumn($db, $table, 'unit_cost', 'DECIMAL(12,2) NOT NULL DEFAULT 0');
         if ($table !== 'accounting_invoice_lines') {
@@ -56,7 +56,7 @@ function installCommerceWorkflow(PDO $db): void
     $db->exec("ALTER TABLE inventory_operations MODIFY status ENUM('draft','waiting','ready','done','cancel') NOT NULL DEFAULT 'draft'");
     $db->exec("CREATE TABLE IF NOT EXISTS inventory_reservations (
         operation_id INT UNSIGNED NOT NULL, product_id INT UNSIGNED NOT NULL, location_id INT UNSIGNED NOT NULL,
-        quantity DECIMAL(18,3) NOT NULL, PRIMARY KEY(operation_id,product_id,location_id),
+        quantity DECIMAL(17,2) NOT NULL, PRIMARY KEY(operation_id,product_id,location_id),
         FOREIGN KEY(operation_id) REFERENCES inventory_operations(id), FOREIGN KEY(product_id) REFERENCES inventory_products(id), FOREIGN KEY(location_id) REFERENCES inventory_locations(id)
     ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4");
     if(!$db->query("SHOW INDEX FROM inventory_reservations WHERE Key_name='reserved_product_location'")->fetch())$db->exec('ALTER TABLE inventory_reservations ADD INDEX reserved_product_location(product_id,location_id,operation_id)');

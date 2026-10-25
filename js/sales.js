@@ -21,13 +21,24 @@ if (quotationForm && quotationForm.dataset.permissionReadonly!=='true') {
         return `${cents / 100n}.${String(cents % 100n).padStart(2, '0')}`;
     }
 
+    function normalizeQuantity(field) {
+        const text = field.value.trim().replace(',', '.').replace(/(\.\d{2})0+$/, '$1');
+        const quantity = decimalUnits(text, 2);
+        if (quantity !== null) field.value = money(quantity);
+    }
+
+    function restoreQuantities() {
+        for (const row of lines.querySelectorAll('[data-quotation-line]')) normalizeQuantity(row.querySelector('[data-line-quantity]'));
+        updateTotals();
+    }
+
     function updateTotals() {
         let total = 0n; let baseTotal = 0n; let commissionTotal = 0n;
         let valid = true;const taxGroups=new Map();
         const rows = [...lines.querySelectorAll('[data-quotation-line]')];
         for (const row of rows) {
             const productId = row.querySelector('[data-line-product]').value;
-            const quantity = decimalUnits(row.querySelector('[data-line-quantity]').value, 3);
+            const quantity = decimalUnits(row.querySelector('[data-line-quantity]').value, 2);
             const price = decimalUnits(row.querySelector('[data-line-price]').value, 2);
             let amount = 0n;
             let display = '0.00';
@@ -37,23 +48,22 @@ if (quotationForm && quotationForm.dataset.permissionReadonly!=='true') {
                     valid = false;
                     display = '—';
                 } else {
-                    amount = (quantity * price + 500n) / 1000n;
+                    amount = (quantity * price + 50n) / 100n;
                     display = money(amount);
                     baseTotal += amount;
                     const reference = decimalUnits(row.querySelector('[data-line-reference]')?.value ?? '', 2);
                     const configured=decimalUnits(row.querySelector('[data-line-commission-unit]')?.value??'',2);
                     if (salesperson.value && (configured!==null || (reference!==null&&price>reference))) {
-                        commission = (quantity * (configured??(price-reference)) + 500n) / 1000n;
+                        commission = (quantity * (configured??(price-reference)) + 50n) / 100n;
                         commissionTotal += commission;
                     }
                     const taxSelect=row.querySelector('[data-line-tax]');const taxOption=taxSelect.selectedOptions[0];
                     const rawRate=taxOption?.dataset?.rate || '0';
-                    const rate=decimalUnits(rawRate,4) || 0n;
-                    const taxAmount=(amount * rate + 500000n) / 1000000n;
+                    const rate=decimalUnits(rawRate, 2) || 0n;
+                    const taxAmount=(amount * rate + 5000n) / 10000n;
                     if(taxSelect.value){
                         const name=taxOption?.dataset?.taxName||taxOption?.textContent||'Impuesto';
-                        const fraction=String(rate%10000n).padStart(4,'0').replace(/0+$/,'');
-                        const percentage=String(rate/10000n)+(fraction?'.'+fraction:'');
+                        const percentage=money(rate);
                         const key=JSON.stringify([taxSelect.value,name,String(rate)]);
                         if(!taxGroups.has(key))taxGroups.set(key,{label:name+' ('+percentage+' %)',amount:0n});
                         taxGroups.get(key).amount+=taxAmount;
@@ -131,6 +141,9 @@ if (quotationForm && quotationForm.dataset.permissionReadonly!=='true') {
     }
 
     function wireLine(row) {
+        const quantityField = row.querySelector('[data-line-quantity]');
+        normalizeQuantity(quantityField);
+        quantityField.addEventListener('blur', () => { normalizeQuantity(quantityField); updateTotals(); });
         const product = row.querySelector('[data-line-product]');
         let request=0;let controller=null;
         product.addEventListener('change', async () => {
@@ -226,7 +239,8 @@ if (quotationForm && quotationForm.dataset.permissionReadonly!=='true') {
     }
     quotationForm.addEventListener('input', () => { updateTotals(); markDirty(); });
     quotationForm.addEventListener('change', () => { updateTotals(); markDirty(); });
-    quotationForm.addEventListener('submit',event=>{if(pricingStates.size){event.preventDefault();updatePricingStatus();}});
+    quotationForm.addEventListener('submit',event=>{restoreQuantities();if(pricingStates.size){event.preventDefault();updatePricingStatus();}});
+    if (typeof window !== 'undefined') window.addEventListener('pageshow', restoreQuantities);
     quotationForm.querySelector('[data-pick-quotation-salesperson]')?.addEventListener('click',()=>{document.querySelector('#quotation-tab-other')?.click();salesperson.focus();});
     updateTotals();
 }

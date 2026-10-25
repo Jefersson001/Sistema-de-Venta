@@ -26,7 +26,7 @@ try {
     $admin=createFirstAdministrator($db,['name'=>$prefix,'login'=>strtolower($prefix),
         'password'=>$password,'password_confirmation'=>$password],hash('sha256',$token));
     $yesterday=(new DateTimeImmutable($today))->modify('-1 day')->format('Y-m-d');
-    foreach([$yesterday=>'101.00000000',$today=>'202.00000000'] as $rateDate=>$rateValue)bcvApplyPublication($db,['effective_date'=>$rateDate,'rate'=>$rateValue,'source'=>'bcv']);
+    foreach([$yesterday=>'101.00',$today=>'202.00'] as $rateDate=>$rateValue)bcvApplyPublication($db,['effective_date'=>$rateDate,'rate'=>$rateValue,'source'=>'bcv']);
     $types=array_flip($db->query('SELECT id,system_key FROM contact_types WHERE system_key IS NOT NULL')->fetchAll(PDO::FETCH_KEY_PAIR));
     $db->prepare('INSERT INTO inventory_warehouses(name) VALUES(?)')->execute([$prefix]); $warehouse=(int)$db->lastInsertId();
     $db->prepare('INSERT INTO inventory_locations(name,warehouse_id) VALUES(?,?)')->execute(['Existencias',$warehouse]); $location=(int)$db->lastInsertId();
@@ -102,37 +102,37 @@ try {
     $purchasePath='/modules/compras/index.php';
     $purchase=roleCreated($post('purchases',$purchasePath.'?new=1',['action'=>'save_purchase','supplier_id'=>$contacts['supplier'],
         'order_date'=>$today,'order_type'=>'receipt','currency_code'=>$code,'destination_location_id'=>$location,
-        'lines'=>[['product_id'=>$product,'quantity'=>'10.000','unit_price'=>'3.00','tax_id'=>'']]]));
+        'lines'=>[['product_id'=>$product,'quantity'=>'10.00','unit_price'=>'3.00','tax_id'=>'']]]));
     roleCreated($post('purchases',$purchasePath.'?id='.$purchase,['action'=>'confirm_purchase','version'=>1]));
     $receipt=roleCreated($post('purchases',$purchasePath.'?id='.$purchase,['action'=>'create_receipt']));
     roleExpect($post('purchases','/modules/inventario/operaciones.php?type=receipt&id='.$receipt,['action'=>'validate_operation','version'=>1])[0]===403,'Compras pudo validar inventario sin permiso.');
-    $move($receipt,'10.000'); $bill=$invoice('purchases','compras',$purchase);
+    $move($receipt,'10.00'); $bill=$invoice('purchases','compras',$purchase);
     roleExpect($post('purchases','/modules/contabilidad/index.php?type=supplier&id='.$bill,['action'=>'confirm_invoice','version'=>1])[0]===403,'Compras pudo registrar la factura sin permiso.');
     $register('supplier',$bill); $pay('supplier',$bill,'30.00');
     roleExpect(treasuryBalance($db,$account,$code,$today)==='70.00','Saldo después de la compra incorrecto.');
     $salePath='/modules/ventas/index.php';
     $sale=roleCreated($post('sales',$salePath.'?new=1',['action'=>'save_quotation','customer_id'=>$contacts['client'],
-        'order_date'=>$today,'order_type'=>'delivery','currency_code'=>$code,'exchange_rate'=>'111','lines'=>[['product_id'=>$product,'quantity'=>'2.000']]]));
+        'order_date'=>$today,'order_type'=>'delivery','currency_code'=>$code,'exchange_rate'=>'111','lines'=>[['product_id'=>$product,'quantity'=>'2.00']]]));
     $order=loadSalesQuotation($db,$sale);
     roleExpect($order['total_amount']==='15.40' && $order['commission_estimated']==='4.00' && (int)$order['salesperson_id']===$contacts['salesperson'],'No viajaron impuesto, comisión o vendedor.');
     roleCreated($post('sales',$salePath.'?id='.$sale,['action'=>'confirm_sale','version'=>1]));
-    $delivery=roleCreated($post('sales',$salePath.'?id='.$sale,['action'=>'create_delivery'])); $move($delivery,'2.000');
+    $delivery=roleCreated($post('sales',$salePath.'?id='.$sale,['action'=>'create_delivery'])); $move($delivery,'2.00');
     $customerInvoice=$invoice('sales','ventas',$sale);
     $rateInvoice=roleRecord($db,'accounting_invoices',$customerInvoice);
-    roleExpect($rateInvoice['exchange_rate']==='202.00000000'&&$rateInvoice['exchange_rate_date']===$today&&$rateInvoice['exchange_rate_source']==='bcv','La factura heredó la tasa de la orden en vez de su fecha.');
+    roleExpect($rateInvoice['exchange_rate']==='202.00'&&$rateInvoice['exchange_rate_date']===$today&&$rateInvoice['exchange_rate_source']==='bcv','La factura heredó la tasa de la orden en vez de su fecha.');
     [, $rateBody]=authTestRequest($server,'/tasa.php?invoice_id='.$customerInvoice.'&date='.$yesterday,$cookies['accounting']);$ratePreview=json_decode($rateBody,true);
-    roleExpect($ratePreview['exchange_rate']==='101.00000000'&&$ratePreview['reference']['amount']==='1555.40','La vista previa de fecha no aplica la tasa histórica al equivalente.');
+    roleExpect($ratePreview['exchange_rate']==='101.00'&&$ratePreview['reference']['amount']==='1555.40','La vista previa de fecha no aplica la tasa histórica al equivalente.');
     $missingRate=$post('accounting','/modules/contabilidad/index.php?type=customer&id='.$customerInvoice,['action'=>'confirm_invoice','version'=>1,'invoice_date'=>'1000-01-01','due_date'=>$today]);
     roleExpect($missingRate[0]===200&&str_contains($missingRate[1],'No hay una tasa vigente')&&roleRecord($db,'accounting_invoices',$customerInvoice)['status']==='draft','Se registró una factura sin tasa histórica.');
     roleExpect(authTestRequest($server,'/tasa.php?invoice_id='.$customerInvoice.'&date='.$yesterday,$cookies['purchases'])[0]===403,'El endpoint de tasas expuso una factura sin permiso.');
     roleCreated($post('accounting','/modules/contabilidad/index.php?type=customer&id='.$customerInvoice,['action'=>'save_invoice','version'=>1,'invoice_date'=>$yesterday,'due_date'=>$today]));
-    roleExpect(roleRecord($db,'accounting_invoices',$customerInvoice)['exchange_rate']==='101.00000000','Guardar otra fecha no captó la tasa histórica.');
+    roleExpect(roleRecord($db,'accounting_invoices',$customerInvoice)['exchange_rate']==='101.00','Guardar otra fecha no captó la tasa histórica.');
     $register('customer',$customerInvoice);
-    bcvApplyPublication($db,['effective_date'=>$today,'rate'=>'404.00000000','source'=>'bcv']);
+    bcvApplyPublication($db,['effective_date'=>$today,'rate'=>'404.00','source'=>'bcv']);
     $rateInvoice=roleRecord($db,'accounting_invoices',$customerInvoice);
-    roleExpect($rateInvoice['exchange_rate']==='202.00000000'&&$rateInvoice['exchange_rate_date']===$today,'Una nueva tasa cambió una factura registrada.');
+    roleExpect($rateInvoice['exchange_rate']==='202.00'&&$rateInvoice['exchange_rate_date']===$today,'Una nueva tasa cambió una factura registrada.');
     [, $rateBody]=authTestRequest($server,'/tasa.php?invoice_id='.$customerInvoice.'&date='.$today,$cookies['accounting']);
-    roleExpect(json_decode($rateBody,true)['exchange_rate']==='202.00000000','La consulta de una factura registrada reemplazó su tasa por la actual.');
+    roleExpect(json_decode($rateBody,true)['exchange_rate']==='202.00','La consulta de una factura registrada reemplazó su tasa por la actual.');
     $cashPayment=$pay('customer',$customerInvoice,'7.70',false,'10.00','2.30');
     $cashRecord=loadAccountingPayment($db,$cashPayment);roleExpect($cashRecord['amount']==='7.70'&&$cashRecord['received_amount']==='10.00'&&$cashRecord['change_amount']==='2.30','El cobro de factura no conserva recibido, vuelto y neto.');
     roleExpect(roleRecord($db,'accounting_invoices',$customerInvoice)['payment_state']==='in_payment','El cobro pendiente tiene un estado incorrecto.');
@@ -151,7 +151,7 @@ try {
     roleCreated($post('accounting',$commissionPath,['action'=>'pay_commission','creation_key'=>$key[1],
         'amount'=>'4.00','account_id'=>$account,'method_id'=>$method,'currency_code'=>$code,'movement_date'=>$today]));
     roleExpect(loadSalesCommissions($db,null,null,$customerInvoice)[0]['commission_paid']==='4.00','La comisión no quedó pagada.');
-    roleExpect(loadInventoryProductStock($db,$product)['total']==='8.000','Las cantidades físicas no coinciden.');
+    roleExpect(loadInventoryProductStock($db,$product)['total']==='8.00','Las cantidades físicas no coinciden.');
     $cash=loadCashFlowSummary($db,cashFlowRange([]),$account)['currencies'][0];
     roleExpect($cash['income']==='15.40' && $cash['expense']==='34.00' && $cash['balance_end']==='81.40','Ingresos, egresos o saldo final no coinciden.');
     roleExpect($post('readonly',$salePath.'?id='.$sale,['action'=>'cancel_quotation','version'=>2])[0]===403,'Consulta pudo cancelar una venta.');

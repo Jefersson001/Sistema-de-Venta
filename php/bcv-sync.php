@@ -25,7 +25,7 @@ function bcvStoreState(array $state): void
 function bcvApplyPublication(PDO $raw,array $publication): int
 {
     $date=$publication['effective_date'];$parsed=DateTimeImmutable::createFromFormat('!Y-m-d',$date);
-    $rate=accountingExchangeRate($publication['rate']);
+    $rate=accountingExchangeRate(decimalRound($publication['rate']));
     if(!$parsed||$parsed->format('Y-m-d')!==$date||!$rate||($publication['source']??'')!=='bcv')throw new InvalidArgumentException('Publicación BCV inválida.');
     $count=0;
     foreach($raw->query('SELECT id FROM business_company ORDER BY id')->fetchAll(PDO::FETCH_COLUMN) as $company){

@@ -20,7 +20,7 @@ function partialId(array $r):int{checkPartial($r[0]===303&&preg_match('/id=(\d+)
 function partialRecord(PDO $db,string $table,int $id):array{$q=$db->prepare('SELECT * FROM '.$table.' WHERE id=?');$q->execute([$id]);return $q->fetch();}
 try{
     checkPartial((bool)preg_match('/^nexo_auth_test_[a-f0-9]{16}$/D',(string)$db->query('SELECT DATABASE()')->fetchColumn()),'Se requiere una base de pruebas aislada.');
-    bcvApplyPublication($db,['rate'=>'100.00000000','effective_date'=>commerceToday(),'source'=>'bcv']);
+    bcvApplyPublication($db,['rate'=>'100.00','effective_date'=>commerceToday(),'source'=>'bcv']);
     require_once __DIR__.'/treasury-cleanup.php';
     $roles=array_flip($db->query('SELECT id,system_key FROM contact_types WHERE system_key IS NOT NULL')->fetchAll(PDO::FETCH_KEY_PAIR));
     $db->prepare("INSERT INTO accounting_payment_accounts(name,account_type) VALUES (?,'cash')")->execute([$prefix]);$f['account']=(int)$db->lastInsertId();
@@ -39,7 +39,7 @@ try{
     $r=partialRequest('inventario/index.php?id='.$f['product'],$cookie,['csrf'=>partialToken($productForm),'product_revision'=>$revision[1]??'','action'=>'save_product','name'=>$prefix,'sale_enabled'=>'1','purchase_enabled'=>'1','sale_price'=>'3.00','cost_price'=>'0','product_type'=>'goods','invoice_policy'=>'delivered','supplier_prices'=>[['supplier_id'=>$f['supplier'],'price'=>'2.00']]]);
     checkPartial($r[0]===303,'No se guardó el precio de proveedor.');
     $prices=loadPurchaseCatalogs($db,null);checkPartial(count(array_filter($prices['supplierPrices'],fn($p)=>(int)$p['product_id']===$f['product']&&$p['price']==='2.00'))===1,'No se relacionó el precio del proveedor.');
-    $createOrder=function(string $kind,string $quantity='10.000',bool $confirm=true)use($db,$cookie,$f,&$orders):int{
+    $createOrder=function(string $kind,string $quantity='10.00',bool $confirm=true)use($db,$cookie,$f,&$orders):int{
         $module=$kind==='sale'?'ventas':'compras';[, $body]=partialRequest($module.'/index.php?new=1',$cookie);$token=partialToken($body);
         if($kind==='purchase')checkPartial(str_contains($body,'>Orden de compra</option>')&&!str_contains($body,'>Orden de venta</option>'),'Compra muestra un tipo de venta.');
         $post=['csrf'=>$token,'action'=>$kind==='sale'?'save_quotation':'save_purchase','order_type'=>$kind==='sale'?'delivery':'receipt','order_date'=>commerceToday(),'payment_term_id'=>$f['term'],'destination_location_id'=>$f['location'],$kind==='sale'?'customer_id':'supplier_id'=>$f[$kind==='sale'?'client':'supplier'],'lines'=>[['product_id'=>$f['product'],'quantity'=>$quantity,'unit_price'=>$kind==='sale'?'3.00':'2.00','tax_id'=>$f[$module.'_tax']]]];
@@ -58,36 +58,36 @@ try{
         $i=partialRecord($db,'accounting_invoices',$id);$path='contabilidad/index.php?type='.$i['invoice_type'].'&id='.$id;[, $body]=partialRequest($path,$cookie);
         partialId(partialRequest($path,$cookie,['csrf'=>partialToken($body),'action'=>'confirm_invoice','version'=>$i['version'],'invoice_date'=>$i['invoice_date'],'due_date'=>$i['due_date']??'']));
     };
-    $purchase=$createOrder('purchase');$receipt=createPurchaseReceipt($db,$purchase);$move($receipt,'6.000');
-    $progress=commerceLineProgress($db,'purchase',$purchase)[0];checkPartial($progress['moved']==='6.000'&&$progress['pending']==='4.000','Recepción parcial perdió su pendiente.');
+    $purchase=$createOrder('purchase');$receipt=createPurchaseReceipt($db,$purchase);$move($receipt,'6.00');
+    $progress=commerceLineProgress($db,'purchase',$purchase)[0];checkPartial($progress['moved']==='6.00'&&$progress['pending']==='4.00','Recepción parcial perdió su pendiente.');
     $links=commerceLinks($db,'purchase',$purchase);checkPartial(count($links['operations'])===2&&createPurchaseReceipt($db,$purchase)===(int)$links['operations'][1]['id'],'No se reutiliza el pendiente creado automáticamente.');
     $bill=createCommerceInvoice($db,'purchase',$purchase);$i=partialRecord($db,'accounting_invoices',$bill);checkPartial($i['base_amount']==='12.00'&&$i['total_amount']==='13.92'&&$i['due_date']===(new DateTimeImmutable($i['invoice_date']))->modify('+30 days')->format('Y-m-d'),'La factura no respeta recepción, impuesto o vencimiento.');$register($bill);
-    $move((int)$links['operations'][1]['id'],'4.000');$bill2=createCommerceInvoice($db,'purchase',$purchase);checkPartial($bill2!==$bill&&partialRecord($db,'accounting_invoices',$bill2)['total_amount']==='9.28','No se facturó solo la segunda recepción.');$register($bill2);
+    $move((int)$links['operations'][1]['id'],'4.00');$bill2=createCommerceInvoice($db,'purchase',$purchase);checkPartial($bill2!==$bill&&partialRecord($db,'accounting_invoices',$bill2)['total_amount']==='9.28','No se facturó solo la segunda recepción.');$register($bill2);
     checkPartial(partialRecord($db,'inventory_products',$f['product'])['cost_price']==='2.00','La recepción no actualizó el costo de referencia.');
-    $sale=$createOrder('sale');$delivery=createSalesDelivery($db,$sale);$move($delivery,'6.000');$invoice=createCommerceInvoice($db,'sale',$sale);$register($invoice);
+    $sale=$createOrder('sale');$delivery=createSalesDelivery($db,$sale);$move($delivery,'6.00');$invoice=createCommerceInvoice($db,'sale',$sale);$register($invoice);
     checkPartial(partialRecord($db,'accounting_invoices',$invoice)['total_amount']==='20.88','La factura de venta no respeta las seis unidades entregadas.');
-    $links=commerceLinks($db,'sale',$sale);$backorder=(int)$links['operations'][1]['id'];$move($backorder,'4.000',false);
+    $links=commerceLinks($db,'sale',$sale);$backorder=(int)$links['operations'][1]['id'];$move($backorder,'4.00',false);
     // A separate operation reserves the four remaining units.
     $storage=loadStorageRelations($db);$contacts=$db->query("SELECT c.id FROM contacts c JOIN contact_types t ON t.id=c.type_id WHERE t.system_key='client'")->fetchAll();
     [$data,$errors]=validateInventoryOperation(['contact_id'=>$f['client'],'source_location_id'=>$f['location'],'scheduled_date'=>commerceToday(),'notes'=>$prefix],'delivery',$storage,$contacts);checkPartial(!$errors,'Operación manual inválida.');
-    $manualId=saveInventoryOperation($db,$data,null,null,[['product_id'=>$f['product'],'demand'=>'4.000','quantity'=>'4.000']]);$manual[]=$manualId;
+    $manualId=saveInventoryOperation($db,$data,null,null,[['product_id'=>$f['product'],'demand'=>'4.00','quantity'=>'4.00']]);$manual[]=$manualId;
     transitionInventoryOperation($db,$manualId,1,'confirm_operation');transitionInventoryOperation($db,$manualId,2,'check_ready');
-    $stock=loadInventoryProductStock($db,$f['product']);checkPartial($stock['total']==='4.000'&&$stock['reserved']==='4.000'&&$stock['available']==='0.000','Las reservas no distinguen cantidades a la mano y disponibles.');
+    $stock=loadInventoryProductStock($db,$f['product']);checkPartial($stock['total']==='4.00'&&$stock['reserved']==='4.00'&&$stock['available']==='0.00','Las reservas no distinguen cantidades a la mano y disponibles.');
     $before=partialRecord($db,'inventory_operations',$backorder);try{transitionInventoryOperation($db,$backorder,(int)$before['version'],'check_ready');throw new RuntimeException('Dos entregas reservaron las mismas unidades.');}catch(InvalidArgumentException $e){checkPartial(str_contains($e->getMessage(),'reservas'),'Error de reserva inesperado.');}
     cancelStockOperation($db,$manualId,3);$before=partialRecord($db,'inventory_operations',$backorder);transitionInventoryOperation($db,$backorder,(int)$before['version'],'check_ready');$before=partialRecord($db,'inventory_operations',$backorder);validateInventoryStockOperation($db,$backorder,(int)$before['version']);
-    checkPartial(loadInventoryProductStock($db,$f['product'])['total']==='0.000','La segunda entrega no descontó cuatro unidades.');
+    checkPartial(loadInventoryProductStock($db,$f['product'])['total']==='0.00','La segunda entrega no descontó cuatro unidades.');
     $invoice2=createCommerceInvoice($db,'sale',$sale);checkPartial($invoice2!==$invoice&&partialRecord($db,'accounting_invoices',$invoice2)['total_amount']==='13.92','No se generó la segunda factura de venta.');
     // Cancelled drafts release billable quantities and stay in the linked history.
     transitionInvoiceStatus($db,$invoice2,1,'cancel_invoice',[]);$replacement=createCommerceInvoice($db,'sale',$sale);checkPartial($replacement!==$invoice2,'Se reabrió una factura cancelada en vez de sustituirla.');$register($replacement);
-    $o=partialRecord($db,'inventory_operations',$delivery);$return=createStockReturn($db,$delivery,(int)$o['version']);$move($return,'2.000');
+    $o=partialRecord($db,'inventory_operations',$delivery);$return=createStockReturn($db,$delivery,(int)$o['version']);$move($return,'2.00');
     $indicators=loadInventoryProductIndicators($db,$f['product']);checkPartial($indicators['incoming']==='3'&&$indicators['outgoing']==='2','La devolución se contabilizó como salida en vez de entrada.');
-    checkPartial(loadInventoryProductStock($db,$f['product'])['total']==='2.000'&&commerceLineProgress($db,'sale',$sale)[0]['moved']==='8.000','La devolución no restituyó existencias y cantidades entregadas.');
+    checkPartial(loadInventoryProductStock($db,$f['product'])['total']==='2.00'&&commerceLineProgress($db,'sale',$sale)[0]['moved']==='8.00','La devolución no restituyó existencias y cantidades entregadas.');
     $i=partialRecord($db,'accounting_invoices',$invoice);$credit=createCreditNote($db,$invoice,(int)$i['version'],'Devolución parcial');
     $q=$db->prepare('SELECT id FROM accounting_invoice_lines WHERE invoice_id=?');$q->execute([$credit]);$creditLine=(int)$q->fetchColumn();
     [, $body]=partialRequest('contabilidad/index.php?type=customer&id='.$credit,$cookie);
-    partialId(partialRequest('contabilidad/index.php?type=customer&id='.$credit,$cookie,['csrf'=>partialToken($body),'version'=>'1','action'=>'confirm_invoice','invoice_date'=>commerceToday(),'credit_quantities'=>[$creditLine=>'2.000']]));
+    partialId(partialRequest('contabilidad/index.php?type=customer&id='.$credit,$cookie,['csrf'=>partialToken($body),'version'=>'1','action'=>'confirm_invoice','invoice_date'=>commerceToday(),'credit_quantities'=>[$creditLine=>'2.00']]));
     checkPartial(partialRecord($db,'accounting_invoices',$credit)['total_amount']==='6.96'&&invoiceCredits($db,$invoice)==='6.96','La nota de crédito parcial no conserva cantidades e impuestos.');
-    checkPartial(commerceLineProgress($db,'sale',$sale)[0]['invoiced']==='8.000','La nota de crédito no redujo la cantidad facturada.');
+    checkPartial(commerceLineProgress($db,'sale',$sale)[0]['invoiced']==='8.00','La nota de crédito no redujo la cantidad facturada.');
     $creditRecord=partialRecord($db,'accounting_invoices',$credit);checkPartial($creditRecord['payment_state']==='paid','Una nota aplicada a deuda sin cobro exigió reembolso de dinero no recibido.');
     try{transitionInvoiceStatus($db,$credit,(int)$creditRecord['version'],'register_payment',['account_id'=>$f['account'],'method_id'=>$f['method'],'amount'=>'1.00','payment_date'=>commerceToday()]);throw new RuntimeException('Se reembolsó dinero no recibido.');}catch(InvalidArgumentException $e){}
     // A paid invoice supports a cash refund through its new credit note.
@@ -98,14 +98,14 @@ try{
     transitionInvoiceStatus($db,$fullCredit,(int)$c['version'],'register_payment',['account_id'=>$f['account'],'method_id'=>$f['method'],'amount'=>'13.92','payment_date'=>commerceToday()]);$p=invoicePaymentDetails($db,$fullCredit)['payments'][0];$c=partialRecord($db,'accounting_invoices',$fullCredit);transitionInvoiceStatus($db,$fullCredit,(int)$c['version'],'settle_payment',['payment_id'=>$p['id']]);
     checkPartial(partialRecord($db,'accounting_invoices',$fullCredit)['payment_state']==='paid','No se confirmó el reembolso de la nota de crédito.');
     // Related line changes and quantities above the pending demand are refused.
-    $ret=createStockReturn($db,$delivery,(int)$o['version']);$r=partialRecord($db,'inventory_operations',$ret);$lines=loadInventoryOperationLines($db,$ret);$lines[0]['quantity']='999.000';
+    $ret=createStockReturn($db,$delivery,(int)$o['version']);$r=partialRecord($db,'inventory_operations',$ret);$lines=loadInventoryOperationLines($db,$ret);$lines[0]['quantity']='999.00';
     try{saveInventoryOperation($db,['operation_type'=>$r['operation_type'],'contact_id'=>(int)$r['contact_id'],'scheduled_date'=>$r['scheduled_date'],'source_location_id'=>(int)$r['source_location_id'],'destination_location_id'=>(int)$r['destination_location_id'],'source_warehouse_id'=>inventoryId($r['source_warehouse_id']),'destination_warehouse_id'=>inventoryId($r['destination_warehouse_id']),'notes'=>$r['notes']],$ret,(int)$r['version'],$lines);throw new RuntimeException('Se aceptó una devolución superior al original.');}catch(InvalidArgumentException $e){}
-    $mixed=saveInventoryOperation($db,$data,null,null,[['product_id'=>$f['product'],'demand'=>'2.000','quantity'=>'2.000'],['product_id'=>$f['other_product'],'demand'=>'5.000','quantity'=>'0.000']]);$manual[]=$mixed;
+    $mixed=saveInventoryOperation($db,$data,null,null,[['product_id'=>$f['product'],'demand'=>'2.00','quantity'=>'2.00'],['product_id'=>$f['other_product'],'demand'=>'5.00','quantity'=>'0.00']]);$manual[]=$mixed;
     transitionInventoryOperation($db,$mixed,1,'confirm_operation');transitionInventoryOperation($db,$mixed,2,'check_ready');
-    checkPartial(loadInventoryProductStock($db,$f['other_product'])['reserved']==='0.000','Se reservó un producto con cantidad cero en una operación parcial.');cancelStockOperation($db,$mixed,3);
+    checkPartial(loadInventoryProductStock($db,$f['other_product'])['reserved']==='0.00','Se reservó un producto con cantidad cero en una operación parcial.');cancelStockOperation($db,$mixed,3);
     // Force two separate DB connections to wait on the same stock row before reserving.
     $racing=[];
-    for($n=0;$n<2;$n++){$op=saveInventoryOperation($db,$data,null,null,[['product_id'=>$f['product'],'demand'=>'2.000','quantity'=>'2.000']]);$manual[]=$op;$racing[]=$op;transitionInventoryOperation($db,$op,1,'confirm_operation');}
+    for($n=0;$n<2;$n++){$op=saveInventoryOperation($db,$data,null,null,[['product_id'=>$f['product'],'demand'=>'2.00','quantity'=>'2.00']]);$manual[]=$op;$racing[]=$op;transitionInventoryOperation($db,$op,1,'confirm_operation');}
     $holder=createDatabaseConnection();$holder->beginTransaction();$lock=$holder->prepare('SELECT quantity FROM inventory_stock WHERE product_id=? AND location_id=? FOR UPDATE');$lock->execute([$f['product'],$f['location']]);
     $workers=[];
     try{
@@ -117,7 +117,7 @@ try{
     foreach($racing as $op)cancelStockOperation($db,$op,(int)partialRecord($db,'inventory_operations',$op)['version']);
     // Cancellation is explicit on the order; cancelling a picking never cancels its order.
     foreach(['draft','sent'] as $state){
-        $draft=$createOrder('purchase','1.000',false);
+        $draft=$createOrder('purchase','1.00',false);
         if($state==='sent')transitionPurchaseOrder($db,$draft,1,'sent');
         $path='compras/index.php?id='.$draft;[, $body]=partialRequest($path,$cookie);
         checkPartial(str_contains($body,'value="cancel_purchase"')&&str_contains($body,'Cancelado'),'Falta el botón o estado Cancelado en Compras.');
@@ -133,11 +133,11 @@ try{
         try{savePurchaseOrder($db,[],[],$draft,$version+1);throw new RuntimeException('Se editó una compra cancelada.');}catch(InvalidArgumentException $e){}
     }
     foreach(['sale','purchase'] as $kind){
-        $id=$createOrder($kind,'1.000');$table=$kind==='sale'?'sales_quotations':'purchase_orders';$module=$kind==='sale'?'ventas':'compras';$action=$kind==='sale'?'cancel_quotation':'cancel_purchase';
+        $id=$createOrder($kind,'1.00');$table=$kind==='sale'?'sales_quotations':'purchase_orders';$module=$kind==='sale'?'ventas':'compras';$action=$kind==='sale'?'cancel_quotation':'cancel_purchase';
         $operation=createLinkedStockOperation($db,$kind,$id);transitionInventoryOperation($db,$operation,1,'confirm_operation');
         if($kind==='sale'){
             transitionInventoryOperation($db,$operation,2,'check_ready');
-            checkPartial(inventoryReserved($db,$f['product'],$f['location'])!=='0.000','La entrega no reservó existencias.');
+            checkPartial(inventoryReserved($db,$f['product'],$f['location'])!=='0.00','La entrega no reservó existencias.');
             cancelStockOperation($db,$operation,3);
             checkPartial(partialRecord($db,$table,$id)['status']==='sale','Cancelar la entrega canceló la venta.');
             $replacement=createLinkedStockOperation($db,$kind,$id);checkPartial($replacement!==$operation,'Se reutilizó la entrega cancelada.');
@@ -162,7 +162,7 @@ try{
     // Active invoices and completed stock moves must reject the whole cancellation.
     $db->prepare("UPDATE inventory_products SET invoice_policy='ordered' WHERE id=?")->execute([$f['product']]);
     foreach(['sale','purchase'] as $kind){
-        $id=$createOrder($kind,'1.000');$table=$kind==='sale'?'sales_quotations':'purchase_orders';$op=createLinkedStockOperation($db,$kind,$id);$invoice=createCommerceInvoice($db,$kind,$id);
+        $id=$createOrder($kind,'1.00');$table=$kind==='sale'?'sales_quotations':'purchase_orders';$op=createLinkedStockOperation($db,$kind,$id);$invoice=createCommerceInvoice($db,$kind,$id);
         $cancel=fn(int $order,int $version)=>$kind==='sale'?transitionSalesQuotation($db,$order,$version,'cancel'):transitionPurchaseOrder($db,$order,$version,'cancel');
         try{$cancel($id,2);throw new RuntimeException('Se canceló una orden con factura activa.');}catch(InvalidArgumentException $e){checkPartial(str_contains($e->getMessage(),'facturas activas'),'Rechazo incorrecto de factura activa.');}
         checkPartial(partialRecord($db,'inventory_operations',$op)['status']==='draft'&&(int)partialRecord($db,$table,$id)['version']===2,'El rechazo dejó cambios parciales.');

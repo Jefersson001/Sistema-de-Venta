@@ -70,8 +70,8 @@ try {
         'payment_term_id' => $fixtures['term'], 'salesperson_id' => '', 'name' => 'CORRELATIVO-FALSO', 'status' => 'sale',
         'invoice_address' => 'Dirección falsa', 'base_amount' => '999999', 'total_amount' => '999999',
         'lines' => [
-            ['product_id' => $fixtures['product_main'], 'quantity' => '3.125', 'unit_price' => '19.99', 'tax_id' => $fixtures['tax_ventas']],
-            ['product_id' => $fixtures['product_small'], 'quantity' => '0.050', 'unit_price' => '0.10', 'tax_id' => ''],
+            ['product_id' => $fixtures['product_main'], 'quantity' => '3.12', 'unit_price' => '19.99', 'tax_id' => $fixtures['tax_ventas']],
+            ['product_id' => $fixtures['product_small'], 'quantity' => '0.05', 'unit_price' => '0.10', 'tax_id' => ''],
         ]];
     foreach ([['order_type' => 'invalid'], ['order_type' => ['invoice']], ['customer_id' => $fixtures['seller']], ['order_date' => '2026-02-31'], ['payment_term_id' => 999999999],
         ['salesperson_id' => $fixtures['customer']], ['lines' => [['product_id' => $fixtures['product_disabled'], 'quantity' => '1', 'unit_price' => '1']]],
@@ -87,7 +87,7 @@ try {
     expectSales($status === 200 && str_contains($body, 'Confirma la orden') && loadSalesDelivery($db, $id) === null, 'Se generó una entrega sin confirmar la venta.');
     expectSales($quotation['order_type'] === 'delivery', 'No se guardó Orden de entrega por defecto.');
     expectSales($quotation['name'] === 'S' . str_pad((string) $id, 5, '0', STR_PAD_LEFT) && $quotation['status'] === 'draft', 'El correlativo o estado no se asignó automáticamente.');
-    expectSales($quotation['base_amount'] === '62.48' && $quotation['total_amount'] === '62.48' && count($quotation['lines']) === 2, 'El cálculo decimal o las líneas son incorrectos.');
+    expectSales($quotation['base_amount'] === '62.38' && $quotation['total_amount'] === '62.38' && count($quotation['lines']) === 2, 'El cálculo decimal o las líneas son incorrectos.');
     expectSales($quotation['invoice_address'] === $quotation['delivery_address'] && str_starts_with($quotation['invoice_address'], 'Calle de prueba'), 'Se aceptaron direcciones falsas.');
     expectSales((int) $quotation['payment_term_id'] === $fixtures['term'] && (int) $quotation['salesperson_id'] === $fixtures['seller'], 'No se guardaron las relaciones.');
     expectSales((int) $quotation['warehouse_id'] === $fixtures['warehouse'] && (int) $quotation['location_id'] === $fixtures['location']
@@ -96,7 +96,7 @@ try {
     [$status] = salesRequest($base, 'ventas/index.php?id=' . $id, $cookie, $post); expectSales($status === 303, 'No se editó la cotización.');
     $edited = loadSalesQuotation($db, $id);
     expectSales($edited['order_type'] === 'delivery', 'No se guardó el tipo Orden de entrega.');
-    expectSales($edited['name'] === $quotation['name'] && $edited['total_amount'] === '62.51' && count($edited['lines']) === 2, 'La edición duplicó líneas o alteró el correlativo.');
+    expectSales($edited['name'] === $quotation['name'] && $edited['total_amount'] === '62.41' && count($edited['lines']) === 2, 'La edición duplicó líneas o alteró el correlativo.');
     [$status, $body] = salesRequest($base, 'ventas/index.php?id=' . $id, $cookie, $post);
     expectSales($status === 200 && str_contains($body, 'otra ventana'), 'Se permitió sobrescribir una versión más reciente.');
     foreach (['mark_sent' => 'sent', 'confirm_sale' => 'sale'] as $action => $target) {
@@ -108,13 +108,13 @@ try {
         expectSales($status === 200 && str_contains($stateForm, 'data-quotation-delivery') === ($target === 'sale'), 'Entrega debe aparecer únicamente en la orden de venta.');
     }
     expectSales(loadSalesQuotation($db, $id)['order_type'] === 'delivery', 'La confirmación cambió el tipo de orden.');
-    expectSales(loadInventoryProductIndicators($db, $fixtures['product_main'])['sold'] === '3.125', 'Vendido no incluye la venta confirmada.');
+    expectSales(loadInventoryProductIndicators($db, $fixtures['product_main'])['sold'] === '3.12', 'Vendido no incluye la venta confirmada.');
     [$status, $soldReport] = salesRequest($base, 'inventario/informes.php?view=sold&product_id=' . $fixtures['product_main'], $cookie);
-    expectSales($status === 200 && str_contains($soldReport, '3.125') && str_contains($soldReport, '../ventas/index.php?id=' . $id), 'Vendido no abre el detalle filtrado del producto.');
+    expectSales($status === 200 && str_contains($soldReport, '3.12') && str_contains($soldReport, '../ventas/index.php?id=' . $id), 'Vendido no abre el detalle filtrado del producto.');
     expectSales(str_contains($soldReport, 'data-report-group-toggle'), 'El análisis de ventas no agrupa por fecha.');
     foreach (['pivot', 'graph'] as $display) {
         [$status, $analysis] = salesRequest($base, 'inventario/informes.php?view=sold&product_id=' . $fixtures['product_main'] . '&display=' . $display, $cookie);
-        expectSales($status === 200 && str_contains($analysis, '3.125') && str_contains($analysis, $display === 'pivot' ? 'Importe sin impuestos' : 'report-graph'), 'No se abrió la vista de análisis solicitada.');
+        expectSales($status === 200 && str_contains($analysis, '3.12') && str_contains($analysis, $display === 'pivot' ? 'Importe sin impuestos' : 'report-graph'), 'No se abrió la vista de análisis solicitada.');
     }
     [$status, , $deliveryRedirect] = salesRequest($base, 'ventas/index.php?id=' . $id, $cookie, ['csrf' => $post['csrf'], 'action' => 'create_delivery']);
     expectSales($status === 303 && str_contains($deliveryRedirect, 'inventario/operaciones.php?type=delivery&id='), 'El botón Entrega no abrió Inventario.');
@@ -123,8 +123,8 @@ try {
     expectSales((int) $deliveryRecord['contact_id'] === $fixtures['customer'] && (int) $deliveryRecord['source_location_id'] === $fixtures['location']
         && $deliveryRecord['scheduled_date'] === '2026-10-10' && $deliveryRecord['status'] === 'draft', 'No se copiaron cliente, origen o fecha.');
     $deliveryLines = $db->prepare('SELECT product_id, demand, quantity FROM inventory_operation_lines WHERE operation_id = ? ORDER BY position'); $deliveryLines->execute([$delivery['id']]); $copiedLines = $deliveryLines->fetchAll();
-    expectSales(count($copiedLines) === 2 && (int) $copiedLines[0]['product_id'] === $fixtures['product_main'] && $copiedLines[0]['demand'] === '3.125'
-        && $copiedLines[1]['demand'] === '0.050' && $copiedLines[0]['quantity'] === '0.000', 'No se copiaron las líneas y sus demandas.');
+    expectSales(count($copiedLines) === 2 && (int) $copiedLines[0]['product_id'] === $fixtures['product_main'] && $copiedLines[0]['demand'] === '3.12'
+        && $copiedLines[1]['demand'] === '0.05' && $copiedLines[0]['quantity'] === '0.00', 'No se copiaron las líneas y sus demandas.');
     [$status, , $repeatRedirect] = salesRequest($base, 'ventas/index.php?id=' . $id, $cookie, ['csrf' => $post['csrf'], 'action' => 'create_delivery']);
     expectSales($status === 303 && $repeatRedirect === $deliveryRedirect && (int) createSalesDelivery($db, $id) === (int) $delivery['id'], 'Se duplicó la entrega al pulsar otra vez.');
     [$status, $body] = salesRequest($base, 'ventas/index.php?id=' . $id, $cookie);

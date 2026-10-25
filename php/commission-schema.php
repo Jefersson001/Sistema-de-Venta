@@ -26,5 +26,5 @@ function installSalesCommissions(PDO $db): void
 function installProductCommissions(PDO $db): void
 {
     workflowColumn($db,'inventory_products','commission_type',"ENUM('none','fixed','percent') NOT NULL DEFAULT 'none'");
-    workflowColumn($db,'inventory_products','commission_value','DECIMAL(14,4) NOT NULL DEFAULT 0.0000');
+    workflowColumn($db,'inventory_products','commission_value','DECIMAL(12,2) NOT NULL DEFAULT 0.00');
 }

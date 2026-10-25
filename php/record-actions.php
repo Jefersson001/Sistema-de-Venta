@@ -66,7 +66,7 @@ function recordDuplicateRow(PDO $db,array $m,array $row,string $key): int
     if($m['key']==='restaurant_tables')$input['active']='0';
     if($m['key']==='countries')$input['code']='';
     foreach(['order_date','scheduled_date','payment_date','movement_date'] as $field)if(array_key_exists($field,$input))$input[$field]=commerceToday();
-    if($m['save']==='operations')foreach($input['lines'] as &$line)$line['quantity']='0.000';unset($line);
+    if($m['save']==='operations')foreach($input['lines'] as &$line)$line['quantity']='0.00';unset($line);
     if($m['save']==='contacts'){
         // A copy must not retain another person's login or external stock location.
         $input['partner_location_id']='';$input['tax_id']='';

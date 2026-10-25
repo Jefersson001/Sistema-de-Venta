@@ -14,9 +14,13 @@ if(($page['posReady']??false)&&isset($page['assignments'])){
     if($activeNames)$titles['account']=implode(' + ',$activeNames);
 }
 if($page['view']==='preview')$titles['preview']=$page['table']['name'];
+if($page['view']==='configuration')$titles['configuration']=$page['section']==='restaurant_tables'?'Mesas del restaurante':'Áreas de mesas';
+$subtitle=$page['view']==='configuration'
+    ?($page['section']==='restaurant_tables'?'Administra las mesas, su capacidad y el área a la que pertenecen.':'Organiza los espacios donde atiendes a tus clientes.')
+    :(($page['posReady']??false)?'Agrega productos al pedido y factura cuando termines.':'Selecciona una mesa para comenzar.');
 ?>
 <div class="restaurant-workspace">
-<header class="restaurant-heading"><div><p class="eyebrow">RESTAURANTE</p><h1><?= $h($titles[$page['view']]) ?></h1><p class="section-subtitle"><?= ($page['posReady']??false)?'Agrega productos al pedido y factura cuando termines.':'Selecciona una mesa para comenzar.' ?></p></div><span class="restaurant-service-tag"><span aria-hidden="true">●</span> Servicio de mesas</span></header>
+<header class="restaurant-heading"><div><p class="eyebrow">RESTAURANTE</p><h1><?= $h($titles[$page['view']]) ?></h1><p class="section-subtitle"><?= $h($subtitle) ?></p></div><?php if($page['view']!=='configuration'): ?><span class="restaurant-service-tag"><span aria-hidden="true">●</span> Servicio de mesas</span><?php endif; ?></header>
 <?php if($page['notice']): ?><p class="restaurant-notice" role="status"><?= $h($page['notice']) ?></p><?php endif; ?>
 <?php if($page['error']): ?><p class="restaurant-error" role="alert"><?= $h($page['error']) ?></p><?php endif; ?>
 <?php if(!$page['installed']): ?>
@@ -35,7 +39,7 @@ if($page['view']==='preview')$titles['preview']=$page['table']['name'];
 <?php endforeach; ?></div></section><?php endforeach; ?>
 <?php endif; ?>
 <?php elseif($page['view']==='configuration'): ?>
-<div class="restaurant-tabs"><a class="<?= $page['section']==='restaurant_areas'?'is-active':'' ?>" href="configuracion.php?section=restaurant_areas">Áreas</a><a class="<?= $page['section']==='restaurant_tables'?'is-active':'' ?>" href="configuracion.php?section=restaurant_tables">Mesas</a></div>
+<nav class="restaurant-tabs" aria-label="Configuración del restaurante"><a class="<?= $page['section']==='restaurant_areas'?'is-active':'' ?>" href="configuracion.php?section=restaurant_areas" <?= $page['section']==='restaurant_areas'?'aria-current="page"':'' ?>>Áreas</a><a class="<?= $page['section']==='restaurant_tables'?'is-active':'' ?>" href="configuracion.php?section=restaurant_tables" <?= $page['section']==='restaurant_tables'?'aria-current="page"':'' ?>>Mesas</a></nav>
 <?php $isTable=$page['section']==='restaurant_tables'; ?>
 <?php if($page['editing']): $record=$page['record']??[];$values=$_SERVER['REQUEST_METHOD']==='POST'?$_POST:$record; ?>
 <form method="post" class="restaurant-panel restaurant-form"><?php $formToken(); ?><input type="hidden" name="action" value="<?= $isTable?'save_restaurant_table':'save_restaurant_area' ?>"><input type="hidden" name="version" value="<?= $h($values['version']??'') ?>">
@@ -49,8 +53,24 @@ if($page['view']==='preview')$titles['preview']=$page['table']['name'];
 <label>Disponibilidad<select name="active"><option value="1" <?= (string)($values['active']??1)==='1'?'selected':'' ?>>Activa</option><option value="0" <?= (string)($values['active']??1)==='0'?'selected':'' ?>>Inactiva</option></select></label></div>
 <div class="restaurant-actions"><a class="button" href="configuracion.php?section=<?= $h($page['section']) ?>">Volver</a><button class="button button-primary" type="submit">Guardar <?= $isTable?'mesa':'área' ?></button></div></form>
 <?php else: $rows=$isTable?$page['tables']:$page['areas']; ?>
-<section class="restaurant-panel"><div class="restaurant-section-heading"><h2><?= $isTable?'Mesas':'Áreas' ?></h2><a class="button button-primary" href="configuracion.php?section=<?= $h($page['section']) ?>&amp;new=1">Nueva <?= $isTable?'mesa':'área' ?></a></div>
-<?php if(!$rows): ?><p class="restaurant-empty">Todavía no hay <?= $isTable?'mesas':'áreas' ?>. Crea la primera para comenzar.</p><?php else: ?><div class="restaurant-list"><?php foreach($rows as $row): ?><a class="restaurant-list-row" href="configuracion.php?section=<?= $h($page['section']) ?>&amp;id=<?= (int)$row['id'] ?>"><span><strong><?= $h($row['name']) ?></strong><small><?= $h($isTable?$row['area_name'].' · '.$row['capacity'].' personas':'Orden '.$row['sort_order']) ?></small></span><span class="restaurant-state"><?= $row['active']?'Activa':'Inactiva' ?></span><span aria-hidden="true">→</span></a><?php endforeach; ?></div><?php endif; ?></section>
+<section class="restaurant-panel restaurant-configuration-list">
+    <div class="restaurant-section-heading">
+        <div><h2><?= $isTable?'Mesas registradas':'Áreas registradas' ?></h2><p class="restaurant-list-caption"><?= count($rows) ?> <?= $isTable?'mesas':'áreas' ?> · Selecciona un nombre para editar.</p></div>
+        <a class="button button-primary" href="configuracion.php?section=<?= $h($page['section']) ?>&amp;new=1"><span aria-hidden="true">＋</span> Nueva <?= $isTable?'mesa':'área' ?></a>
+    </div>
+    <?php if(!$rows): ?>
+        <div class="restaurant-empty"><div class="restaurant-empty-symbol" aria-hidden="true">▦</div><h3><?= $isTable?'Todavía no hay mesas':'Crea tu primera área' ?></h3><p><?= $isTable?'Agrega una mesa y asígnala a un área para comenzar.':'Agrupa tus mesas en espacios como Salón principal, Terraza o Barra.' ?></p></div>
+    <?php else: ?>
+        <div class="contact-table-wrap"><table class="contact-table">
+            <thead><tr><th scope="col"><?= $isTable?'Mesa':'Área' ?></th><?php if($isTable): ?><th scope="col">Área</th><th scope="col">Capacidad</th><?php else: ?><th scope="col">Orden</th><?php endif; ?><th scope="col">Estado</th></tr></thead>
+            <tbody><?php foreach($rows as $row): ?><tr>
+                <td><a class="contact-name" href="configuracion.php?section=<?= $h($page['section']) ?>&amp;id=<?= (int)$row['id'] ?>"><?= $h($row['name']) ?></a><?php if($isTable&&!empty($row['location_label'])): ?><small><?= $h($row['location_label']) ?></small><?php endif; ?></td>
+                <?php if($isTable): ?><td><?= $h($row['area_name']) ?></td><td><?= (int)$row['capacity'] ?> personas</td><?php else: ?><td><?= (int)$row['sort_order'] ?></td><?php endif; ?>
+                <td><span class="restaurant-state restaurant-state--<?= $row['active']?'active':'inactive' ?>"><?= $row['active']?'Activa':'Inactiva' ?></span></td>
+            </tr><?php endforeach; ?></tbody>
+        </table></div>
+    <?php endif; ?>
+</section>
 <?php endif; ?>
 <?php elseif($page['view']==='table'): $table=$page['table']; ?>
 <div class="restaurant-table-layout <?= $page['occupied']?'restaurant-table-layout--single':'' ?>">

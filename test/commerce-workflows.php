@@ -36,7 +36,7 @@ try {
         $post = ['csrf' => $token, 'action' => $kind === 'purchase' ? 'save_purchase' : 'save_quotation', 'order_date' => commerceToday(),
             $kind === 'purchase' ? 'supplier_id' : 'customer_id' => $fixtures[$party], 'payment_term_id' => $fixtures['term'],
             'order_type' => $kind === 'purchase' ? 'receipt' : 'delivery', 'destination_location_id' => $fixtures['location'],
-            'lines' => [['product_id' => $fixtures['product'], 'quantity' => '2.500', 'unit_price' => $kind === 'purchase' ? '4.00' : '6.00', 'tax_id' => $fixtures[$module . '_tax']]]];
+            'lines' => [['product_id' => $fixtures['product'], 'quantity' => '2.50', 'unit_price' => $kind === 'purchase' ? '4.00' : '6.00', 'tax_id' => $fixtures[$module . '_tax']]]];
         $id = commerceCreated(commerceRequest($module . '/index.php?new=1', $cookie, $post));
         if ($kind === 'purchase') $purchases[] = $id; else $sales[] = $id;
         $order = $kind === 'purchase' ? loadPurchaseOrder($db, $id) : loadSalesQuotation($db, $id);
@@ -52,7 +52,7 @@ try {
             $response = commerceRequest('compras/index.php?id=' . $id, $cookie, $post); expectCommerce($response[0] === 200 && str_contains($response[1], 'otra ventana'), 'Se sobrescribió una versión de compra más reciente.');
             $order = loadPurchaseOrder($db, $id);
         }
-        expectCommerce($order['lines'][0]['quantity'] === '2.500' && $order['total_amount'] === ($kind === 'purchase' ? '10.00' : '15.00'), 'No se calcularon los importes de la orden.');
+        expectCommerce($order['lines'][0]['quantity'] === '2.50' && $order['total_amount'] === ($kind === 'purchase' ? '10.00' : '15.00'), 'No se calcularon los importes de la orden.');
         $response = commerceRequest($module . '/index.php?id=' . $id, $cookie, ['csrf' => $token, 'action' => 'create_invoice']); expectCommerce($response[0] === 200 && str_contains($response[1], 'Confirma'), 'Se facturó una orden sin confirmar.');
         commerceCreated(commerceRequest($module . '/index.php?id=' . $id, $cookie, ['csrf' => $token, 'action' => $kind === 'purchase' ? 'confirm_purchase' : 'confirm_sale', 'version' => $order['version']]));
         $operationAction = $kind === 'purchase' ? 'create_receipt' : 'create_delivery'; $operationType = $kind === 'purchase' ? 'receipt' : 'delivery';
@@ -64,7 +64,7 @@ try {
         $blocked = commerceRequest($operationPath, $cookie, ['csrf' => $operationToken, 'action' => 'create_invoice']); expectCommerce($blocked[0] === 200 && str_contains($blocked[1], 'valida'), 'Se facturó antes de validar el movimiento.');
         $saveOperation = ['csrf' => $operationToken, 'action' => 'save_operation', 'version' => '1', 'contact_id' => $fixtures[$party], 'scheduled_date' => commerceToday(),
             'source_location_id' => $fixtures['location'], 'destination_location_id' => $fixtures['location'], 'notes' => $prefix,
-            'lines' => [['product_id' => $fixtures['product'], 'demand' => '2.500', 'quantity' => '2.500']]];
+            'lines' => [['product_id' => $fixtures['product'], 'demand' => '2.50', 'quantity' => '2.50']]];
         commerceCreated(commerceRequest($operationPath, $cookie, $saveOperation));
         commerceCreated(commerceRequest($operationPath, $cookie, ['csrf' => $operationToken, 'action' => 'confirm_operation', 'version' => '2']));
         commerceCreated(commerceRequest($operationPath, $cookie, ['csrf' => $operationToken, 'action' => 'check_ready', 'version' => '3']));
@@ -87,7 +87,7 @@ try {
         $invoiceQuery = $db->prepare('SELECT * FROM accounting_invoices WHERE id = ?'); $invoiceQuery->execute([$invoiceId]); $invoice = $invoiceQuery->fetch();
         expectCommerce($invoice['invoice_type'] === $invoiceType && (int) $invoice['contact_id'] === $fixtures[$party] && $invoice['invoice_address'] === 'Dirección ' . $party && (int) $invoice['payment_term_id'] === $fixtures['term'], 'La factura no copió contacto, dirección o términos.');
         $invoiceLines = $db->prepare('SELECT * FROM accounting_invoice_lines WHERE invoice_id = ?'); $invoiceLines->execute([$invoiceId]); $invoiceLine = $invoiceLines->fetch();
-        expectCommerce($invoiceLine['quantity'] === '2.500' && $invoiceLine['unit_price'] === $post['lines'][0]['unit_price'] && (int) $invoiceLine['tax_id'] === $fixtures[$module . '_tax'] && $invoiceLine['product_name'] === $prefix, 'No se copiaron las líneas de factura.');
+        expectCommerce($invoiceLine['quantity'] === '2.50' && $invoiceLine['unit_price'] === $post['lines'][0]['unit_price'] && (int) $invoiceLine['tax_id'] === $fixtures[$module . '_tax'] && $invoiceLine['product_name'] === $prefix, 'No se copiaron las líneas de factura.');
         $invoicePost = ['csrf' => commerceToken($invoiceForm), 'action' => 'confirm_invoice', 'version' => '1', 'invoice_date' => commerceToday(), 'due_date' => ''];
         $invalidDates = $invoicePost; $invalidDates['invoice_date'] = '2026-02-31';
         $blocked = commerceRequest($invoicePath, $cookie, $invalidDates); expectCommerce($blocked[0] === 200 && str_contains($blocked[1], 'fechas válidas'), 'La factura aceptó una fecha inválida.');
@@ -107,7 +107,7 @@ try {
         [$status, $invoiceList] = commerceRequest('contabilidad/index.php?type=' . $invoiceType . '&status=posted&q=' . rawurlencode($invoice['name']), $cookie);
         expectCommerce($status === 200 && str_contains($invoiceList, $invoice['name']) && ! str_contains($invoiceList, 'value="confirm_invoice"'), 'La lista de facturas no está separada del formulario.');
         // Direct invoice mode skips inventory, preserving the same source lines.
-        $post['order_type'] = 'invoice'; $post['lines'][0]['quantity'] = '1.000'; // Invoice-first goods keep their inventory destination.
+        $post['order_type'] = 'invoice'; $post['lines'][0]['quantity'] = '1.00'; // Invoice-first goods keep their inventory destination.
         $directId = commerceCreated(commerceRequest($module . '/index.php?new=1', $cookie, $post));
         if ($kind === 'purchase') $purchases[] = $directId; else $sales[] = $directId;
         commerceCreated(commerceRequest($module . '/index.php?id=' . $directId, $cookie, ['csrf' => $token, 'version' => '1', 'action' => $kind === 'purchase' ? 'confirm_purchase' : 'confirm_sale']));
@@ -117,7 +117,7 @@ try {
         expectCommerce($status === 200 && str_contains($directInvoiceForm, 'data-related-source') && ! str_contains($directInvoiceForm, 'data-related-invoice'), 'La factura directa debe volver a su orden cuando no existe operación.');
         $physical = commerceRequest($module . '/index.php?id=' . $directId, $cookie, ['csrf' => $token, 'action' => $operationAction]); expectCommerce($physical[0] === 303, 'Facturar primero impidió generar el movimiento físico de mercancía.');
     }
-    expectCommerce(loadInventoryProductStock($db, $fixtures['product'])['total'] === '0.000', 'Facturar alteró existencias o el circuito de inventario es incorrecto.');
+    expectCommerce(loadInventoryProductStock($db, $fixtures['product'])['total'] === '0.00', 'Facturar alteró existencias o el circuito de inventario es incorrecto.');
     foreach (['compras/index.php?new=1', 'contabilidad/index.php?type=customer'] as $path) { [$status] = commerceRequest($path, $cookie, ['action' => 'create_invoice']); expectCommerce($status === 403, 'Se aceptó un POST sin CSRF.'); }
     echo "PASS: compra → recepción → factura, venta → entrega → factura, navegación bidireccional, copia de líneas, factura directa, duplicados y CSRF.\n";
 } finally {

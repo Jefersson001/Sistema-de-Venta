@@ -14,7 +14,7 @@ function installCurrencyCatalog(PDO $db): void
     ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4");
     $db->exec("CREATE TABLE IF NOT EXISTS accounting_currency_rates (
         id INT UNSIGNED AUTO_INCREMENT PRIMARY KEY, currency_id INT UNSIGNED NOT NULL,
-        base_currency_id INT UNSIGNED NOT NULL, rate_date DATE NOT NULL, rate DECIMAL(20,8) NOT NULL,
+        base_currency_id INT UNSIGNED NOT NULL, rate_date DATE NOT NULL, rate DECIMAL(14,2) NOT NULL,
         FOREIGN KEY(currency_id) REFERENCES accounting_currencies(id),
         FOREIGN KEY(base_currency_id) REFERENCES accounting_currencies(id),
         UNIQUE KEY currency_base_date(currency_id,base_currency_id,rate_date)

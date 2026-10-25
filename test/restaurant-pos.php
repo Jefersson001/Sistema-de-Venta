@@ -16,7 +16,7 @@ try{
     $raw=$s['db'];$password=bin2hex(random_bytes(12));$login='pos.'.bin2hex(random_bytes(5));$token=prepareFirstAdministrator($raw);
     $actor=createFirstAdministrator($raw,['name'=>'Caja restaurante','login'=>$login,'password'=>$password,'password_confirmation'=>$password],hash('sha256',$token));
     echo "RUN POS migration\n";
-    installRestaurant($raw);bcvApplyPublication($raw,['rate'=>'100.00000000','effective_date'=>commerceToday(),'source'=>'bcv']);
+    installRestaurant($raw);bcvApplyPublication($raw,['rate'=>'100.00','effective_date'=>commerceToday(),'source'=>'bcv']);
     $c=require dirname(__DIR__).'/php/config/database.php';
     $db=new CompanyConnection('mysql:host='.$c['host'].';port='.$c['port'].';dbname='.$s['database'].';charset=utf8mb4',$c['username'],$c['password'],[PDO::ATTR_ERRMODE=>PDO::ERRMODE_EXCEPTION,PDO::ATTR_DEFAULT_FETCH_MODE=>PDO::FETCH_ASSOC,PDO::ATTR_EMULATE_PREPARES=>false],[1],1,$actor,$raw->query('SELECT table_name FROM company_schema_tables')->fetchAll(PDO::FETCH_COLUMN));
     $prefix='POS '.bin2hex(random_bytes(5));$area=restaurantSaveArea($db,['name'=>$prefix,'active'=>1]);
@@ -162,15 +162,15 @@ try{
     $db->prepare("INSERT INTO inventory_products(name,sale_enabled,sale_price,currency_code,product_type,category_id,sale_tax_id) VALUES(?,1,3.33,'USD','service',?,?)")->execute(['Servicio divisible '.bin2hex(random_bytes(5)),$restaurantRoot,$splitTax]);$splitProduct=(int)$db->lastInsertId();
     $splitAccount=$newCollection('Por productos',2,$splitProduct);$splitCart=restaurantCart($db,$splitAccount);$splitItem=$splitCart['items'][0]['id'];
     $split=['customer_id'=>$customer,'location_id'=>$location,'version'=>2,'request_key'=>bin2hex(random_bytes(32)),'split_mode'=>'products','payments'=>[
-        ['label'=>'Persona 1','method_id'=>$cashMethod,'account_id'=>$cash,'amount'=>'999.00','items'=>[$splitItem=>'0.333']],
-        ['label'=>'Persona 2','method_id'=>$manualMethod,'account_id'=>$bank,'amount'=>'999.00','items'=>[$splitItem=>'0.667']]]];
-    $splitPlan=restaurantPaymentPlan($splitCart,$split);posCheck(array_column($splitPlan,'amount')===['1.29','2.57'],'El reparto perdió céntimos de impuestos o confió en importes del navegador.');
-    $badSplit=$split;$badSplit['payments'][1]['items'][$splitItem]='0.666';posReject(fn()=>restaurantCheckout($db,$splitAccount,$badSplit));
-    $badSplit=$split;$badSplit['payments'][1]['items'][$splitItem]='0.668';posReject(fn()=>restaurantCheckout($db,$splitAccount,$badSplit));
+        ['label'=>'Persona 1','method_id'=>$cashMethod,'account_id'=>$cash,'amount'=>'999.00','items'=>[$splitItem=>'0.33']],
+        ['label'=>'Persona 2','method_id'=>$manualMethod,'account_id'=>$bank,'amount'=>'999.00','items'=>[$splitItem=>'0.67']]]];
+    $splitPlan=restaurantPaymentPlan($splitCart,$split);posCheck(array_column($splitPlan,'amount')===['1.28','2.58'],'El reparto perdió céntimos de impuestos o confió en importes del navegador.');
+    $badSplit=$split;$badSplit['payments'][1]['items'][$splitItem]='0.66';posReject(fn()=>restaurantCheckout($db,$splitAccount,$badSplit));
+    $badSplit=$split;$badSplit['payments'][1]['items'][$splitItem]='0.68';posReject(fn()=>restaurantCheckout($db,$splitAccount,$badSplit));
     $badSplit=$split;$badSplit['payments'][1]['items'][999999]='1';posReject(fn()=>restaurantCheckout($db,$splitAccount,$badSplit));
     $splitInvoice=restaurantCheckout($db,$splitAccount,$split);posCheck(restaurantCheckout($db,$splitAccount,$split)===$splitInvoice,'El reparto por productos duplicó la factura.');
     $splitReceipt=restaurantLoadReceipt($db,$splitAccount);
-    posCheck($splitReceipt['invoice']['total_amount']==='3.86'&&$splitReceipt['invoice']['payment_state']==='paid'&&array_column($splitReceipt['payments'],'amount')===['1.29','2.57'],'El reparto no cubrió exactamente la factura.');
+    posCheck($splitReceipt['invoice']['total_amount']==='3.86'&&$splitReceipt['invoice']['payment_state']==='paid'&&array_column($splitReceipt['payments'],'amount')===['1.28','2.58'],'El reparto no cubrió exactamente la factura.');
     echo "RUN checkout endpoint, lost response and protected receipt\n";
     $httpAccount=$newCollection('Cobro HTTP',3,$splitProduct);
     $httpCheckout=['csrf'=>$jsonCommand['csrf'],'company_scope'=>$jsonCommand['company_scope'],'action'=>'pos_checkout','customer_id'=>$customer,'location_id'=>$location,'version'=>2,'request_key'=>bin2hex(random_bytes(32)),

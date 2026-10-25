@@ -145,10 +145,10 @@ function validateInventoryProduct(array $input, array $categories = [], array $p
     if ($type!=='none'&&isset($input['commission_value'])&&!is_string($input['commission_value'])) $errors[]='Indica un valor de comisión válido.';
     if ($type==='none') $value='0';
     if ($type==='fixed') $value=preg_replace('/(\.\d{2})0+$/','$1',$value);
-    $valid=$type==='percent' ? preg_match('/^[0-9]{1,4}(\.[0-9]{1,4})?$/',$value)&&bccomp($value,'1000',4)<=0
+    $valid=$type==='percent' ? preg_match('/^[0-9]{1,4}(\.[0-9]{1,2})?$/',$value)&&bccomp($value,'1000',2)<=0
         : preg_match('/^[0-9]{1,10}(\.[0-9]{1,2})?$/',$value);
-    if (!$valid) { $errors[]=$type==='percent'?'El porcentaje debe estar entre 0 y 1000, con hasta cuatro decimales.':'La comisión fija debe ser un importe no negativo con hasta dos decimales.';$value='0'; }
-    $data['commission_type']=$type;$data['commission_value']=bcadd($value,'0',4);
+    if (!$valid) { $errors[]=$type==='percent'?'El porcentaje debe estar entre 0 y 1000, con hasta dos decimales.':'La comisión fija debe ser un importe no negativo con hasta dos decimales.';$value='0'; }
+    $data['commission_type']=$type;$data['commission_value']=bcadd($value,'0',2);
     if (!$errors) {
         $commission=productCommissionUnit($data['sale_price'],$type,$value)??'0.00';
         if (bccomp(bcadd($data['sale_price'],$commission,2),'9999999999.99',2)>0) $errors[]='El precio para vendedor supera el máximo permitido.';
@@ -170,7 +170,7 @@ function inventoryProductRevision(array $record,array $suppliers): string
 
 function saveInventoryProduct(PDO $db, array $data, ?int $id,?string $expectedRevision=null): int
 {
-    $data+=['commission_type'=>'none','commission_value'=>'0.0000'];
+    $data+=['commission_type'=>'none','commission_value'=>'0.00'];
     $ownTransaction=!$db->inTransaction();if($ownTransaction)$db->beginTransaction();
     try{
     $old=null;

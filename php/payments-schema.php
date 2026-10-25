@@ -25,10 +25,10 @@ function installDefaultPaymentMethods(PDO $db): void
 
 function installAccountingPayments(PDO $db): void
 {
-    $db->exec("CREATE TABLE IF NOT EXISTS accounting_currency_settings (id TINYINT UNSIGNED PRIMARY KEY, primary_code CHAR(3) NOT NULL, alternate_code CHAR(3) NOT NULL, exchange_rate DECIMAL(20,8) NULL, version INT UNSIGNED NOT NULL DEFAULT 1) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4");
+    $db->exec("CREATE TABLE IF NOT EXISTS accounting_currency_settings (id TINYINT UNSIGNED PRIMARY KEY, primary_code CHAR(3) NOT NULL, alternate_code CHAR(3) NOT NULL, exchange_rate DECIMAL(14,2) NULL, version INT UNSIGNED NOT NULL DEFAULT 1) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4");
     $db->exec("INSERT IGNORE INTO accounting_currency_settings(id,primary_code,alternate_code) VALUES(1,'USD','VES')");
     foreach(['sales_quotations','purchase_orders','accounting_invoices','inventory_products'] as $table)workflowColumn($db,$table,'currency_code',"CHAR(3) NOT NULL DEFAULT 'USD'");
-    foreach(['sales_quotations','purchase_orders','accounting_invoices'] as $table){workflowColumn($db,$table,'currency_primary_code',"CHAR(3) NOT NULL DEFAULT 'USD'");workflowColumn($db,$table,'currency_alternate_code',"CHAR(3) NOT NULL DEFAULT 'VES'");workflowColumn($db,$table,'exchange_rate','DECIMAL(20,8) NULL');}
+    foreach(['sales_quotations','purchase_orders','accounting_invoices'] as $table){workflowColumn($db,$table,'currency_primary_code',"CHAR(3) NOT NULL DEFAULT 'USD'");workflowColumn($db,$table,'currency_alternate_code',"CHAR(3) NOT NULL DEFAULT 'VES'");workflowColumn($db,$table,'exchange_rate','DECIMAL(14,2) NULL');}
     $db->exec("CREATE TABLE IF NOT EXISTS accounting_payment_accounts (id INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,name VARCHAR(120) NOT NULL UNIQUE, account_type ENUM('cash','bank') NOT NULL, currency_code CHAR(3) NULL, system_key VARCHAR(32) NULL UNIQUE) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4");
     $db->exec("CREATE TABLE IF NOT EXISTS accounting_payment_methods (id INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,name VARCHAR(120) NOT NULL UNIQUE,system_key VARCHAR(32) NULL UNIQUE) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4");
     $db->exec("INSERT IGNORE INTO accounting_payment_accounts(name,account_type,system_key) VALUES('Caja','cash','default_cash')");
@@ -36,7 +36,7 @@ function installAccountingPayments(PDO $db): void
     $db->exec("CREATE TABLE IF NOT EXISTS accounting_payments (
         id INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,name VARCHAR(32) NULL UNIQUE,
         partner_type ENUM('customer','supplier') NOT NULL,direction ENUM('inbound','outbound') NOT NULL,contact_id INT UNSIGNED NOT NULL,
-        amount DECIMAL(18,2) NOT NULL,currency_code CHAR(3) NOT NULL,primary_code CHAR(3) NOT NULL,alternate_code CHAR(3) NOT NULL,exchange_rate DECIMAL(20,8) NULL,
+        amount DECIMAL(18,2) NOT NULL,currency_code CHAR(3) NOT NULL,primary_code CHAR(3) NOT NULL,alternate_code CHAR(3) NOT NULL,exchange_rate DECIMAL(14,2) NULL,
         payment_date DATE NOT NULL,reference VARCHAR(160) NOT NULL,account_id INT UNSIGNED NOT NULL,method_id INT UNSIGNED NOT NULL,
         status ENUM('draft','pending','settled','cancel') NOT NULL DEFAULT 'draft',version INT UNSIGNED NOT NULL DEFAULT 1,creation_key CHAR(64) NULL UNIQUE,
         FOREIGN KEY(contact_id) REFERENCES contacts(id),FOREIGN KEY(account_id) REFERENCES accounting_payment_accounts(id),FOREIGN KEY(method_id) REFERENCES accounting_payment_methods(id),INDEX payment_partner(contact_id,status)

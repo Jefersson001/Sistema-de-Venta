@@ -1,5 +1,6 @@
 <?php
 declare(strict_types=1);
+require_once __DIR__.'/decimal.php';
 
 function workflowBegin(PDO $db): void
 {
@@ -34,9 +35,9 @@ function commerceLineProgress(PDO $db, string $kind, int $orderId): array
     foreach ($rows as &$line) {
         $q = $db->prepare("SELECT COALESCE(SUM(CASE WHEN o.return_of_id IS NULL THEN l.quantity ELSE -l.quantity END),0) FROM inventory_operation_lines l JOIN inventory_operations o ON o.id=l.operation_id WHERE l.$column=? AND o.status='done'"); $q->execute([$line['id']]); $line['moved'] = (string)$q->fetchColumn();
         $q = $db->prepare("SELECT COALESCE(SUM(CASE WHEN i.document_type='invoice' THEN l.quantity ELSE -l.quantity END),0) FROM accounting_invoice_lines l JOIN accounting_invoices i ON i.id=l.invoice_id WHERE l.$column=? AND ((i.document_type='invoice' AND i.status!='cancel') OR (i.document_type='credit' AND i.status='posted'))"); $q->execute([$line['id']]); $line['invoiced'] = (string)$q->fetchColumn();
-        $line['pending'] = bccomp($line['quantity'], $line['moved'], 3) > 0 ? bcsub($line['quantity'], $line['moved'], 3) : '0.000';
+        $line['pending'] = bccomp($line['quantity'], $line['moved'], 2) > 0 ? bcsub($line['quantity'], $line['moved'], 2) : '0.00';
         $billable = $line['invoice_policy'] === 'ordered' || $line['product_type'] === 'service' ? $line['quantity'] : $line['moved'];
-        $line['to_invoice'] = bccomp($billable, $line['invoiced'], 3) > 0 ? bcsub($billable, $line['invoiced'], 3) : '0.000';
+        $line['to_invoice'] = bccomp($billable, $line['invoiced'], 2) > 0 ? bcsub($billable, $line['invoiced'], 2) : '0.00';
     }
     unset($line); return $rows;
 }
@@ -78,7 +79,7 @@ function inventoryReserved(PDO $db, int $product, int $location, ?int $exclude =
     // Read current committed reservations after locking the stock balance, including
     // a competing reservation committed while this transaction waited for that lock.
     $q=$db->prepare('SELECT quantity FROM inventory_reservations WHERE product_id=? AND location_id=? AND operation_id<>? FOR UPDATE'); $q->execute([$product,$location,$exclude ?? 0]);
-    $reserved='0.000';foreach($q->fetchAll(PDO::FETCH_COLUMN) as $quantity)$reserved=bcadd($reserved,$quantity,3);return $reserved;
+    $reserved='0.00';foreach($q->fetchAll(PDO::FETCH_COLUMN) as $quantity)$reserved=bcadd($reserved,$quantity,2);return $reserved;
 }
 
 function validateLinkedOperationLines(PDO $db, array $operation, array $lines): array
@@ -92,13 +93,13 @@ function validateLinkedOperationLines(PDO $db, array $operation, array $lines): 
     $seen=[];
     foreach ($lines as $index => &$line) {
         $old=$byId[(int)($line['id']??0)]??(empty($line['id']) ? ($existing[$index]??null) : null);
-        if (!$old || isset($seen[$old['id']]) || (int)$old['product_id']!==(int)$line['product_id'] || bccomp($old['demand'],$line['demand'],3)!==0) throw new InvalidArgumentException('Las líneas relacionadas conservan producto y demanda de su documento de origen. Recarga la operación.');
+        if (!$old || isset($seen[$old['id']]) || (int)$old['product_id']!==(int)$line['product_id'] || bccomp($old['demand'],$line['demand'],2)!==0) throw new InvalidArgumentException('Las líneas relacionadas conservan producto y demanda de su documento de origen. Recarga la operación.');
         $seen[$old['id']]=true;
         $line['id'] = (int)$old['id'];
-        if (bccomp($line['quantity'],$old['demand'],3)>0) throw new InvalidArgumentException('La cantidad no puede superar la demanda pendiente del documento de origen.');
+        if (bccomp($line['quantity'],$old['demand'],2)>0) throw new InvalidArgumentException('La cantidad no puede superar la demanda pendiente del documento de origen.');
         if ($column && empty($operation['return_of_id'])) {
             $source=$progress[(int)$old[$column]]??null;
-            if (!$source || $source['product_type']!=='goods' || bccomp($line['quantity'],$source['pending'],3)>0) throw new InvalidArgumentException('La cantidad supera el pendiente de la orden o la línea histórica no tiene una relación verificable.');
+            if (!$source || $source['product_type']!=='goods' || bccomp($line['quantity'],$source['pending'],2)>0) throw new InvalidArgumentException('La cantidad supera el pendiente de la orden o la línea histórica no tiene una relación verificable.');
         }
         $line['sale_line_id']=$old['sale_line_id']; $line['purchase_line_id']=$old['purchase_line_id']; $line['return_line_id']=$old['return_line_id'];
     }

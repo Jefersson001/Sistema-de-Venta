@@ -21,12 +21,12 @@ if (purchaseForm && purchaseForm.dataset.permissionReadonly!=='true') {
         let total = 0n; let baseTotal = 0n;
         for (const row of body.querySelectorAll('[data-order-line]')) {
             const selected = row.querySelector('[data-order-product]').value;
-            const quantity = scaled(row.querySelector('[data-order-quantity]').value, 3);
+            const quantity = scaled(row.querySelector('[data-order-quantity]').value, 2);
             const price = scaled(row.querySelector('[data-order-price]').value, 2);
-            const base = selected && quantity !== null && price !== null ? (quantity * price + 500n) / 1000n : 0n;
+            const base = selected && quantity !== null && price !== null ? (quantity * price + 50n) / 100n : 0n;
             row.querySelector('[data-order-line-base]').textContent = money(base);
-            const rate = scaled(row.querySelector('[data-order-tax]').selectedOptions[0]?.dataset.rate || '0',4) || 0n;
-            const tax = (base * rate + 500000n) / 1000000n;
+            const rate = scaled(row.querySelector('[data-order-tax]').selectedOptions[0]?.dataset.rate || '0', 2) || 0n;
+            const tax = (base * rate + 5000n) / 10000n;
             row.querySelector('[data-order-line-total]').textContent = money(base+tax);
             baseTotal += base; total += base+tax;
         }
