@@ -91,6 +91,7 @@ try {
     $created['salesperson'] = (int) $query->fetchColumn();
     $post = ['csrf' => $token, 'action' => 'save_contact', 'name' => $prefix . ' <cliente>',
         'entity_kind' => 'company', 'type_id' => $roles['client'], 'email' => 'test@example.test',
+        'phone' => '0212-5550101', 'mobile' => '0412-5550202',
         'country_id' => $created['countries'], 'state_id' => $created['states'], 'city_id' => $created['cities'],
         'document_type_id' => $documentType, 'tax_id' => 'V-12345678',
         'salesperson_id' => $created['salesperson'], 'notes' => 'Notas conservadas en la pestaña'];
@@ -124,6 +125,11 @@ try {
     checkContactHttp(str_contains($body, 'V-12345678') && ! str_contains($body, 'V-V-12345678'), 'El documento no se mostró correctamente.');
     [$status, $body] = contactHttp($baseUrl, 'index.php?q=V-12345678&type=' . $post['type_id'], $cookieFile);
     checkContactHttp($status === 200 && str_contains($body, $post['name']), 'La búsqueda por documento completo falló.');
+    foreach (['0212-5550101', '5550101', '0412-5550202', '5550202'] as $phoneSearch) {
+        [$status, $body] = contactHttp($baseUrl, 'index.php?q=' . rawurlencode($phoneSearch) . '&type=' . $post['type_id'], $cookieFile);
+        checkContactHttp($status === 200 && str_contains($body, $post['name']), 'La búsqueda por teléfono o móvil falló: ' . $phoneSearch);
+        checkContactHttp(str_contains($body, 'data-live-filters'), 'La búsqueda por teléfono perdió el filtrado automático.');
+    }
     echo "PASS: formularios HTTP, catálogos, creación, edición, archivo, restauración, búsqueda y escape HTML.\n";
 } finally {
     foreach (['contact' => 'contacts', 'salesperson' => 'contacts', 'cities' => 'contact_cities', 'states' => 'contact_states',

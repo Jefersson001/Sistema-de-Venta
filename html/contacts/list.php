@@ -4,7 +4,7 @@
         <a class="contact-button contact-button-primary" href="index.php?new=1">+ Nuevo contacto</a>
     </div>
     <form class="contact-filters" method="get" action="index.php">
-        <label>Buscar<input type="search" name="q" value="<?= contactEscape($page['search']) ?>" placeholder="Nombre, documento o correo" maxlength="160"></label>
+        <label>Buscar<input type="search" name="q" value="<?= contactEscape($page['search']) ?>" placeholder="Nombre, documento, correo o teléfono" maxlength="160"></label>
         <label>Tipo<select name="type"><option value="">Todos los tipos</option><?php foreach ($page['catalogs']['types'] as $type): ?><option value="<?= (int) $type['id'] ?>" <?= (int) $type['id'] === $page['typeFilter'] ? 'selected' : '' ?>><?= contactEscape($type['name']) ?></option><?php endforeach; ?></select></label>
         <label>Estado<select name="status"><option value="active" <?= $page['statusFilter'] === 'active' ? 'selected' : '' ?>>Activos</option><option value="archived" <?= $page['statusFilter'] === 'archived' ? 'selected' : '' ?>>Archivados</option></select></label>
         <button class="contact-button" type="submit">Filtrar</button><a class="contact-button" href="index.php">Limpiar</a>

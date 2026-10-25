@@ -81,6 +81,13 @@ try {
     $r=authTestRequest($s,'/modules/ajustes/empresa.php',$cookie);mcCheck($r[0]===200&&str_contains($r[1],'Nueva empresa'),'No abrió la administración de empresas.');
     $csrf=authTestToken($r[1]);preg_match('/name="company_scope" value="([a-f0-9]+)"/',$r[1],$scope);
     mcCheck(authTestRequest($s,'/empresas.php',$cookie,['csrf'=>$csrf,'companies'=>[1,$second],'active_company'=>$second])[0]===303,'No cambió la selección.');
+    $settings=authTestRequest($s,'/modules/ajustes/index.php',$cookie);
+    mcCheck($settings[0]===200,'No abrieron los ajustes generales de la empresa activa.');
+    $settingsDom=new DOMDocument();libxml_use_internal_errors(true);$settingsDom->loadHTML('<?xml encoding="UTF-8">'.$settings[1]);$settingsXpath=new DOMXPath($settingsDom);libxml_clear_errors();
+    $editCompany=$settingsXpath->query('//a[normalize-space(.)="Editar empresa"]')->item(0);
+    mcCheck($editCompany instanceof DOMElement&&$editCompany->getAttribute('href')==='empresa.php?id='.$second,'Editar empresa no apunta a la empresa mostrada en Ajustes generales.');
+    $companyForm=authTestRequest($s,'/modules/ajustes/'.$editCompany->getAttribute('href'),$cookie);
+    mcCheck($companyForm[0]===200&&str_contains($companyForm[1],'data-company-form')&&str_contains($companyForm[1],'Segunda empresa de prueba'),'El acceso desde Ajustes generales no abre la ficha correcta.');
     $r=authTestRequest($s,'/modules/contactos/index.php',$cookie);mcCheck($r[0]===200,'No abrió la consulta conjunta.');
     mcCheck(str_contains($r[1],'Segunda empresa de prueba')&&str_contains($r[1],'>Empresa</th>'),'El listado no identifica las empresas.');
     $r=authTestRequest($s,'/modules/contactos/index.php?id='.$other,$cookie);mcCheck($r[0]===200&&str_contains($r[1],'Control del registro'),'La ficha no muestra auditoría.');

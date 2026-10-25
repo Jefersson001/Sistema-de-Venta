@@ -125,8 +125,8 @@ function renderContactsPage(bool $isConfiguration = false): void
             $where = ['c.active = :active',permissionWhere('contactos.contacts','c')];
             $params = ['active' => $page['statusFilter'] === 'active' ? 1 : 0];
             if ($page['search'] !== '') {
-                $where[] = '(c.name LIKE :name OR c.tax_id LIKE :tax OR c.email LIKE :email OR CONCAT(d.code, \'-\', c.tax_id) LIKE :document)';
-                foreach (['name', 'tax', 'email', 'document'] as $key) {
+                $where[] = '(c.name LIKE :name OR c.tax_id LIKE :tax OR c.email LIKE :email OR c.phone LIKE :phone OR c.mobile LIKE :mobile OR CONCAT(d.code, \'-\', c.tax_id) LIKE :document)';
+                foreach (['name', 'tax', 'email', 'phone', 'mobile', 'document'] as $key) {
                     $params[$key] = '%' . $page['search'] . '%';
                 }
             }

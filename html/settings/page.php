@@ -22,7 +22,7 @@
                             <?php if($record['has_logo']): ?><img class="company-logo" src="logo.php?v=<?= (int)$record['version'] ?>" alt="Logo de <?= $e($record['name']) ?>"><?php endif; ?>
                             <div><strong><?= $e($record['name']?:'Configura tu empresa') ?></strong><p class="section-subtitle"><?= $e($record['legal_name']?:'Identidad del negocio') ?></p>
                                 <?php if($page['currencies']): ?><p class="section-subtitle">Principal: <?= $e($page['currencies']['primary_code']) ?> · Alterna: <?= $e($page['currencies']['alternate_code']) ?></p><?php endif; ?>
-                            </div><a class="contact-button" href="empresa.php?id=1">Editar empresa</a>
+                            </div><a class="contact-button" href="empresa.php?id=<?= (int)$record['id'] ?>">Editar empresa</a>
                         </div>
                     <?php endif; ?>
                     <div class="catalog-options">
