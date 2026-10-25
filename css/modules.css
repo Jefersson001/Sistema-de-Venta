@@ -320,4 +320,6 @@
 /* Shared model actions, in both tree and form views. */
 .record-selectable-card{display:flex;gap:12px;align-items:center}.record-selectable-card>a{flex:1}.record-selectable-card>input{width:18px;height:18px;accent-color:#137080}
 .restaurant-heading:has(.transfer-menu){flex-wrap:wrap}
+.contact-table .record-edit-actions{width:1%;white-space:nowrap;text-align:right}
+.record-edit-actions .record-edit-link{margin-left:8px;white-space:nowrap}
 .record-pagination{display:flex;gap:6px;margin-left:auto;flex-wrap:wrap}.record-pagination [aria-disabled=true]{opacity:.45;cursor:default}.record-selection{width:42px!important;min-width:42px;text-align:center!important}.record-selection input{width:17px;height:17px;accent-color:#137080;cursor:pointer}.record-delete-link{color:#b33d50!important}.record-delete-button{background:#b13d50!important;color:white!important;border-color:#b13d50!important}.record-confirmation{max-width:760px;margin:50px auto}.record-confirmation li{padding:5px}.record-confirmation h1{margin-bottom:20px}
