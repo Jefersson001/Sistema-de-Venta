@@ -88,6 +88,8 @@ try {
     mcCheck($editCompany instanceof DOMElement&&$editCompany->getAttribute('href')==='empresa.php?id='.$second,'Editar empresa no apunta a la empresa mostrada en Ajustes generales.');
     $companyForm=authTestRequest($s,'/modules/ajustes/'.$editCompany->getAttribute('href'),$cookie);
     mcCheck($companyForm[0]===200&&str_contains($companyForm[1],'data-company-form')&&str_contains($companyForm[1],'Segunda empresa de prueba'),'El acceso desde Ajustes generales no abre la ficha correcta.');
+    $companyDom=new DOMDocument();$companyDom->loadHTML('<?xml encoding="UTF-8">'.$companyForm[1]);$companyXpath=new DOMXPath($companyDom);
+    mcCheck($companyXpath->query('//*[@data-model-options="companies"]//a[normalize-space(.)="Eliminar" and contains(@href,"#company-delete")]')->length===1&&$companyXpath->query('//details[@id="company-delete"]//input[@name="confirmation"]')->length===1,'El menú Eliminar no abre el procedimiento de confirmación de empresa.');
     $r=authTestRequest($s,'/modules/contactos/index.php',$cookie);mcCheck($r[0]===200,'No abrió la consulta conjunta.');
     mcCheck(str_contains($r[1],'Segunda empresa de prueba')&&str_contains($r[1],'>Empresa</th>'),'El listado no identifica las empresas.');
     $r=authTestRequest($s,'/modules/contactos/index.php?id='.$other,$cookie);mcCheck($r[0]===200&&str_contains($r[1],'Control del registro'),'La ficha no muestra auditoría.');

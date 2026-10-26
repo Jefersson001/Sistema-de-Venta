@@ -71,6 +71,45 @@ function authEnsureAdministratorRemains(PDO $db): void
     if(!(int)$count)throw new InvalidArgumentException('Debe quedar al menos un usuario Administrador activo.');
 }
 
+function authCheckUserDeletion(PDO $db,int $id,int $actor): void
+{
+    authRequireAdminActor($db,$actor);
+    if(!authUserIsAdministrator($db,$actor))throw new InvalidArgumentException('Solo un Administrador puede eliminar usuarios.',403);
+    if($id===$actor)throw new InvalidArgumentException('No puedes eliminar tu propia cuenta. Inicia sesión con otro Administrador.');
+    if(authUserIsAdministrator($db,$id)){
+        $q=$db->prepare("SELECT COUNT(DISTINCT u.id) FROM auth_users u JOIN auth_user_groups ug ON ug.user_id=u.id
+            JOIN access_groups g ON g.id=ug.group_id WHERE u.id<>? AND u.active=1 AND g.active=1 AND g.system_key='administrator'");
+        $q->execute([$id]);if(!(int)$q->fetchColumn())throw new InvalidArgumentException('Debe quedar al menos un usuario Administrador activo.');
+    }
+}
+
+/** Remove a global login without deleting its contacts, documents or operations. */
+function deleteAuthUser(PDO $db,int $id,int $version,int $actor): void
+{
+    $own=!$db->inTransaction();if($own)$db->beginTransaction();
+    try{
+        // Same lock order as user/group administration, also inside bulk actions.
+        authLockState($db);authCheckUserDeletion($db,$id,$actor);
+        $q=$db->prepare('SELECT id,version FROM auth_users WHERE id=? FOR UPDATE');$q->execute([$id]);$user=$q->fetch();
+        if(!$user)throw new InvalidArgumentException('El usuario ya no existe.',404);
+        if((int)$user['version']!==$version)throw new InvalidArgumentException('El usuario cambió. Abre de nuevo la confirmación.',409);
+        $q=$db->prepare('SELECT company_id FROM company_user_access WHERE user_id=? ORDER BY company_id');$q->execute([$id]);$companies=array_map('intval',$q->fetchAll(PDO::FETCH_COLUMN));
+        $db->prepare('DELETE FROM auth_user_groups WHERE user_id=?')->execute([$id]);
+        $db->prepare('DELETE FROM company_user_access WHERE user_id=?')->execute([$id]);
+        // Audit author references already use ON DELETE SET NULL. Mandatory
+        // historical references (e.g. a restaurant waiter) remain protected by FKs.
+        $db->prepare('DELETE FROM auth_users WHERE id=?')->execute([$id]);
+        authEnsureAdministratorRemains($db);
+        if($db instanceof CompanyConnection)$db->markCompanyAccessChanged($companies);
+        else{$q=$db->prepare('UPDATE business_company SET version=version+1 WHERE id=?');foreach($companies as $company)$q->execute([$company]);}
+        if($own)$db->commit();
+    }catch(Throwable $e){
+        if($own&&$db->inTransaction())$db->rollBack();
+        if($e instanceof PDOException&&(int)($e->errorInfo[1]??0)===1451)throw new InvalidArgumentException('Este usuario tiene actividad histórica que requiere conservar su cuenta. No se eliminó el usuario ni sus accesos. Desmarca Activo en su ficha para retirarle el acceso.');
+        throw $e;
+    }
+}
+
 function saveAuthUser(PDO $db,array $input,?int $id,?int $version,int $actor,?string $creationKey=null): int
 {
     if(!$id&&(!$creationKey||!preg_match('/^[a-f0-9]{64}$/D',$creationKey)))throw new InvalidArgumentException('La solicitud de creación no es válida.');

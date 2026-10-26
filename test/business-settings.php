@@ -87,7 +87,8 @@ try {
     [$status,$html]=settingsRequest('modules/ajustes/empresa.php',$cookie);
     settingsCheck($status===200&&str_contains($html,'<table')&&!str_contains($html,'data-company-form'),'No se separan listado y formulario de Empresa.');
     [$status,$html]=settingsRequest('modules/ajustes/empresa.php?id=1',$cookie);
-    settingsCheck($status===200&&str_contains($html,'data-company-form')&&str_contains($html,'Usuarios autorizados'),'No se abre la ficha de Empresa con sus accesos.');
+    settingsCheck($status===200&&str_contains($html,'data-company-form')&&str_contains($html,'Guardar empresa'),'No se abre el formulario de Empresa.');
+    settingsCheck(!str_contains($html,'Usuarios autorizados')&&!str_contains($html,'company_contacts[')&&!str_contains($html,'Guardar accesos'),'La ficha de Empresa todavía muestra relaciones de usuarios o contactos.');
     preg_match('/name="csrf" value="([a-f0-9]+)"/',$html,$token); settingsCheck(!empty($token[1]),'No hay protección del formulario.');
     [$status]=settingsRequest('modules/ajustes/empresa.php?id=1',$cookie,['action'=>'save_company','csrf'=>'wrong','version'=>(string)$before['version'],'name'=>'No guardar']);
     settingsCheck($status===403,'Se acepta un guardado sin CSRF.');

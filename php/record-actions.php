@@ -4,13 +4,15 @@ require_once __DIR__.'/transfer-service.php';
 
 function recordActionPermission(array $m,string $action): string
 {
+    if($m['key']==='users'&&$action==='delete')return 'edit';
     return str_ends_with($m['resource'],'.configuration')?'configure':($action==='delete'?'delete':($m['save']==='invoices'?'duplicate':'create'));
 }
 
 function recordActionSupported(array $m,string $action): bool
 {
     if($m['save']==='readonly'||!empty($m['singleton'])||!empty($m['create_only']))return false;
-    if(in_array($m['key'],['companies','users','currency_settings'],true))return false;
+    if($m['key']==='users')return $action==='delete';
+    if(in_array($m['key'],['companies','currency_settings'],true))return false;
     if($action==='duplicate')return !in_array($m['key'],['groups','currencies','types','document_types'],true);
     return true;
 }
@@ -27,12 +29,18 @@ function recordActionSnapshot(PDO $db,array $m,array $row): string
 {
     $lines=[];
     if(isset($m['line_table'])){$q=$db->prepare('SELECT * FROM '.$m['line_table'].' WHERE '.$m['line_fk'].'=? ORDER BY id');$q->execute([$row['id']]);$lines=$q->fetchAll();}
-    return hash('sha256',json_encode([$row,$lines],JSON_THROW_ON_ERROR));
+    $snapshot=[$row,$lines];
+    if($m['key']==='users'){
+        $q=$db->prepare('SELECT group_id FROM auth_user_groups WHERE user_id=? ORDER BY group_id');$q->execute([$row['id']]);$snapshot[]=$q->fetchAll();
+        $q=$db->prepare('SELECT company_id,contact_id FROM company_user_access WHERE user_id=? ORDER BY company_id');$q->execute([$row['id']]);$snapshot[]=$q->fetchAll();
+    }
+    return hash('sha256',json_encode($snapshot,JSON_THROW_ON_ERROR));
 }
 
 /** Foreign keys remain the final authority, including references added by future modules. */
 function recordCheckDelete(PDO $db,array $m,array $row): void
 {
+    if($m['key']==='users')authCheckUserDeletion($db,(int)$row['id'],(int)permissionUser()['id']);
     if(isset($row['status'])&&$row['status']!=='draft')throw new InvalidArgumentException('Solo se eliminan borradores. Este documento debe cancelarse o revertirse desde su ficha.');
     if(!empty($row['system_key'])||!empty($row['is_system']))throw new InvalidArgumentException('Este registro forma parte de la configuración del sistema y no se puede eliminar.');
     if($m['key']==='currencies'){
@@ -46,6 +54,7 @@ function recordCheckDelete(PDO $db,array $m,array $row): void
 function recordDeleteRow(PDO $db,array $m,array $row): void
 {
     recordCheckDelete($db,$m,$row);
+    if($m['key']==='users'){deleteAuthUser($db,(int)$row['id'],(int)$row['version'],(int)permissionUser()['id']);return;}
     if($m['key']==='groups')$db->prepare('DELETE FROM access_group_permissions WHERE group_id=?')->execute([$row['id']]);
     if(isset($m['line_table'])){
         $db->prepare('DELETE FROM '.$m['line_table'].' WHERE '.$m['line_fk'].'=?')->execute([$row['id']]);
@@ -105,6 +114,11 @@ function recordApplyAction(PDO $db,array $m,string $action,array $snapshots,stri
     if(!method_exists($db,'atomicTransfer'))throw new LogicException('Se requiere la conexión transaccional de la aplicación.');
     $hash=hash('sha256',json_encode([$m['key'],$action,$snapshots],JSON_THROW_ON_ERROR));$actor=(int)permissionUser()['id'];
     return $db->atomicTransfer(function()use($db,$m,$action,$snapshots,$key,$hash,$actor){
+        if($m['key']==='users'){
+            authLockState($db);
+            authRequireAdminActor($db,$actor);
+            if(!authUserIsAdministrator($db,$actor))throw new InvalidArgumentException('Solo un Administrador puede eliminar usuarios.',403);
+        }
         $q=$db->prepare('SELECT * FROM business_record_actions WHERE request_key=? FOR UPDATE');$q->execute([$key]);$previous=$q->fetch();
         if($previous){if(!hash_equals($previous['payload_hash'],$hash)||(int)$previous['created_by']!==$actor)throw new InvalidArgumentException('La solicitud corresponde a otra acción.',409);return json_decode($previous['result_json'],true,512,JSON_THROW_ON_ERROR);}
         $result=[];$details=[];ksort($snapshots,SORT_NUMERIC);
@@ -114,6 +128,7 @@ function recordApplyAction(PDO $db,array $m,string $action,array $snapshots,stri
             if(isset($row['company_id'])&&(int)$row['company_id']!==companyActiveId())throw new InvalidArgumentException('Activa la empresa del registro antes de modificarlo.',409);
             if(!is_string($snapshot)||!hash_equals(recordActionSnapshot($db,$m,$row),$snapshot))throw new InvalidArgumentException('Un registro cambió después de abrir la confirmación. Revisa la selección nuevamente.',409);
             $details[]=['id'=>$id,'name'=>$row['name']??$row['code']??(string)$id,'snapshot'=>$snapshot];
+            if($m['key']==='users')$details[array_key_last($details)]['login']=$row['login'];
             if($action==='delete'){recordDeleteRow($db,$m,$row);$result[]=$id;}
             else $result[]=recordDuplicateRow($db,$m,$row,$key);
         }
@@ -147,6 +162,7 @@ function renderRecordActions(): void
         require_once __DIR__.'/document-print.php';renderBusinessDocument($db,$m,accessId($filters['id']??null),$source);return;
     }
     if(!recordActionSupported($m,$action))authStop(400,'Este registro se conserva por seguridad. Usa Archivar, Cancelar o el procedimiento específico de su módulo.');
+    if($m['admin']&&!permissionUser()['administrator'])authStop(403,'Esta acción requiere un administrador.');
     if(!permissionHas($m['resource'],recordActionPermission($m,$action)))authStop(403,'Tu grupo no permite esta acción.');
     if(!in_array($_SERVER['REQUEST_METHOD'],['GET','POST'],true)){header('Allow: GET, POST');authStop(405,'Método no admitido.');}
     $_SESSION['record_actions']??=[];

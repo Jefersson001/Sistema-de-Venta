@@ -1,4 +1,11 @@
 (() => {
+    const revealCompanyDeletion = () => {
+        if (location.hash !== '#company-delete') return;
+        const section = document.getElementById('company-delete');
+        if (section?.matches('details')) section.open = true;
+    };
+    window.addEventListener('hashchange', revealCompanyDeletion);
+    revealCompanyDeletion();
     document.addEventListener('change', event => {
         if (!event.target.matches('[data-record-select-all]')) return;
         for (const input of event.target.closest('table').querySelectorAll('[data-record-select]')) input.checked = event.target.checked;

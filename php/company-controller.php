@@ -16,7 +16,7 @@ function renderCompanies(): void
     $page=['area'=>'company','available'=>true,'errors'=>[],'databaseStatus'=>getDatabaseStatus(),
         'csrf'=>$_SESSION['auth_csrf'],'view'=>$new||$id?'form':'list','record'=>[],
         'rows'=>companyAvailable($db,$user),'administrator'=>(bool)$user['administrator'],
-        'flash'=>$_SESSION['settings_flash']??null,'impact'=>[],'companyUsers'=>[],'userRows'=>[],'userContacts'=>[],'contacts'=>[]];
+        'flash'=>$_SESSION['settings_flash']??null,'impact'=>[]];
     unset($_SESSION['settings_flash']);
     if(!in_array($_SERVER['REQUEST_METHOD'],['GET','POST'],true)){header('Allow: GET, POST');authStop(405,'Método no admitido.');}
     if($new&&!$user['administrator'])authStop(403,'Solo un Administrador puede crear empresas.');
@@ -48,10 +48,6 @@ function renderCompanies(): void
     catch(Throwable $e){error_log('Empresas: '.$e->getMessage());http_response_code(503);$page['errors'][]='No se pudo completar la operación de empresa. No se confirmaron cambios.';}
     if($id&&$user['administrator']) {
         $page['impact']=companyImpact($db,$id);
-        $q=$db->prepare('SELECT user_id FROM company_user_access WHERE company_id=?');$q->execute([$id]);$page['companyUsers']=array_map('intval',$q->fetchAll(PDO::FETCH_COLUMN));
-        $q=$db->prepare('SELECT user_id,contact_id FROM company_user_access WHERE company_id=?');$q->execute([$id]);$page['userContacts']=$q->fetchAll(PDO::FETCH_KEY_PAIR);
-        $q=$db->prepare("SELECT c.id,c.name FROM contacts c JOIN contact_types t ON t.id=c.type_id WHERE c.company_id=? AND t.system_key='salesperson' ORDER BY c.name,c.id");$q->execute([$id]);$page['contacts']=$q->fetchAll();
-        $page['userRows']=$db->query('SELECT id,name,login,active FROM auth_users ORDER BY name,id')->fetchAll();
     }
     renderModulePage('ajustes',false,$page);
 }
