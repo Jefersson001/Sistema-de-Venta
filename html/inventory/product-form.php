@@ -3,7 +3,7 @@ $record = $page['record'];
 $editing = isset($record['id']);
 $commissionPreviewPrice=preg_match('/^[0-9]{1,10}(\.[0-9]{1,2})?$/',(string)($record['sale_price']??'0')) ? (string)($record['sale_price']??'0') : '0';
 $commissionPreviewUnit=productCommissionUnit($commissionPreviewPrice,$record['commission_type']??'none',$record['commission_value']??'0')??'0.00';
-$tabs = ['general' => 'Información general', 'variants' => 'Variantes', 'sales' => 'Ventas',
+$tabs = ['general' => 'Información general', 'details' => 'Características', 'variants' => 'Variantes', 'sales' => 'Ventas',
     'purchases' => 'Compras', 'inventory' => 'Inventario', 'accounting' => 'Contabilidad'];
 $isVariant=($page['variantCreation']??false)||!empty($record['parent_product_id']);
 $backUrl=$isVariant?'variantes.php'.(!empty($record['parent_product_id'])?'?parent_id='.(int)$record['parent_product_id']:''):'index.php';
@@ -66,6 +66,17 @@ $indicatorViews = ['on-hand' => 'stock', 'sold' => 'sold', 'purchased' => 'purch
                             <select name="category_id"><option value="">Sin categoría</option><?php foreach ($page['categories'] as $category): ?><option value="<?= (int) $category['id'] ?>" <?= (int) ($record['category_id'] ?? 0) === (int) $category['id'] ? 'selected' : '' ?>><?= inventoryEscape(inventoryCategoryPath($page['categories'], $category)) ?></option><?php endforeach; ?></select>
                         </label>
                     </div>
+                <?php elseif ($key==='details'): ?>
+                    <h2 class="notebook-page-title">Características del producto</h2>
+                    <p class="section-subtitle">Todos los campos son opcionales. Completa únicamente los que correspondan al artículo. Cada variante conserva sus propios valores.</p>
+                    <div class="contact-form-grid">
+                        <label>Código de barras<input type="text" name="barcode" maxlength="100" value="<?= inventoryEscape($record['barcode']??'') ?>" autocomplete="off" spellcheck="false"><small>Único entre productos y variantes de esta empresa. Conserva los ceros iniciales.</small></label>
+                        <label>Color<input type="text" name="color" maxlength="80" value="<?= inventoryEscape($record['color']??'') ?>" placeholder="Ej. Azul marino"></label>
+                        <?php foreach(['weight_kg'=>'Peso (kg)','width_cm'=>'Ancho (cm)','height_cm'=>'Alto (cm)','depth_cm'=>'Profundidad / fondo (cm)'] as $field=>$label): ?>
+                            <label><?= $label ?><input type="text" name="<?= $field ?>" inputmode="decimal" maxlength="11" value="<?= inventoryEscape($record[$field]??'') ?>" placeholder="Opcional"></label>
+                        <?php endforeach; ?>
+                    </div>
+                    <p class="section-subtitle">Peso por unidad en kilogramos; dimensiones por unidad en centímetros. Admite valores no negativos con hasta dos decimales. Déjalos vacíos si no aplican.</p>
                 <?php elseif ($key==='variants'): ?>
                     <?php if($isVariant): ?><h2 class="notebook-page-title">Variantes del producto principal</h2><p class="section-subtitle">Esta ficha pertenece a una variante. Las variantes de la familia se gestionan desde el producto principal.</p><?php if(!empty($record['parent_product_id'])): ?><a class="contact-button" href="index.php?id=<?= (int)$record['parent_product_id'] ?>#product-page-variants">Ver variantes del principal</a><?php endif; ?><?php else: ?>
                     <div class="contact-toolbar"><div><h2 class="notebook-page-title">Variantes del producto</h2><p class="section-subtitle">Escribe el nombre completo de cada variante. Cada una tiene su propio precio y existencias.</p></div><?php if($editing): ?><a class="contact-button contact-button-primary" href="variantes.php?new=1&amp;parent_id=<?= (int)$record['id'] ?>">+ Nueva variante</a><?php endif; ?></div>

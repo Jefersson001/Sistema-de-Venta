@@ -58,11 +58,11 @@ try {
     foreach ($xpath->query('//*[@data-notebook-tabs]/a') as $tab) {
         $tabs[] = trim($tab->textContent);
     }
-    expectProduct($tabs === ['Información general', 'Variantes', 'Ventas', 'Compras', 'Inventario', 'Contabilidad'], 'El orden de las pestañas no es correcto.');
+    expectProduct($tabs === ['Información general', 'Características', 'Variantes', 'Ventas', 'Compras', 'Inventario', 'Contabilidad'], 'El orden de las pestañas no es correcto.');
     $pages = $xpath->query('//*[@data-notebook-page]');
-    expectProduct($pages->length === 6, 'Faltan páginas del notebook.');
+    expectProduct($pages->length === 7, 'Faltan páginas del notebook.');
     foreach ($pages as $page) {
-        if (!in_array($page->getAttribute('id'),['product-page-general','product-page-variants','product-page-sales','product-page-purchases'],true)) {
+        if (!in_array($page->getAttribute('id'),['product-page-general','product-page-details','product-page-variants','product-page-sales','product-page-purchases'],true)) {
             expectProduct(trim($page->textContent) === '' && $page->childNodes->length === 0, 'Una pestaña pendiente no está vacía.');
         }
     }

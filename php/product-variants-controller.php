@@ -19,11 +19,11 @@ function renderInventoryVariants(): void
             $page['search']=is_string($_GET['q']??null)?mb_substr(trim($_GET['q']),0,160):'';
             $where=' WHERE v.parent_product_id IS NOT NULL';$parameters=[];
             if($page['parentId']){$where.=' AND v.parent_product_id=?';$parameters[]=$page['parentId'];}
-            if($page['search']!==''){$where.=' AND (v.name LIKE ? OR p.name LIKE ?)';$parameters[]='%'.$page['search'].'%';$parameters[]='%'.$page['search'].'%';}
+            if($page['search']!==''){$where.=' AND (v.name LIKE ? OR p.name LIKE ? OR v.barcode LIKE ?)';$parameters[]='%'.$page['search'].'%';$parameters[]='%'.$page['search'].'%';$parameters[]='%'.$page['search'].'%';}
             $from=' FROM inventory_products v JOIN inventory_products p ON p.id=v.parent_product_id';
             $q=$db->prepare('SELECT COUNT(*)'.$from.$where);$q->execute($parameters);$page['total']=(int)$q->fetchColumn();
             $page['pages']=max(1,(int)ceil($page['total']/20));$page['currentPage']=min(inventoryId($_GET['page']??null)??1,$page['pages']);
-            $q=$db->prepare('SELECT v.id,v.name,v.parent_product_id,v.sale_price,v.currency_code,p.name AS parent_name'.$from.$where.' ORDER BY p.name,v.name,v.id LIMIT 20 OFFSET '.(($page['currentPage']-1)*20));
+            $q=$db->prepare('SELECT v.id,v.name,v.barcode,v.parent_product_id,v.sale_price,v.currency_code,p.name AS parent_name'.$from.$where.' ORDER BY p.name,v.name,v.id LIMIT 20 OFFSET '.(($page['currentPage']-1)*20));
             $q->execute($parameters);$page['variants']=$q->fetchAll();
         }
     }catch(InvalidArgumentException $e){http_response_code(in_array($e->getCode(),[403,404,409],true)?$e->getCode():422);$page['errors'][]=$e->getMessage();if($page['view']==='list'||in_array($e->getCode(),[403,404],true))$page['available']=false;}

@@ -39,7 +39,7 @@ function renderInventoryProducts(bool $variantCreation=false): void
             if($parentValue!==null&&$parentValue!==''&&!$parentId)throw new InvalidArgumentException('Selecciona un producto principal válido.');
             if($parentId){
                 $parent=inventoryProductParent($db,$parentId);
-                $page['record']=array_intersect_key($parent,array_flip(['name','sale_enabled','purchase_enabled','sale_price','category_id','purchase_tax_id','sale_tax_id','product_type','invoice_policy','cost_price','currency_code','commission_type','commission_value']));
+                $page['record']=array_intersect_key($parent,array_flip(['name','sale_enabled','purchase_enabled','sale_price','category_id','purchase_tax_id','sale_tax_id','product_type','invoice_policy','cost_price','currency_code','commission_type','commission_value','color','weight_kg','width_cm','height_cm','depth_cm']));
                 $page['record']['parent_product_id']=$parentId;
             }
         }
@@ -52,7 +52,7 @@ function renderInventoryProducts(bool $variantCreation=false): void
             $page['errors'][] = 'El producto solicitado no existe.';
         }
         if ($id) {
-            $statement = $db->prepare('SELECT id, name, sale_enabled, purchase_enabled, sale_price, category_id, purchase_tax_id, sale_tax_id, product_type, invoice_policy, cost_price, currency_code, commission_type, commission_value,parent_product_id FROM inventory_products WHERE id = ?');
+            $statement = $db->prepare('SELECT id, name, sale_enabled, purchase_enabled, sale_price, category_id, purchase_tax_id, sale_tax_id, product_type, invoice_policy, cost_price, currency_code, commission_type, commission_value,parent_product_id,barcode,color,weight_kg,width_cm,height_cm,depth_cm FROM inventory_products WHERE id = ?');
             $statement->execute([$id]);
             $page['record'] = $statement->fetch() ?: [];
             if (! $page['record']) {
@@ -94,6 +94,7 @@ function renderInventoryProducts(bool $variantCreation=false): void
                         if($supplier||!in_array($price,['','0','0.00'],true))$page['supplierPrices'][]=['supplier_id'=>$supplier,'price'=>$price];
                     }
                 }
+                foreach(inventoryProductDetailFields() as $field=>$label)if(!array_key_exists($field,$_POST))$_POST[$field]=$page['record'][$field]??null;
                 $input=$_POST;$input['currency_code']??=$page['record']['currency_code']??$page['settings']['primary_code'];
                 $input['parent_product_id']=$page['record']['parent_product_id']??null;
                 if($variantCreation&&!$input['parent_product_id'])$page['errors'][]='Selecciona el producto principal de la variante.';
@@ -132,15 +133,15 @@ function renderInventoryProducts(bool $variantCreation=false): void
         }
         if ($page['view'] === 'list' && $page['available']) {
             $page['search'] = is_string($_GET['q'] ?? null) ? mb_substr(trim($_GET['q']), 0, 160, 'UTF-8') : '';
-            $where = ' WHERE p.parent_product_id IS NULL'.($page['search'] !== '' ? ' AND p.name LIKE :search' : '');
-            $params = $page['search'] !== '' ? ['search' => '%' . $page['search'] . '%'] : [];
+            $where = ' WHERE p.parent_product_id IS NULL'.($page['search'] !== '' ? ' AND (p.name LIKE :search OR p.barcode LIKE :barcode_search)' : '');
+            $params = $page['search'] !== '' ? ['search' => '%' . $page['search'] . '%', 'barcode_search' => '%' . $page['search'] . '%'] : [];
             $count = $db->prepare('SELECT COUNT(*) FROM inventory_products p' . $where);
             $count->execute($params);
             $page['total'] = (int) $count->fetchColumn();
             $page['pages'] = max(1, (int) ceil($page['total'] / 20));
             $page['currentPage'] = min(inventoryId($_GET['page'] ?? null) ?? 1, $page['pages']);
             $offset = ($page['currentPage'] - 1) * 20;
-            $list = $db->prepare('SELECT p.id,p.name,p.sale_enabled,p.purchase_enabled,(SELECT COUNT(*) FROM inventory_products v WHERE v.parent_product_id=p.id) AS variants_count FROM inventory_products p'
+            $list = $db->prepare('SELECT p.id,p.name,p.barcode,p.sale_enabled,p.purchase_enabled,(SELECT COUNT(*) FROM inventory_products v WHERE v.parent_product_id=p.id) AS variants_count FROM inventory_products p'
                 . $where . ' ORDER BY p.name,p.id LIMIT 20 OFFSET ' . $offset);
             $list->execute($params);
             $page['products'] = $list->fetchAll();
