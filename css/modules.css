@@ -323,3 +323,29 @@
 .contact-table .record-edit-actions{width:1%;white-space:nowrap;text-align:right}
 .record-edit-actions .record-edit-link{margin-left:8px;white-space:nowrap}
 .record-pagination{display:flex;gap:6px;margin-left:auto;flex-wrap:wrap}.record-pagination [aria-disabled=true]{opacity:.45;cursor:default}.record-selection{width:42px!important;min-width:42px;text-align:center!important}.record-selection input{width:17px;height:17px;accent-color:#137080;cursor:pointer}.record-delete-link{color:#b33d50!important}.record-delete-button{background:#b13d50!important;color:white!important;border-color:#b13d50!important}.record-confirmation{max-width:760px;margin:50px auto}.record-confirmation li{padding:5px}.record-confirmation h1{margin-bottom:20px}
+.sales-new-customer { display: flex; align-items: center; flex-wrap: wrap; gap: 12px; margin: 0 0 16px; }
+.module-workspace .sales-new-customer label { display: inline-flex; flex-direction: row; align-items: center; gap: 8px; margin: 0; }
+.sales-new-customer input[type="checkbox"] { width: 18px; height: 18px; accent-color: #137080; }
+.sales-new-customer [hidden] { display: none; }
+.sales-customer-dialog { box-sizing: border-box; width: min(1050px, calc(100vw - 24px)); height: min(850px, calc(100dvh - 24px)); max-width: none; max-height: none; padding: 0; border: 1px solid #b8cbd6; border-radius: 12px; background: #f5f7fb; }
+.sales-customer-dialog::backdrop { background: #132c3a99; }
+.sales-customer-dialog[open] { display: flex; flex-direction: column; }
+.sales-customer-dialog-header { display: flex; justify-content: space-between; align-items: center; gap: 12px; padding: 12px 18px; border-bottom: 1px solid #dce6ed; background: white; }
+.sales-customer-dialog-header h2 { margin: 0; font-size: 20px; }
+.sales-customer-dialog > p { margin: 8px 18px; }
+.sales-customer-dialog iframe { width: 100%; flex: 1; min-height: 0; border: 0; background: #f5f7fb; }
+.contact-sales-wizard .top-navigation, .contact-sales-wizard .module-navigation, .contact-sales-wizard .back-link, .contact-sales-wizard .overview-link, .contact-sales-wizard .contact-form-actions a, .contact-sales-wizard [data-contact-location] .inline-link { display: none; }
+.contact-sales-wizard .page-content { padding: 16px; }
+.contact-attachment-list { display: grid; gap: 12px; }
+.contact-attachment-row, .contact-attachment-upload { display: flex; flex-wrap: wrap; align-items: center; gap: 16px; padding: 14px; margin-bottom: 12px; border: 1px solid #dfe7ed; border-radius: 8px; }
+.contact-attachment-thumbnail { display: block; width: 64px; height: 64px; border-radius: 6px; object-fit: cover; }
+.contact-attachment-info { flex: 1 1 160px; min-width: 0; overflow-wrap: anywhere; }
+.contact-attachment-info p { margin: 4px 0; }
+.contact-attachment-kind { font-size: 12px; color: #526775; }
+.contact-attachment-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
+.module-workspace .contact-sheet .contact-attachment-remove { display: inline-flex; flex-direction: row; align-items: center; }
+.contact-attachment-remove input { width: 18px; height: 18px; }
+.contact-attachment-row:has(.contact-attachment-remove input:checked) { opacity: .55; }
+.contact-attachment-upload > label { flex: 1 1 220px; min-width: 0; }
+.contact-attachment-upload input { max-width: 100%; }
+@media (max-width: 600px) { .contact-attachment-upload > label { flex-basis: 100%; } }

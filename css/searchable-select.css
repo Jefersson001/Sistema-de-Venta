@@ -1,0 +1,13 @@
+.searchable-select { display: block; position: relative; min-width: 0; width: 100%; }
+.searchable-select::after { content: '\2304'; position: absolute; right: 12px; top: 10px; pointer-events: none; color: #526775; }
+.searchable-select .searchable-select-native { position: absolute !important; width: 1px !important; height: 1px !important; padding: 0 !important; margin: 0 !important; clip-path: inset(50%); overflow: hidden; border: 0 !important; }
+.module-workspace .searchable-select .searchable-select-input { width: 100%; min-width: 0; padding-right: 32px; text-overflow: ellipsis; cursor: text; }
+.module-workspace .document-controls > .searchable-select { width: 84px; flex: 0 0 84px; }
+.module-workspace .document-controls > input { width: 0; min-width: 0; flex: 1 1 0; }
+.searchable-select-popup { position: fixed; box-sizing: border-box; z-index: 10000; overflow: auto; overscroll-behavior: contain; background: #fff; border: 1px solid #9eb6c4; border-radius: 8px; box-shadow: 0 8px 24px #16384c26; padding: 4px; color: #193747; font: 14px/1.4 system-ui, sans-serif; }
+.searchable-select-popup[hidden] { display: none; }
+.searchable-select-option { padding: 10px 12px; border-radius: 4px; cursor: pointer; overflow-wrap: anywhere; }
+.searchable-select-option:hover, .searchable-select-option.is-active { background: #e4f2f6; color: #155e75; outline: 1px solid #b5d9e4; outline-offset: -1px; }
+.searchable-select-option[aria-selected="true"] { font-weight: 700; }
+.searchable-select-status { padding: 8px 12px; color: #526775; font-size: 12px; border-top: 1px solid #e1e8ed; }
+@media (max-width: 600px) { .searchable-select-option { min-height: 44px; box-sizing: border-box; } }

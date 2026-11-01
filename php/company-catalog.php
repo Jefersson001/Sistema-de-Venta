@@ -40,7 +40,7 @@ function companyResourceTable(string $resource): ?string
 function companyTableLabel(string $table): string
 {
     return [
-        'contacts'=>'Contactos','inventory_products'=>'Productos','inventory_categories'=>'Categorías',
+        'contacts'=>'Contactos','contact_attachments'=>'Fotos y documentos de contactos','inventory_products'=>'Productos','inventory_categories'=>'Categorías',
         'inventory_warehouses'=>'Almacenes','inventory_locations'=>'Ubicaciones','inventory_operations'=>'Operaciones de inventario',
         'inventory_operation_lines'=>'Líneas de inventario','inventory_stock'=>'Existencias','inventory_stock_moves'=>'Movimientos de existencias',
         'inventory_reservations'=>'Reservas','product_supplier_prices'=>'Precios de proveedores','business_taxes'=>'Impuestos',
@@ -67,7 +67,7 @@ function companyRouteTable(string $path,array $query): ?string
     };
     return match($route){
         'restaurante/cuenta.php','restaurante/comprobante.php'=>'restaurant_accounts','restaurante/mesa.php'=>'restaurant_tables',
-        'contactos/index.php'=>'contacts','inventario/index.php','inventario/variantes.php','ventas/producto.php'=>'inventory_products',
+        'contactos/index.php','contactos/archivo.php'=>'contacts','inventario/index.php','inventario/variantes.php','ventas/producto.php'=>'inventory_products',
         'ventas/index.php'=>'sales_quotations','compras/index.php','compras/orden.php'=>'purchase_orders',
         'inventario/operaciones.php'=>'inventory_operations','contabilidad/index.php','ventas/comisiones.php'=>'accounting_invoices',
         'contabilidad/pagos.php'=>'accounting_payments','contabilidad/tesoreria.php'=>'accounting_treasury_documents',

@@ -32,6 +32,12 @@ $storageDisplay = $locked ? ($record['storage_label'] ?? '') : ($selectedSeller[
         <fieldset <?= $locked ? 'disabled' : '' ?> class="quotation-fields">
             <section class="workspace-form-section" aria-labelledby="sale-document-heading">
             <h2 id="sale-document-heading" class="workspace-section-title">Cliente y documento</h2>
+            <?php if (!$locked && permissionHas('contactos.contacts', 'read') && permissionHas('contactos.contacts', 'create')): ?>
+            <div class="sales-new-customer">
+                <label><input type="checkbox" data-unregistered-customer> Cliente no registrado</label>
+                <button class="contact-button" type="button" data-create-sales-customer hidden>Crear cliente</button>
+            </div>
+            <?php endif; ?>
             <div class="contact-form-grid">
                 <label>Cliente *<select name="customer_id" required data-quotation-customer><option value="">Selecciona un cliente</option><?php foreach ($page['catalogs']['customers'] as $customer): ?><option value="<?= (int) $customer['id'] ?>" data-address="<?= salesEscape(salesAddress($customer)) ?>" data-salesperson="<?= (int) ($customer['salesperson_id'] ?? 0) ?>" <?= (int) ($record['customer_id'] ?? 0) === (int) $customer['id'] ? 'selected' : '' ?>><?= salesEscape($customer['name']) ?><?= ! $customer['active'] ? ' (archivado)' : '' ?></option><?php endforeach; ?></select></label>
                 <label>Tipo de orden<select name="order_type"><?php foreach (salesOrderTypes() as $value => $label): ?><option value="<?= salesEscape($value) ?>" <?= ($record['order_type'] ?? 'delivery') === $value ? 'selected' : '' ?>><?= salesEscape($label) ?></option><?php endforeach; ?></select></label>
@@ -54,9 +60,6 @@ $storageDisplay = $locked ? ($record['storage_label'] ?? '') : ($selectedSeller[
                         <button class="contact-button contact-button-link" type="button" data-add-line hidden>+ Agregar línea</button>
                         <template data-quotation-line-template><?php $lineKey = '__INDEX__'; $line = []; require __DIR__ . '/line.php'; ?></template>
                     <?php endif; ?>
-                    <details class="workspace-details"><summary>Cómo se calculan los importes y las comisiones</summary>
-                    <p class="section-subtitle quotation-tax-note">Base imponible: cantidad × precio. El total incluye los impuestos de las líneas.</p>
-                    <p class="section-subtitle">Con vendedor asignado se aplica la comisión fija o porcentual configurada en el producto. El precio y la comisión por unidad se conservan al guardar; los impuestos no forman parte de la comisión. Sin configuración automática se calcula la diferencia positiva respecto al precio en tienda.</p></details>
                     <?php if($confirmed && $relatedSellerId): ?><a class="overview-link" href="comisiones.php?seller_id=<?= $relatedSellerId ?>&amp;sale_id=<?= (int)$record['id'] ?>&amp;period=custom&amp;date_from=1000-01-01&amp;date_to=9999-12-31">Consultar comisiones y pagos de esta venta →</a><?php endif; ?>
                 </section>
                 <section class="notebook-page" id="quotation-page-other" data-notebook-page aria-labelledby="quotation-tab-other">
@@ -74,4 +77,13 @@ $storageDisplay = $locked ? ($record['storage_label'] ?? '') : ($selectedSeller[
         <div class="contact-form-actions"><?php if (! $locked): ?><button class="contact-button contact-button-primary" type="submit">Guardar orden de venta</button><?php endif; ?><a class="contact-button" href="index.php">Volver al listado</a></div>
     </form>
 </section>
+<?php if (!$locked && permissionHas('contactos.contacts', 'read') && permissionHas('contactos.contacts', 'create')): ?>
+<dialog class="sales-customer-dialog" data-sales-customer-dialog aria-labelledby="sales-customer-dialog-title">
+    <div class="sales-customer-dialog-header"><h2 id="sales-customer-dialog-title">Crear cliente</h2><button type="button" class="contact-button" data-close-sales-customer>Cerrar</button></div>
+    <p class="section-subtitle" data-sales-customer-loading role="status">Cargando Contactos…</p>
+    <iframe title="Crear cliente en Contactos" data-sales-customer-frame></iframe>
+</dialog>
+<p class="notice notice-success" role="status" data-sales-customer-result hidden></p>
+<script src="../../js/sales-customer-wizard.js?v=<?= filemtime(dirname(__DIR__,2).'/js/sales-customer-wizard.js') ?>" defer></script>
+<?php endif; ?>
 <script type="application/json" data-currency-settings><?= json_encode($page['catalogs']['settings'],JSON_HEX_TAG|JSON_HEX_AMP|JSON_HEX_APOS|JSON_HEX_QUOT) ?></script><script src="../../js/product-commissions.js?v=<?= filemtime(dirname(__DIR__,2).'/js/product-commissions.js') ?>" defer></script><script src="../../js/currency.js" defer></script><script src="../../js/sales.js?v=<?= filemtime(dirname(__DIR__,2).'/js/sales.js') ?>" defer></script>

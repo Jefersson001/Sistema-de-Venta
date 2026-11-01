@@ -4,6 +4,7 @@ require_once dirname(__DIR__).'/php/connection.php';
 require_once dirname(__DIR__).'/php/auth-schema.php';
 require_once dirname(__DIR__).'/php/auth-repository.php';
 require_once dirname(__DIR__).'/php/company-schema.php';
+require_once dirname(__DIR__).'/php/contact-attachments-schema.php';
 
 function startAuthTestServer(): array
 {
@@ -33,11 +34,12 @@ function startAuthTestServer(): array
         if($seedCompany)$db->exec("INSERT INTO business_company(id,name) VALUES(1,'Empresa inicial de pruebas')");
         $db->exec('SET FOREIGN_KEY_CHECKS=1');installAuthentication($db);installMultiCompany($db);
         if($seedCompany){require_once dirname(__DIR__).'/php/company-repository.php';companySeedDefaults($db,1);}
+        installContactAttachments($db);
         $socket=stream_socket_server('tcp://127.0.0.1:0',$errno,$error);if(!$socket)throw new RuntimeException('No se pudo reservar un puerto de prueba.');
         $port=(int)substr(strrchr(stream_socket_get_name($socket,false),':'),1);fclose($socket);
         $server['url']='http://127.0.0.1:'.$port.'/project';$server['log']=tempnam(__DIR__,'.auth-server-log-');
         $server['sessions']=sys_get_temp_dir().'/nexo-auth-sessions-'.bin2hex(random_bytes(8));mkdir($server['sessions'],0700);
-        $env=getenv();$env['NEXO_DATABASE_NAME']=$name;
+        $env=getenv();$env['NEXO_DATABASE_NAME']=$name;$env['NEXO_CONTACT_UPLOAD_DIR']=$server['sessions'].'/contact-uploads';
         $server['process']=proc_open([PHP_BINARY,'-d','session.save_path='.$server['sessions'],'-d','upload_tmp_dir='.$server['sessions'],'-S','127.0.0.1:'.$port,'-t',dirname(__DIR__),__DIR__.'/auth-router.php'],
             [0=>['pipe','r'],1=>['file',$server['log'],'a'],2=>['file',$server['log'],'a']],$pipes,dirname(__DIR__),$env,['bypass_shell'=>true,'create_new_console'=>false]);
         if(!is_resource($server['process']))throw new RuntimeException('No se pudo iniciar el servidor de prueba.');fclose($pipes[0]);
@@ -55,7 +57,10 @@ function stopAuthTestServer(array $server): void
     if(isset($server['log'])&&is_file($server['log']))unlink($server['log']);
     if(isset($server['sessions'])&&is_dir($server['sessions'])&&dirname(realpath($server['sessions']))===realpath(sys_get_temp_dir())
         &&preg_match('/^nexo-auth-sessions-[a-f0-9]{16}$/D',basename($server['sessions']))) {
-        foreach(glob($server['sessions'].'/sess_*') as $file)if(is_file($file))unlink($file);rmdir($server['sessions']);
+        foreach(glob($server['sessions'].'/sess_*') as $file)if(is_file($file))unlink($file);
+        $uploads=$server['sessions'].'/contact-uploads';
+        if(is_dir($uploads)){foreach(glob($uploads.'/*.bin') as $file)if(is_file($file))unlink($file);rmdir($uploads);}
+        rmdir($server['sessions']);
     }
     if(isset($server['database'])&&preg_match('/^nexo_auth_test_[a-f0-9]{16}$/D',$server['database'])) {
         $server['db']->exec('USE information_schema');$server['db']->exec('DROP DATABASE IF EXISTS `'.$server['database'].'`');

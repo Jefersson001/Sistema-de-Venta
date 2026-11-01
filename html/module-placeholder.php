@@ -7,8 +7,10 @@
     <title><?= $isConfiguration ? 'Configuración | ' : '' ?><?= htmlspecialchars($module['name'], ENT_QUOTES, 'UTF-8') ?> | Nexo</title>
     <link rel="stylesheet" href="../../css/app.css?v=<?= filemtime(dirname(__DIR__) . '/css/app.css') ?>">
     <link rel="stylesheet" href="../../css/modules.css?v=<?= filemtime(dirname(__DIR__) . '/css/modules.css') ?>">
+    <link rel="stylesheet" href="../../css/searchable-select.css?v=<?= filemtime(dirname(__DIR__) . '/css/searchable-select.css') ?>">
     <script src="../../js/app.js?v=<?= filemtime(dirname(__DIR__) . '/js/app.js') ?>" defer></script>
     <script src="../../js/modules.js?v=<?= filemtime(dirname(__DIR__) . '/js/modules.js') ?>" defer></script>
+    <script src="../../js/searchable-select.js?v=<?= filemtime(dirname(__DIR__) . '/js/searchable-select.js') ?>" defer></script>
     <script src="../../js/unsaved-changes.js?v=<?= filemtime(dirname(__DIR__) . '/js/unsaved-changes.js') ?>" defer></script>
     <script src="../../js/record-actions.js?v=<?= filemtime(dirname(__DIR__) . '/js/record-actions.js') ?>" defer></script>
     <?php if($moduleKey==='restaurante'): ?>
@@ -17,7 +19,7 @@
     <script src="../../js/restaurant-checkout.js?v=<?= filemtime(dirname(__DIR__).'/js/restaurant-checkout.js') ?>" defer></script>
     <?php endif; ?>
 </head>
-<body class="module-workspace">
+<body class="module-workspace<?= !empty($modulePageData['salesWizard']) ? ' contact-sales-wizard' : '' ?>">
     <div class="app-shell">
         <?php $homeHref = '../../index.php'; $isHomePage = false; require __DIR__ . '/partials/top-navigation.php'; ?>
         <main class="main-area">

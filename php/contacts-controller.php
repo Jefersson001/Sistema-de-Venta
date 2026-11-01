@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 require_once __DIR__ . '/connection.php';
 require_once __DIR__ . '/contacts-repository.php';
+require_once __DIR__ . '/contact-attachments.php';
 require_once __DIR__ . '/module-page.php';
 
 function contactEscape(mixed $value): string
@@ -19,6 +20,10 @@ function contactRedirect(string $location): never
 
 function renderContactsPage(bool $isConfiguration = false): void
 {
+    $salesWizard = !$isConfiguration && ($_GET['sales_wizard'] ?? '') === '1';
+    if ($salesWizard && (!is_string($_GET['wizard_scope'] ?? null) || !hash_equals(companyScopeToken(), $_GET['wizard_scope']))) {
+        authStop(409, 'La selección de empresas cambió. Cierra esta ventana y vuelve a abrir Crear cliente.');
+    }
     if (session_status() !== PHP_SESSION_ACTIVE) {
         session_start();
     }
@@ -26,7 +31,7 @@ function renderContactsPage(bool $isConfiguration = false): void
     $page = [
         'csrf' => $_SESSION['contacts_csrf'], 'errors' => [], 'available' => false,
         'flash' => $_SESSION['contacts_flash'] ?? null,
-        'section' => null, 'view' => 'list', 'record' => [],
+        'section' => null, 'view' => 'list', 'record' => [], 'salesWizard' => $salesWizard,
     ];
     unset($_SESSION['contacts_flash']);
     $config = require __DIR__ . '/config/database.php';
@@ -73,6 +78,7 @@ function renderContactsPage(bool $isConfiguration = false): void
             $page['record'] = ['entity_kind' => 'person', 'type_id' => $clientType[0]['id'] ?? '', 'active' => 1];
         }
         if (! $isConfiguration && $page['view'] === 'form' && $page['available']) {
+            $page['attachments'] = $id ? loadContactAttachments($db, $id) : [];
             $page['storage'] = loadStorageRelations($db);
             $page['salespeople'] = loadContactSalespeople($db, contactId($page['record']['salesperson_id'] ?? null), $id);
             if(permissionScope('contactos.contacts',$id?'edit':'create')==='own'){$page['salespeople']=array_values(array_filter($page['salespeople'],static fn($r)=>(int)$r['id']===permissionContact()));if(!$id)$page['record']['salesperson_id']=permissionContact();}
@@ -99,16 +105,27 @@ function renderContactsPage(bool $isConfiguration = false): void
                 }
             } elseif (! $isConfiguration && ($_POST['action'] ?? '') === 'save_contact' && $page['view'] === 'form') {
                 [$data, $page['errors']] = validateContact($_POST, $page['catalogs'], $page['salespeople'], $id, $page['storage']);
+                [$uploads, $removeFiles, $fileErrors] = validateContactAttachments($_POST, $_FILES);
+                $page['errors'] = array_merge($page['errors'], $fileErrors);
                 $page['record'] = $data + ($id ? ['id' => $id] : []) + ['active' => $page['record']['active'] ?? 1];
                 if (! $page['errors']) {
                     try {
-                        $savedId = saveContact($db, $data, $id);
+                        if ($salesWizard) {
+                            $type = contactCatalogRecord($page['catalogs']['types'], (int)$data['type_id']);
+                            if (($type['system_key'] ?? '') !== 'client' || $id) throw new InvalidArgumentException('Esta ventana permite crear un cliente nuevo.');
+                        }
+                        $savedId = saveContactWithAttachments($db, $data, $id, $uploads, $removeFiles);
+                        if ($salesWizard) contactRedirect('index.php?' . http_build_query(['id' => $savedId, 'sales_wizard' => '1', 'created' => '1', 'wizard_scope' => companyScopeToken()]));
                         $_SESSION['contacts_flash'] = 'Contacto guardado correctamente.';
                         contactRedirect('index.php?id=' . $savedId);
                     } catch (InvalidArgumentException $exception) {
                         $page['errors'][] = $exception->getMessage();
+                    } catch (RuntimeException $exception) {
+                        error_log('Archivos de contacto: '.$exception->getMessage());
+                        $page['errors'][] = 'No se pudo guardar el contacto con sus archivos. Inténtalo nuevamente.';
                     }
                 }
+                if ($page['errors'] && !empty($_FILES['contact_files']['name'])) $page['errors'][] = 'Si seleccionaste archivos nuevos, vuelve a seleccionarlos después de corregir los datos.';
             } elseif (! $isConfiguration && ($_POST['action'] ?? '') === 'toggle_active' && $id) {
                 $db->prepare('UPDATE contacts SET active = NOT active WHERE id = ?')->execute([$id]);
                 $_SESSION['contacts_flash'] = $page['record']['active'] ? 'Contacto archivado.' : 'Contacto restaurado.';
@@ -155,6 +172,20 @@ function renderContactsPage(bool $isConfiguration = false): void
         http_response_code(503);
         $page['available'] = false;
         $page['errors'][] = 'No se pudieron cargar los contactos. Verifica la conexión y la instalación del módulo.';
+    }
+    if ($salesWizard && $page['available'] && isset($page['record']['id']) && ($_GET['created'] ?? '') === '1') {
+        $record = $page['record'];
+        $type = contactCatalogRecord($page['catalogs']['types'], (int)$record['type_id']);
+        if (($type['system_key'] ?? '') === 'client' && $record['active'] && permissionFilterContacts([$record])) {
+            $address = [];
+            foreach (['address', 'city_id', 'state_id', 'postal_code', 'country_id'] as $field) {
+                $value = $record[$field] ?? '';
+                $catalog = ['city_id' => 'cities', 'state_id' => 'states', 'country_id' => 'countries'][$field] ?? null;
+                if ($catalog) $value = contactCatalogRecord($page['catalogs'][$catalog], contactId($value))['name'] ?? '';
+                if (trim((string)$value) !== '') $address[] = trim((string)$value);
+            }
+            $page['wizardCustomer'] = ['id' => (int)$record['id'], 'name' => $record['name'], 'address' => implode(', ', $address), 'salesperson_id' => (int)($record['salesperson_id'] ?? 0), 'scope' => companyScopeToken()];
+        }
     }
     renderModulePage('contactos', $isConfiguration, $page);
 }

@@ -17,14 +17,14 @@ $isExternalPartner = in_array($selectedType['system_key'] ?? '', ['client', 'sup
         <?php endif; ?>
     </div>
     <?php if (! ($record['active'] ?? 1)): ?><p class="notice" role="status">Este contacto está archivado. Puedes restaurarlo para que vuelva al listado de activos.</p><?php endif; ?>
-    <form class="contact-sheet" method="post" action="index.php?<?= $editing ? 'id=' . (int) $record['id'] : 'new=1' ?>">
+    <form class="contact-sheet" method="post" enctype="multipart/form-data" action="index.php?<?= $editing ? 'id=' . (int) $record['id'] : 'new=1' ?><?= !empty($page['salesWizard']) ? '&amp;sales_wizard=1&amp;wizard_scope='.rawurlencode(companyScopeToken()) : '' ?>">
         <input type="hidden" name="csrf" value="<?= contactEscape($page['csrf']) ?>"><input type="hidden" name="action" value="save_contact">
         <p class="section-subtitle">Los campos marcados con * son obligatorios.</p>
         <fieldset><legend>Información principal</legend>
             <div class="contact-form-grid">
                 <label class="contact-full record-name-field">Nombre o razón social *<input name="name" required maxlength="160" autocomplete="name" value="<?= contactEscape($record['name'] ?? '') ?>"></label>
                 <label>Persona o empresa *<select name="entity_kind" required><option value="person" <?= ($record['entity_kind'] ?? '') === 'person' ? 'selected' : '' ?>>Persona</option><option value="company" <?= ($record['entity_kind'] ?? '') === 'company' ? 'selected' : '' ?>>Empresa</option></select></label>
-                <label>Tipo de contacto *<select name="type_id" required data-contact-type><option value="">Selecciona un tipo</option><?php foreach ($page['catalogs']['types'] as $type): ?><option value="<?= (int) $type['id'] ?>" data-contact-kind="<?= contactEscape($type['system_key'] ?? '') ?>" <?= (int) ($record['type_id'] ?? 0) === (int) $type['id'] ? 'selected' : '' ?>><?= contactEscape($type['name']) ?></option><?php endforeach; ?></select></label>
+                <label>Tipo de contacto *<select name="type_id" required data-contact-type><option value="">Selecciona un tipo</option><?php foreach ($page['catalogs']['types'] as $type): ?><?php if (!empty($page['salesWizard']) && ($type['system_key'] ?? '') !== 'client') continue; ?><option value="<?= (int) $type['id'] ?>" data-contact-kind="<?= contactEscape($type['system_key'] ?? '') ?>" <?= (int) ($record['type_id'] ?? 0) === (int) $type['id'] ? 'selected' : '' ?>><?= contactEscape($type['name']) ?></option><?php endforeach; ?></select></label>
                 <div class="document-field">
                     <label for="document-number">Documento</label>
                     <div class="document-controls">
@@ -60,6 +60,7 @@ $isExternalPartner = in_array($selectedType['system_key'] ?? '', ['client', 'sup
                 <a id="tab-sales" href="#page-sales">Ventas y compras</a>
                 <a id="tab-accounting" href="#page-accounting">Contabilidad</a>
                 <a id="tab-inventory" href="#page-inventory">Inventario</a>
+                <a id="tab-attachments" href="#page-attachments">Fotos y documentos</a>
                 <a id="tab-notes" href="#page-notes">Notas internas</a>
             </nav>
             <section class="notebook-page" id="page-sales" data-notebook-page aria-labelledby="tab-sales">
@@ -96,6 +97,9 @@ $isExternalPartner = in_array($selectedType['system_key'] ?? '', ['client', 'sup
                     </label>
                 </div>
             </section>
+            <section class="notebook-page" id="page-attachments" data-notebook-page aria-labelledby="tab-attachments">
+                <?php require __DIR__.'/attachments.php'; ?>
+            </section>
             <section class="notebook-page" id="page-notes" data-notebook-page aria-labelledby="tab-notes">
                 <h2 class="notebook-page-title">Notas internas</h2>
                 <label><span class="visually-hidden">Notas internas</span><textarea name="notes" rows="4" maxlength="5000" placeholder="Información adicional del contacto"><?= contactEscape($record['notes'] ?? '') ?></textarea></label>
@@ -104,3 +108,4 @@ $isExternalPartner = in_array($selectedType['system_key'] ?? '', ['client', 'sup
         <div class="contact-form-actions"><button class="contact-button contact-button-primary" type="submit">Guardar contacto</button><a class="contact-button" href="index.php">Volver al listado</a></div>
     </form>
 </section>
+<script src="../../js/contact-attachments.js?v=<?= filemtime(dirname(__DIR__,2).'/js/contact-attachments.js') ?>" defer></script>
