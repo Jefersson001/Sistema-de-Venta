@@ -8,6 +8,11 @@
     </div>
     <div class="contact-form-grid" data-contact-location><?php $geoRecord=$addressRow;$geoPrefix=$prefix;require __DIR__.'/geography.php'; ?></div>
     <label>Código postal<input name="<?= $prefix ?>[postal_code]" maxlength="20" value="<?= contactEscape($addressRow['postal_code']??'') ?>"></label>
+    <?php
+    $geoRole='address';$geoTitle='Ubicación de esta dirección';$geoHint='Este punto pertenece al cliente, no al lugar donde el vendedor realizó una venta.';
+    $geoLatName=$prefix.'[latitude]';$geoLonName=$prefix.'[longitude]';$geoLatitude=$addressRow['latitude']??null;$geoLongitude=$addressRow['longitude']??null;$geoSourceName=null;$geoReadonly=!permissionHas('contactos.contacts',$editing?'edit':'create');
+    require dirname(__DIR__).'/partials/geolocation-fields.php';unset($geoHint,$geoReadonly);
+    ?>
     <div class="contact-address-options">
         <label><input type="checkbox" name="<?= $prefix ?>[active]" value="1" data-address-active <?= ($addressRow['active']??1)?'checked':'' ?>> Activa</label>
         <label><input type="radio" name="default_invoice_address" value="row_<?= $addressIndex ?>" data-address-default="invoice" <?= $addressDefaults['invoice']==='row_'.$addressIndex?'checked':'' ?>> Facturación predeterminada</label>

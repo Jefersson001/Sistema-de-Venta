@@ -163,6 +163,7 @@ function transferCsvCell(mixed $value,array $field): string
 {
     $value=$value===null?'':(is_array($value)?json_encode($value,JSON_UNESCAPED_UNICODE|JSON_THROW_ON_ERROR):(string)$value);
     if($field['type']==='decimal'&&$value!=='')return decimalRound($value);
+    if($field['type']==='coordinate'&&$value!=='')return bcadd((string)$value,'0',6);
     if(!in_array($field['type'],['int','decimal','boolean'],true)&&preg_match('/^[\s]*[=+@\-\t\r]/u',$value))return "'".$value;
     return $value;
 }

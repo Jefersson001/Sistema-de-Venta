@@ -22,6 +22,7 @@
         const kind=select.dataset.orderAddress,row=rows().find(row=>String(row.id)===select.value);
         const text=form.querySelector(kind==='invoice'?'[data-invoice-address]':'[data-delivery-address]');
         if(text)text.value=row?.formatted||partner.selectedOptions[0]?.dataset.address||'';
+        if(kind==='delivery')form.dispatchEvent(new CustomEvent('order:delivery-address',{bubbles:true,detail:row??null}));
     }
     for(const select of selectors){
         refresh(select,true);

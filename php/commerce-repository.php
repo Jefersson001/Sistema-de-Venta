@@ -56,6 +56,7 @@ function validatePurchaseOrder(array $input, array $catalogs, ?array $existing):
     if (! is_string($mode) || ! in_array($mode, ['receipt', 'invoice'], true)) { $errors[] = 'Selecciona un tipo de orden de compra válido.'; }
     $data['supplier_id'] = $data['customer_id']; $data['order_type'] = $mode === 'invoice' ? 'invoice' : 'receipt';
     unset($data['customer_id'], $data['salesperson_id'], $data['delivery_address'], $data['delivery_address_id'], $data['warehouse_id'], $data['location_id'], $data['storage_label']);
+    foreach(['customer_latitude','customer_longitude','customer_location_source','sale_latitude','sale_longitude','sale_location_source','sale_location_recorded_at','sale_location_recorded_by'] as $saleField)unset($data[$saleField]);
     $location = salesId($input['destination_location_id'] ?? null);
     $destination = storageRecord($catalogs['storage']['locations'], $location);
     if (array_filter($lines, static fn($l)=>$l['product_type']==='goods') && (! $destination || $destination['location_type'] !== 'internal')) { $errors[] = 'Selecciona una ubicación interna de destino para la recepción.'; }

@@ -75,6 +75,7 @@ if ($record['status'] === 'posted') {
         </div><div class="contact-form-actions"><?php if (! $posted): ?><button class="contact-button" type="submit" form="invoice-details" name="action" value="save_invoice">Guardar factura</button><button class="contact-button contact-button-primary" type="submit" form="invoice-details" name="action" value="confirm_invoice">Registrar factura</button><?php endif; ?><a class="contact-button" href="index.php?type=<?= $page['type'] ?>">Volver al listado</a></div>
     </div>
     <?php if(!empty($record['delivery_address'])): ?><details class="workspace-details"><summary>Dirección de entrega conservada</summary><p><?= nl2br(accountingEscape($record['delivery_address'])) ?></p></details><?php endif; ?>
+    <?php if($customerMap=geolocationMapUrl($record['delivery_latitude']??null,$record['delivery_longitude']??null)): ?><a class="contact-button" href="<?= accountingEscape($customerMap) ?>" target="_blank" rel="noopener noreferrer">Ver ubicación de entrega en mapa</a><?php endif; ?>
     <?php require __DIR__ . '/invoice-payment-wizard.php'; ?>
     <script src="../../js/invoice-rate.js?v=<?= filemtime(dirname(__DIR__,2).'/js/invoice-rate.js') ?>" defer></script>
 </section>

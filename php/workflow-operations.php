@@ -35,6 +35,7 @@ function createLinkedStockOperation(PDO $db, string $kind, int $orderId, ?int $b
             ->execute([$sale?'delivery':'receipt',$orderId,$contact,$order['order_date'],$sale?$internal:$external['id'],$sale?$external['id']:$internal,$sale?$warehouse:null,$sale?null:$warehouse,$backorder,'']);
         $id=(int)$db->lastInsertId();$db->prepare('UPDATE inventory_operations SET name=? WHERE id=?')->execute([($sale?'OUT/':'IN/').str_pad((string)$id,5,'0',STR_PAD_LEFT),$id]);
         $db->prepare('UPDATE inventory_operations SET partner_address=?,partner_address_id=? WHERE id=?')->execute([$backorder?($previous['partner_address']??null):($sale?($order['delivery_address']??null):($order['invoice_address']??null)),$backorder?($previous['partner_address_id']??null):($sale?($order['delivery_address_id']??null):($order['invoice_address_id']??null)),$id]);
+        $db->prepare('UPDATE inventory_operations SET partner_latitude=?,partner_longitude=? WHERE id=?')->execute([$backorder?($previous['partner_latitude']??null):($sale?($order['customer_latitude']??null):null),$backorder?($previous['partner_longitude']??null):($sale?($order['customer_longitude']??null):null),$id]);
         $q=$db->prepare('INSERT INTO inventory_operation_lines (operation_id,position,product_id,demand,quantity,sale_line_id,purchase_line_id) VALUES (?,?,?,?,0,?,?)');
         foreach($lines as $pos=>$l)$q->execute([$id,$pos,$l['product_id'],$l['pending'],$sale?$l['id']:null,$sale?null:$l['id']]);
         if(!$insideTransaction)$db->commit(); return $id;
@@ -63,6 +64,7 @@ function createStockReturn(PDO $db,int $id,?int $version): int
             ->execute([$operation['operation_type'],$operation['quotation_id'],$operation['purchase_order_id'],$operation['contact_id'],commerceToday(),$operation['destination_location_id'],$operation['source_location_id'],$operation['destination_warehouse_id'],$operation['source_warehouse_id'],$id,'Devolución de '.$operation['name']]);
         $new=(int)$db->lastInsertId();$db->prepare('UPDATE inventory_operations SET name=? WHERE id=?')->execute(['RET/'.str_pad((string)$new,5,'0',STR_PAD_LEFT),$new]);
         $db->prepare('UPDATE inventory_operations SET partner_address=?,partner_address_id=? WHERE id=?')->execute([$operation['partner_address']??null,$operation['partner_address_id']??null,$new]);
+        $db->prepare('UPDATE inventory_operations SET partner_latitude=?,partner_longitude=? WHERE id=?')->execute([$operation['partner_latitude']??null,$operation['partner_longitude']??null,$new]);
         $q=$db->prepare('INSERT INTO inventory_operation_lines (operation_id,position,product_id,demand,quantity,sale_line_id,purchase_line_id,return_line_id) VALUES (?,?,?,?,0,?,?,?)');
         foreach($lines as $pos=>$l)$q->execute([$new,$pos,$l['product_id'],$l['remaining'],$l['sale_line_id'],$l['purchase_line_id'],$l['id']]);
         $db->commit();return $new;

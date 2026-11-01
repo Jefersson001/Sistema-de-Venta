@@ -2,12 +2,13 @@
 declare(strict_types=1);
 require_once __DIR__.'/company-schema.php';
 
-function phase15Backup(): string
+function phase15Backup(string $label='phases-1-5'): string
 {
     $config=require __DIR__.'/config/database.php';
     if(!preg_match('/^[a-zA-Z0-9_]+$/D',$config['database']))throw new RuntimeException('Base de datos inválida.');
     $directory=__DIR__.'/backups';if(!is_dir($directory)&&!mkdir($directory,0700,true))throw new RuntimeException('No se pudo preparar el respaldo.');
-    $file=$directory.'/before-phases-1-5-'.gmdate('Ymd-His').'-'.bin2hex(random_bytes(3)).'.sql';
+    if(!preg_match('/^[a-z0-9-]+$/D',$label))throw new RuntimeException('Nombre de respaldo inválido.');
+    $file=$directory.'/before-'.$label.'-'.gmdate('Ymd-His').'-'.bin2hex(random_bytes(3)).'.sql';
     $env=getenv();$env['MYSQL_PWD']=$config['password'];
     $p=proc_open(['C:/xampp/mysql/bin/mysqldump.exe','--host='.$config['host'],'--port='.$config['port'],'--user='.$config['username'],'--single-transaction','--routines','--triggers','--hex-blob','--result-file='.$file,$config['database']],[0=>['pipe','r'],1=>['pipe','w'],2=>['pipe','w']],$pipes,null,$env,['bypass_shell'=>true,'create_new_console'=>false]);
     if(!is_resource($p))throw new RuntimeException('No se pudo iniciar el respaldo.');fclose($pipes[0]);stream_get_contents($pipes[1]);fclose($pipes[1]);$error=stream_get_contents($pipes[2]);fclose($pipes[2]);$exit=proc_close($p);

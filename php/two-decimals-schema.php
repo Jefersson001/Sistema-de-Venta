@@ -11,6 +11,7 @@ function installTwoDecimals(PDO $db): array
     $plan = [];
     foreach ($columns as $column) {
         $table = $column['TABLE_NAME']; $field = $column['COLUMN_NAME'];
+        if(preg_match('/(?:^|_)(latitude|longitude)$/D',$field))continue;
         if (!preg_match('/^[a-zA-Z0-9_]+$/D', $table.$field) || $column['EXTRA'] !== '') {
             throw new RuntimeException('La columna decimal requiere revisión: '.$table.'.'.$field);
         }

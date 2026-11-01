@@ -55,6 +55,11 @@ $isExternalPartner = in_array($selectedType['system_key'] ?? '', ['client', 'sup
             <?php if (! $page['catalogs']['countries']): ?><p class="section-subtitle">Aún no hay países registrados. Puedes guardar el contacto sin localización o cargar los catálogos desde Configuración.</p><?php endif; ?>
         </fieldset>
         <div class="contact-notebook" data-notebook>
+            <?php
+            $geoRole='address';$geoTitle='Ubicación de la dirección principal';$geoHint='Guarda aquí el punto del cliente. La ubicación de cada venta se registra por separado en Ventas.';
+            $geoLatName='latitude';$geoLonName='longitude';$geoLatitude=$record['latitude']??null;$geoLongitude=$record['longitude']??null;$geoSourceName=null;$geoReadonly=!permissionHas('contactos.contacts',$editing?'edit':'create');
+            require dirname(__DIR__).'/partials/geolocation-fields.php';unset($geoHint,$geoReadonly);
+            ?>
             <nav class="notebook-tabs" data-notebook-tabs aria-label="Información del contacto">
                 <a id="tab-sales" href="#page-sales">Ventas y compras</a>
                 <a id="tab-accounting" href="#page-accounting">Contabilidad</a>

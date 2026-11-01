@@ -24,6 +24,7 @@ function transferSave(PDO $db,array $m,array $input,?array $old,string $key): in
         return $save==='restaurant_areas'?restaurantSaveArea($db,$input,$id):restaurantSaveTable($db,$input,$id);
     }
     if($save==='contacts') {
+        if(!array_key_exists('latitude',$input)&&!array_key_exists('longitude',$input)){ $input['latitude']=$old['latitude']??'';$input['longitude']=$old['longitude']??''; }
         if(!array_key_exists('municipality_id',$input))$input['municipality_id']=$old['municipality_id']??'';
         $data=transferValidated(validateContact($input,loadContactCatalogs($db),loadContactSalespeople($db,accessId($old['salesperson_id']??null),$id),$id,loadStorageRelations($db)));
         $data['active']=(int)($input['active']??'1');return saveContact($db,$data,$id);

@@ -43,10 +43,10 @@ function validateContactGeography(array $input,array $catalogs,array &$errors): 
 }
 function syncContactPrimaryAddress(PDO $db,int $contact,array $data): void
 {
-    $fields=['address','postal_code','country_id','state_id','municipality_id','city_id'];$values=[];foreach($fields as $field)$values[$field]=$data[$field]??null;$values['address']??='';
+    $fields=['address','postal_code','country_id','state_id','municipality_id','city_id','latitude','longitude'];$values=[];foreach($fields as $field)$values[$field]=$data[$field]??null;$values['address']??='';
     $q=$db->prepare('SELECT id FROM contact_addresses WHERE contact_id=? AND is_primary=1 FOR UPDATE');$q->execute([$contact]);$id=$q->fetchColumn();
     if($id)$db->prepare('UPDATE contact_addresses SET '.implode(',',array_map(static fn($f)=>$f.'=?',$fields)).',version=version+1 WHERE id=?')->execute([...array_values($values),$id]);
-    else $db->prepare("INSERT INTO contact_addresses(contact_id,label,address,postal_code,country_id,state_id,municipality_id,city_id,is_primary,default_invoice,default_delivery) VALUES(?,'Principal',?,?,?,?,?,?,1,1,1)")->execute([$contact,...array_values($values)]);
+    else $db->prepare('INSERT INTO contact_addresses(contact_id,label,'.implode(',',$fields).',is_primary,default_invoice,default_delivery) VALUES(?,?'.str_repeat(',?',count($fields)).',1,1,1)')->execute([$contact,'Principal',...array_values($values)]);
 }
 function validateContactAddressLines(array $input,array $catalogs,array $existing): array
 {
@@ -63,7 +63,8 @@ function validateContactAddressLines(array $input,array $catalogs,array $existin
         if($label===''||$address==='')$errors[]='Cada dirección adicional necesita un nombre y una dirección.';
         $usage=$item['usage_type']??'both';if(!in_array($usage,['both','invoice','delivery'],true)){$errors[]='Selecciona el uso de la dirección.';$usage='both';}
         $geo=validateContactGeography($item,$catalogs,$errors);
-        $rows[(string)$index]=['id'=>$id,'label'=>$label,'address'=>$address,'postal_code'=>contactText($item,'postal_code',20,$errors,'Código postal'),'usage_type'=>$usage,'active'=>($item['active']??'0')==='1'?1:0]+$geo;
+        [$coordinates,$coordinateErrors]=validateCoordinatePair($item,'latitude','longitude',$known[$id]??[]);$errors=array_merge($errors,$coordinateErrors);
+        $rows[(string)$index]=['id'=>$id,'label'=>$label,'address'=>$address,'postal_code'=>contactText($item,'postal_code',20,$errors,'Código postal'),'usage_type'=>$usage,'active'=>($item['active']??'0')==='1'?1:0]+$geo+$coordinates;
     }
     $defaults=[];
     foreach(['invoice','delivery'] as $kind){

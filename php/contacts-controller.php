@@ -106,6 +106,7 @@ function renderContactsPage(bool $isConfiguration = false): void
                 }
             } elseif (! $isConfiguration && ($_POST['action'] ?? '') === 'save_contact' && $page['view'] === 'form') {
                 $contactInput=$_POST;if($id&&!array_key_exists('municipality_id',$contactInput))$contactInput['municipality_id']=$page['record']['municipality_id']??'';
+                if($id&&!array_key_exists('latitude',$contactInput)&&!array_key_exists('longitude',$contactInput)){ $contactInput['latitude']=$page['record']['latitude']??'';$contactInput['longitude']=$page['record']['longitude']??''; }
                 [$data, $page['errors']] = validateContact($contactInput, $page['catalogs'], $page['salespeople'], $id, $page['storage']);
                 [$addressChanges,$addressErrors]=validateContactAddressLines($_POST,$page['catalogs'],$page['addresses']);
                 $page['errors']=array_merge($page['errors'],$addressErrors);$page['addressInput']=$addressChanges;

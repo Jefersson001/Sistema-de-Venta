@@ -3,6 +3,7 @@
 declare(strict_types=1);
 require_once __DIR__ . '/storage-repository.php';
 require_once __DIR__.'/contact-addresses.php';
+require_once __DIR__.'/geolocation.php';
 
 function contactCatalogDefinitions(): array
 {
@@ -160,6 +161,7 @@ function validateContact(array $input, array $catalogs, array $salespeople = [],
         $errors[] = 'La ciudad debe pertenecer al estado seleccionado.';
     }
     $geoErrors=[];validateContactGeography($input,$catalogs,$geoErrors);$errors=array_values(array_unique(array_merge($errors,$geoErrors)));
+    [$coordinates,$coordinateErrors]=validateCoordinatePair($input);$data+=$coordinates;$errors=array_merge($errors,$coordinateErrors);
     return [$data, $errors];
 }
 

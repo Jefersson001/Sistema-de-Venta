@@ -363,3 +363,11 @@
 .module-workspace .contact-sheet .contact-address-options label { display: inline-flex; flex-direction: row; align-items: center; }
 .contact-address-options input { width: 18px; height: 18px; }
 .contact-address-row:has([data-address-active]:not(:checked)) { background: #f5f8fa; }
+.geolocation-grid, .geolocation-coordinates { display: grid; grid-template-columns: repeat(2,minmax(0,1fr)); gap: 16px; }
+.geolocation-panel { min-width: 0; padding: 16px; margin: 12px 0; border: 1px solid #d5e3eb; border-radius: 10px; background: #f8fbfd; }
+.geolocation-panel h3 { margin: 0 0 10px; font-size: 15px; }
+.geolocation-panel h3 small { color: #617786; font-weight: 400; }
+.geolocation-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin-top: 12px; }
+.geolocation-actions [hidden] { display: none; }
+.sales-geolocation > summary { font-weight: 600; }
+@media(max-width:720px){.geolocation-grid,.geolocation-coordinates{grid-template-columns:1fr;}.geolocation-panel{padding:12px;}}

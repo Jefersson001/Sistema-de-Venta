@@ -148,6 +148,7 @@ function validateSalesQuotation(array $input, array $catalogs, ?array $existing 
         'warehouse_id' => salesId($seller['warehouse_id'] ?? null), 'location_id' => salesId($seller['location_id'] ?? null),
         'storage_label' => $seller['storage_label'] ?? ''];
     $data=array_replace($data,$selectedAddresses);
+    [$locations,$locationErrors]=resolveSaleLocations($input,$catalogs,$existing,$selectedAddresses,$customerId);$data+=$locations;$errors=array_merge($errors,$locationErrors);
     $rawLines = $input['lines'] ?? [];
     $lines = [];
     $total = '0.00'; $taxTotal = '0.00'; $baseTotal = '0.00';

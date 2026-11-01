@@ -5,6 +5,7 @@ require_once __DIR__.'/company-schema.php';
 function transferFieldLabel(string $name): string
 {
     if($name==='restaurant_enabled')return 'Es para restaurante';
+    if(preg_match('/^(?:(customer|sale)_)?(latitude|longitude)$/D',$name,$coordinate))return ($coordinate[2]==='latitude'?'Latitud':'Longitud').(($coordinate[1]??'')==='customer'?' del cliente':(($coordinate[1]??'')==='sale'?' de la venta':''));
     if($name==='municipality_id')return 'Municipio (ID)';
     if($name==='invoice_address_id')return 'Dirección de facturación del contacto (ID)';
     if($name==='delivery_address_id')return 'Dirección de entrega del contacto (ID)';
@@ -37,6 +38,7 @@ function transferSchema(PDO $db,string $table): array
         $fields[$column['Field']]=['label'=>transferFieldLabel($column['Field']),'sql_type'=>$type,'enum'=>$enum,'nullable'=>$column['Null']==='YES','default'=>$column['Default'],
             'required'=>$column['Null']==='NO'&&$column['Default']===null&&!str_contains($column['Extra'],'auto_increment')&&!str_contains($column['Extra'],'GENERATED'),
             'type'=>str_contains($type,'int')?(str_starts_with($type,'tinyint(1)')?'boolean':'int'):(preg_match('/decimal|float|double/',$type)?'decimal':(str_starts_with($type,'date')?'date':'text'))];
+        if(preg_match('/(?:^|_)(latitude|longitude)$/D',$column['Field']))$fields[$column['Field']]['type']='coordinate';
     }
     $q=$db->prepare('SELECT COLUMN_NAME,REFERENCED_TABLE_NAME,REFERENCED_COLUMN_NAME FROM information_schema.KEY_COLUMN_USAGE WHERE TABLE_SCHEMA=DATABASE() AND TABLE_NAME=? AND REFERENCED_TABLE_NAME IS NOT NULL');$q->execute([$table]);
     foreach($q->fetchAll() as $fk)$fields[$fk['COLUMN_NAME']]['relation']=[$fk['REFERENCED_TABLE_NAME'],$fk['REFERENCED_COLUMN_NAME']];
@@ -93,6 +95,10 @@ function transferNormalize(PDO $db,string $name,string $value,array $field): mix
         throw new InvalidArgumentException($field['label'].': usa 1 o 0.');
     }
     if($field['type']==='int'&&!preg_match('/^[0-9]+$/D',$value))throw new InvalidArgumentException($field['label'].': utiliza un entero no negativo.');
+    if($field['type']==='coordinate'){
+        $value=str_replace(',','.',$value);$limit=str_ends_with($name,'longitude')?180:90;
+        if(!preg_match('/^-?[0-9]{1,3}(?:\.[0-9]{1,6})?$/D',$value)||bccomp($value,(string)-$limit,6)<0||bccomp($value,(string)$limit,6)>0)throw new InvalidArgumentException($field['label'].': coordenada fuera de rango o con más de seis decimales.');$value=bcadd($value,'0',6);
+    }
     if($field['type']==='decimal'){$value=str_replace(',','.',$value);if(!preg_match('/^-?[0-9]+(?:\.[0-9]{1,2})?$/D',$value))throw new InvalidArgumentException($field['label'].': indica un valor con hasta dos decimales.');$value=bcadd($value,'0',2);}
     if($field['type']==='date'){$d=DateTimeImmutable::createFromFormat('!Y-m-d',$value);if(!$d||$d->format('Y-m-d')!==$value)throw new InvalidArgumentException($field['label'].': usa AAAA-MM-DD.');}
     if(!empty($field['enum'])&&!in_array($value,$field['enum'],true))throw new InvalidArgumentException($field['label'].': valores permitidos: '.implode(', ',$field['enum']).'.');

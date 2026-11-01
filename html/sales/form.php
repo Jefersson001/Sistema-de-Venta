@@ -49,6 +49,7 @@ $storageDisplay = $locked ? ($record['storage_label'] ?? '') : ($selectedSeller[
                 <?php if(!$locked): ?><div class="contact-full"><button type="button" class="contact-button contact-button-link" data-update-order-addresses>Actualizar direcciones desde el contacto</button><small>Las direcciones guardadas se conservan hasta que elijas otra o solicites actualizarlas.</small></div><?php endif; ?>
                 <label>Fecha de la orden *<input name="order_date" type="date" required value="<?= salesEscape($record['order_date']) ?>"></label>
             </div></section>
+            <?php require __DIR__.'/geolocation.php'; ?>
             <div class="contact-notebook" data-notebook>
                 <nav class="notebook-tabs" data-notebook-tabs aria-label="Información de la orden de venta"><a id="quotation-tab-lines" href="#quotation-page-lines">Líneas de orden</a><a id="quotation-tab-other" href="#quotation-page-other">Otra información</a></nav>
                 <section class="notebook-page" id="quotation-page-lines" data-notebook-page aria-labelledby="quotation-tab-lines">

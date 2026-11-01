@@ -40,7 +40,9 @@ try {
     $db->exec('CREATE DATABASE `'.$name.'`'); $db->exec('USE `'.$name.'`');
     $db->exec('CREATE TABLE fixture(id INT PRIMARY KEY, quantity DECIMAL(12,3) NOT NULL DEFAULT 0.000, rate DECIMAL(20,8) NULL, amount DECIMAL(18,2) NOT NULL)');
     $db->exec('INSERT INTO fixture VALUES(1,1.125,40.12678900,123.45),(2,-1.125,NULL,0)');
+    $db->exec('CREATE TABLE coordinates(latitude DECIMAL(9,6) NULL,longitude DECIMAL(10,6) NULL)');$db->exec('INSERT INTO coordinates VALUES(10.480601,-66.903607)');
     $changes=installTwoDecimals($db);
+    $point=$db->query('SELECT * FROM coordinates')->fetch();decimalExpect($point['latitude']==='10.480601'&&$point['longitude']==='-66.903607','La migración monetaria alteró las coordenadas.');
     decimalExpect(count($changes)===2 && installTwoDecimals($db)===[],'La migración no es repetible.');
     $row=$db->query('SELECT * FROM fixture WHERE id=1')->fetch();
     decimalExpect($row['quantity']==='1.13' && $row['rate']==='40.13' && $row['amount']==='123.45','La migración alteró importes o redondeó incorrectamente.');
