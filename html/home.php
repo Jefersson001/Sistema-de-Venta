@@ -7,6 +7,7 @@
     <title>Inicio | Vent-As</title><?php require __DIR__.'/partials/favicon.php'; ?>
     <link rel="stylesheet" href="css/app.css?v=<?= filemtime(dirname(__DIR__) . '/css/app.css') ?>">
     <script src="js/app.js?v=<?= filemtime(dirname(__DIR__) . '/js/app.js') ?>" defer></script>
+    <script src="js/navigation-search.js?v=<?= filemtime(dirname(__DIR__).'/js/navigation-search.js') ?>" defer></script>
 <?php require __DIR__.'/partials/theme.php'; ?></head>
 <body class="vent-as-home">
     <div class="app-shell">
@@ -19,12 +20,17 @@
                             <svg class="launcher-symbol" viewBox="0 0 40 40" fill="currentColor" aria-hidden="true"><rect x="2" y="2" width="15" height="15" rx="5"/><rect x="23" y="2" width="15" height="15" rx="5" opacity=".45"/><rect x="2" y="23" width="15" height="15" rx="5" opacity=".65"/><rect x="23" y="23" width="15" height="15" rx="5" opacity=".85"/></svg>
                             <div><h1 id="modules-title">Panel de Control</h1><p class="section-subtitle">Accede a los módulos de tu negocio con <strong>Vent-As.</strong></p></div>
                         </div>
+                        <div class="navigation-search" data-navigation-search>
                         <label class="module-search">
                             <svg class="module-search-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><circle cx="10.5" cy="10.5" r="6.5"/><path d="m16 16 4 4"/></svg>
-                            <span class="visually-hidden">Buscar módulo</span>
-                            <input type="search" placeholder="Buscar módulo..." autocomplete="off" aria-keyshortcuts="Control+K Meta+K /" data-module-search>
+                            <span class="visually-hidden">Buscar secciones del sistema</span>
+                            <input type="search" placeholder="Buscar sección..." autocomplete="off" spellcheck="false" role="combobox" aria-autocomplete="list" aria-expanded="false" aria-controls="navigation-search-results" aria-keyshortcuts="Control+K Meta+K /" data-module-search>
                             <kbd>Ctrl K</kbd>
                         </label>
+                        <div id="navigation-search-results" class="navigation-search-results" role="listbox" aria-label="Secciones encontradas" hidden></div>
+                        <p class="visually-hidden" role="status" aria-live="polite" data-navigation-search-status></p>
+                        <script type="application/json" data-navigation-search-data><?= json_encode($navigationSearchEntries??[],JSON_UNESCAPED_UNICODE|JSON_HEX_TAG|JSON_HEX_AMP|JSON_HEX_APOS|JSON_HEX_QUOT|JSON_THROW_ON_ERROR) ?></script>
+                        </div>
                     </div>
 
                     <div class="module-grid" data-module-grid>
@@ -47,7 +53,6 @@
                                 </div>
                             </a>
                         <?php endforeach; ?>
-                        <p class="empty-search" data-empty-search hidden>No se encontraron módulos con ese nombre.</p>
                     </div>
                 </section>
 

@@ -37,24 +37,6 @@ for (const warehouse of document.querySelectorAll('[data-location-warehouse]')) 
 for (const filter of document.querySelectorAll('[data-auto-submit]')) {
     filter.addEventListener('change', () => { const form=filter.closest('form');if(!form?.hasAttribute('data-live-filters'))form?.requestSubmit(); });
 }
-const moduleCards = [...document.querySelectorAll('[data-module-card]')];
-const emptySearch = document.querySelector('[data-empty-search]');
-
-searchInput?.addEventListener('input', () => {
-    const searchTerm = searchInput.value.trim().toLocaleLowerCase('es');
-    let visibleCount = 0;
-
-    for (const card of moduleCards) {
-        const matches = card.dataset.moduleName.includes(searchTerm);
-        card.hidden = !matches;
-        visibleCount += Number(matches);
-    }
-
-    if (emptySearch) {
-        emptySearch.hidden = visibleCount > 0;
-    }
-});
-
 document.addEventListener('keydown', (event) => {
     if (searchInput && (event.ctrlKey || event.metaKey) && event.key.toLowerCase() === 'k') {
         event.preventDefault();
