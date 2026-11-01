@@ -357,3 +357,9 @@
 .payment-proof-row > span { flex: 1 1 180px; min-width: 0; overflow-wrap: anywhere; }
 .payment-proof-saved h3 { font-size: 15px; margin-bottom: 4px; }
 .payment-proof-add { margin-top: 16px; }
+.contact-address-row { padding: 16px; margin: 12px 0; border: 1px solid #dfe7ed; border-radius: 10px; }
+.contact-address-row > .contact-form-grid { margin-bottom: 14px; }
+.contact-address-options { display: flex; flex-wrap: wrap; align-items: center; gap: 12px; margin-top: 14px; }
+.module-workspace .contact-sheet .contact-address-options label { display: inline-flex; flex-direction: row; align-items: center; }
+.contact-address-options input { width: 18px; height: 18px; }
+.contact-address-row:has([data-address-active]:not(:checked)) { background: #f5f8fa; }

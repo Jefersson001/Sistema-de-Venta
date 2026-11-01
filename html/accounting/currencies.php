@@ -2,6 +2,7 @@
 <?php foreach ($page['errors'] as $error): ?><p class="notice notice-error" role="alert"><?= accountingEscape($error) ?></p><?php endforeach; ?>
 <?php if ($page['available']): ?>
 <section aria-labelledby="currencies-title">
+    <p class="section-subtitle">Configuración única por empresa. Ventas, Compras, Inventario y Pagos utilizan este catálogo. Las tasas manuales se registran en la pestaña Tasas de cada moneda.</p>
     <div class="contact-toolbar">
         <div><a class="overview-link" href="configuracion.php<?= $page['view']==='list'?'':'?section=currencies' ?>">← <?= $page['view']==='list'?'Configuración':'Monedas' ?></a><h1 id="currencies-title"><?= accountingEscape($page['view']==='settings'?'Monedas del negocio':($page['view']==='form'?($record['code']?:'Nueva moneda'):'Monedas')) ?></h1></div>
         <?php if ($page['view']==='list'): ?><div class="action-buttons"><a class="contact-button" href="configuracion.php?section=currency_settings">Principal y alterna</a><a class="contact-button contact-button-primary" href="configuracion.php?section=currencies&amp;new=1">Nueva moneda</a></div><?php endif; ?>
@@ -19,7 +20,7 @@
             <div class="contact-form-grid">
                 <?php foreach (['primary'=>'Moneda principal','alternate'=>'Moneda alterna'] as $key=>$label): ?><label><?= $label ?> *<select name="<?= $key ?>_id" required><?php foreach ($page['currencies'] as $currency): ?><?php if ($currency['active']): ?><option value="<?= (int)$currency['id'] ?>" <?= (isset($_POST[$key.'_id'])?(string)currencyCatalogId($_POST[$key.'_id'])===(string)$currency['id']:$page['settings'][$key.'_code']===$currency['code'])?'selected':'' ?>><?= accountingEscape($currency['code'].' · '.$currency['name']) ?></option><?php endif; ?><?php endforeach; ?></select></label><?php endforeach; ?>
             </div>
-            <p class="section-subtitle">La tasa vigente se toma de la pestaña Tasas de las monedas. Los documentos guardados conservan su moneda y tasa.</p>
+            <p class="section-subtitle">La tasa vigente se toma de la pestaña Tasas de las monedas. Los documentos guardados conservan su moneda y tasa. Las tasas admiten dos decimales; si una inversa redondea a cero, registra una tasa directa representable.</p>
             <div class="contact-form-actions"><button class="contact-button contact-button-primary">Guardar</button><a class="contact-button" href="configuracion.php?section=currencies">Volver al listado</a></div>
         </form>
     <?php else: ?>

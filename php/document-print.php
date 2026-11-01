@@ -21,10 +21,12 @@ function businessDocumentData(PDO $db,array $m,int $id): array
     if(!empty($row['due_date']))$meta['Vencimiento']=$row['due_date'];
     if(!$stock)$meta['Moneda']=$row['currency_code'];
     $references=[];
+    if(!empty($row['delivery_address']))$meta['Dirección de entrega']=$row['delivery_address'];
     foreach(['quotation_id'=>['sales_quotations','Orden de venta'],'purchase_order_id'=>['purchase_orders','Orden de compra'],'sale_id'=>['sales_quotations','Orden de venta'],'purchase_id'=>['purchase_orders','Orden de compra'],'return_of_id'=>['inventory_operations','Devolución de'],'backorder_of_id'=>['inventory_operations','Pendiente de'],'reversal_of_id'=>['accounting_invoices','Factura original']] as $field=>[$table,$label])if(!empty($row[$field])){
         $q=$db->prepare('SELECT name FROM '.$table.' WHERE id=?');$q->execute([$row[$field]]);if($reference=$q->fetchColumn())$references[$label]=$reference;
     }
     if($stock){
+        if(!empty($row['partner_address']))$contact['address']=$row['partner_address'];
         foreach(['source'=>'Origen','destination'=>'Destino'] as $side=>$label){$q=$db->prepare('SELECT l.name,w.name AS warehouse FROM inventory_locations l LEFT JOIN inventory_warehouses w ON w.id=l.warehouse_id WHERE l.id=?');$q->execute([$row[$side.'_location_id']]);$place=$q->fetch();$meta[$label]=$place?implode(' / ',array_filter([$place['warehouse'],$place['name']])):'—';}
         foreach($lines as &$line){$q=$db->prepare('SELECT name FROM inventory_products WHERE id=?');$q->execute([$line['product_id']]);$line['product_name']=$q->fetchColumn()?:'Producto #'.$line['product_id'];}unset($line);
     }else{

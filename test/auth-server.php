@@ -6,6 +6,7 @@ require_once dirname(__DIR__).'/php/auth-repository.php';
 require_once dirname(__DIR__).'/php/company-schema.php';
 require_once dirname(__DIR__).'/php/contact-attachments-schema.php';
 require_once dirname(__DIR__).'/php/payment-proofs-schema.php';
+require_once dirname(__DIR__).'/php/phase15-schema.php';
 
 function startAuthTestServer(): array
 {
@@ -34,6 +35,7 @@ function startAuthTestServer(): array
         $seedCompany=!$db->query('SELECT id FROM business_company WHERE id=1')->fetchColumn();
         if($seedCompany)$db->exec("INSERT INTO business_company(id,name) VALUES(1,'Empresa inicial de pruebas')");
         $db->exec('SET FOREIGN_KEY_CHECKS=1');installAuthentication($db);installMultiCompany($db);
+        installPhase15Schema($db);
         if($seedCompany){require_once dirname(__DIR__).'/php/company-repository.php';companySeedDefaults($db,1);}
         installContactAttachments($db);
         installPaymentProofs($db);

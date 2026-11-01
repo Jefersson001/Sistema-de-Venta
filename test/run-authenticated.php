@@ -9,6 +9,15 @@ $tests=array_slice($argv,1);if(!$tests)$tests=['business-settings','access-group
 foreach($tests as &$name){$name=preg_replace('/\.php$/','',$name);if(!in_array($name,$allowed,true))throw new InvalidArgumentException('Prueba no permitida. Usa el nombre de la prueba sin directorio.');}unset($name);
 $server=startAuthTestServer();
 try {
+    // Financial regressions require a historical rate. The source company may
+    // have been deleted; seed only this isolated fixture, never the business DB.
+    if(array_intersect($tests,['commerce-workflows','commerce-partials','accounting-payments','sales-commissions','document-statuses'])){
+        require_once dirname(__DIR__).'/php/currency-repository.php';
+        if(!currencyRateSnapshot($server['db'],'USD','VES','2020-01-01')){
+            $codes=$server['db']->query("SELECT code,id FROM accounting_currencies WHERE code IN('USD','VES')")->fetchAll(PDO::FETCH_KEY_PAIR);
+            if(isset($codes['USD'],$codes['VES']))$server['db']->prepare("INSERT INTO accounting_currency_rates(currency_id,base_currency_id,rate_date,rate) VALUES(?,?,'2020-01-01',100)")->execute([$codes['VES'],$codes['USD']]);
+        }
+    }
     $login='test.admin.'.bin2hex(random_bytes(5));$password=bin2hex(random_bytes(14));$token=prepareFirstAdministrator($server['db']);
     createFirstAdministrator($server['db'],['name'=>'Administrador de pruebas','login'=>$login,'password'=>$password,'password_confirmation'=>$password],hash('sha256',$token));
     $env=getenv();$env['NEXO_DATABASE_NAME']=$server['database'];$env['NEXO_TEST_BASE_URL']=$server['url'];$env['NEXO_TEST_LOGIN']=$login;$env['NEXO_TEST_PASSWORD']=$password;

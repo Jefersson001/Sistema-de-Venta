@@ -24,7 +24,7 @@ La referencia en bolívares del documento no fija por sí misma la tasa de un pa
 
 La tarea `Nexo-BCV-project` usa `php-win.exe`, no abre ventanas y repite cada 15 minutos. La instalación normal usa el usuario actual: requiere sesión de Windows iniciada y MariaDB disponible, aunque el navegador esté cerrado. Para ejecutar también sin sesión, un administrador puede instalarla con `-AsSystem`. Los archivos del sistema deben quedar protegidos contra modificaciones de usuarios sin confianza si se ejecuta como servicio.
 
-El instalador exporta los certificados raíz de confianza de Windows a `php/runtime/bcv-ca.pem` para PHP/OpenSSL. No cambia la configuración TLS global. También se puede indicar un archivo CA de confianza con `NEXO_BCV_CA_FILE`.
+En Windows, la consulta usa `C:/Windows/System32/curl.exe` con Schannel y el almacén de certificados del sistema, que resuelve también la cadena intermedia del BCV. La validación HTTPS permanece activa, sin redirecciones y con límites de tiempo y tamaño. El instalador conserva un archivo de certificados para PHP/OpenSSL; si se configura explícitamente `NEXO_BCV_CA_FILE`, se utiliza PHP/cURL con ese archivo. En otros sistemas se utiliza PHP/cURL y su configuración de confianza. No cambia la configuración TLS global.
 
 El estado de sincronización y el bloqueo están en `php/runtime/`, protegido por `.htaccess`, excluidos de Git y separados por base de datos. El trabajo evita ejecuciones simultáneas y limita los reintentos a 15 minutos. En otro servidor hay que configurar su tarea/cron y su confianza HTTPS. No se dispone de descarga retroactiva de históricos: las fechas anteriores necesitan tasas registradas en el catálogo.
 

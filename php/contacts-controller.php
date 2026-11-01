@@ -79,6 +79,7 @@ function renderContactsPage(bool $isConfiguration = false): void
         }
         if (! $isConfiguration && $page['view'] === 'form' && $page['available']) {
             $page['attachments'] = $id ? loadContactAttachments($db, $id) : [];
+            $page['addresses']=$id?loadContactAddresses($db,$id):[];
             $page['storage'] = loadStorageRelations($db);
             $page['salespeople'] = loadContactSalespeople($db, contactId($page['record']['salesperson_id'] ?? null), $id);
             if(permissionScope('contactos.contacts',$id?'edit':'create')==='own'){$page['salespeople']=array_values(array_filter($page['salespeople'],static fn($r)=>(int)$r['id']===permissionContact()));if(!$id)$page['record']['salesperson_id']=permissionContact();}
@@ -104,7 +105,10 @@ function renderContactsPage(bool $isConfiguration = false): void
                     }
                 }
             } elseif (! $isConfiguration && ($_POST['action'] ?? '') === 'save_contact' && $page['view'] === 'form') {
-                [$data, $page['errors']] = validateContact($_POST, $page['catalogs'], $page['salespeople'], $id, $page['storage']);
+                $contactInput=$_POST;if($id&&!array_key_exists('municipality_id',$contactInput))$contactInput['municipality_id']=$page['record']['municipality_id']??'';
+                [$data, $page['errors']] = validateContact($contactInput, $page['catalogs'], $page['salespeople'], $id, $page['storage']);
+                [$addressChanges,$addressErrors]=validateContactAddressLines($_POST,$page['catalogs'],$page['addresses']);
+                $page['errors']=array_merge($page['errors'],$addressErrors);$page['addressInput']=$addressChanges;
                 [$uploads, $removeFiles, $fileErrors] = validateContactAttachments($_POST, $_FILES);
                 $page['errors'] = array_merge($page['errors'], $fileErrors);
                 $page['record'] = $data + ($id ? ['id' => $id] : []) + ['active' => $page['record']['active'] ?? 1];
@@ -114,7 +118,7 @@ function renderContactsPage(bool $isConfiguration = false): void
                             $type = contactCatalogRecord($page['catalogs']['types'], (int)$data['type_id']);
                             if (($type['system_key'] ?? '') !== 'client' || $id) throw new InvalidArgumentException('Esta ventana permite crear un cliente nuevo.');
                         }
-                        $savedId = saveContactWithAttachments($db, $data, $id, $uploads, $removeFiles);
+                        $savedId = saveContactWithAttachments($db, $data, $id, $uploads, $removeFiles, $addressChanges, $addressChanges!==null?($_POST['addresses_revision']??''):null);
                         if ($salesWizard) contactRedirect('index.php?' . http_build_query(['id' => $savedId, 'sales_wizard' => '1', 'created' => '1', 'wizard_scope' => companyScopeToken()]));
                         $_SESSION['contacts_flash'] = 'Contacto guardado correctamente.';
                         contactRedirect('index.php?id=' . $savedId);
@@ -177,14 +181,7 @@ function renderContactsPage(bool $isConfiguration = false): void
         $record = $page['record'];
         $type = contactCatalogRecord($page['catalogs']['types'], (int)$record['type_id']);
         if (($type['system_key'] ?? '') === 'client' && $record['active'] && permissionFilterContacts([$record])) {
-            $address = [];
-            foreach (['address', 'city_id', 'state_id', 'postal_code', 'country_id'] as $field) {
-                $value = $record[$field] ?? '';
-                $catalog = ['city_id' => 'cities', 'state_id' => 'states', 'country_id' => 'countries'][$field] ?? null;
-                if ($catalog) $value = contactCatalogRecord($page['catalogs'][$catalog], contactId($value))['name'] ?? '';
-                if (trim((string)$value) !== '') $address[] = trim((string)$value);
-            }
-            $page['wizardCustomer'] = ['id' => (int)$record['id'], 'name' => $record['name'], 'address' => implode(', ', $address), 'salesperson_id' => (int)($record['salesperson_id'] ?? 0), 'scope' => companyScopeToken()];
+            $page['wizardCustomer'] = ['id' => (int)$record['id'], 'name' => $record['name'], 'address' => contactAddressText($record,$page['catalogs']), 'addresses'=>loadContactAddresses($db,(int)$record['id']), 'salesperson_id' => (int)($record['salesperson_id'] ?? 0), 'scope' => companyScopeToken()];
         }
     }
     renderModulePage('contactos', $isConfiguration, $page);

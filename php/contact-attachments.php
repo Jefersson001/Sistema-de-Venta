@@ -77,7 +77,7 @@ function validateContactAttachments(array $input, array $files): array
     return [$uploads, array_values($removeIds), $errors];
 }
 
-function saveContactWithAttachments(PDO $db, array $data, ?int $id, array $uploads, array $remove): int
+function saveContactWithAttachments(PDO $db, array $data, ?int $id, array $uploads, array $remove, ?array $addressChanges=null, ?string $addressRevision=null): int
 {
     $newPaths = []; $oldPaths = [];
     $db->beginTransaction();
@@ -85,6 +85,7 @@ function saveContactWithAttachments(PDO $db, array $data, ?int $id, array $uploa
         if ($id) {
             $q = $db->prepare('SELECT id FROM contacts WHERE id=? FOR UPDATE'); $q->execute([$id]);
             if (!$q->fetchColumn()) throw new InvalidArgumentException('El contacto ya no está disponible.');
+            if($addressRevision!==null&&!hash_equals(contactAddressesRevision(loadContactAddresses($db,$id)),$addressRevision))throw new InvalidArgumentException('Las direcciones cambiaron en otra ventana. Recarga antes de guardar.');
         } elseif ($remove) throw new InvalidArgumentException('Un contacto nuevo no tiene archivos para quitar.');
         foreach ($remove as $attachment) {
             $q = $db->prepare('SELECT storage_key FROM contact_attachments WHERE id=? AND contact_id=? FOR UPDATE'); $q->execute([$attachment,$id]);
@@ -93,6 +94,7 @@ function saveContactWithAttachments(PDO $db, array $data, ?int $id, array $uploa
             $oldPaths[] = contactAttachmentPath($key);
         }
         $saved = saveContact($db, $data, $id);
+        saveContactAddressLines($db,$saved,$addressChanges);
         if ($uploads) {
             $directory = contactAttachmentDirectory();
             if (!is_dir($directory) && !mkdir($directory,0700,true) && !is_dir($directory)) throw new RuntimeException('No se pudo preparar el almacenamiento de archivos.');

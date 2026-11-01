@@ -96,7 +96,7 @@ function permissionRoute(string $path,array $query): ?string
     return match($module.'/'.$file){
         'restaurante/index.php','restaurante/mesa.php'=>'restaurante.tables',
         'restaurante/cuenta.php','restaurante/cuentas.php','restaurante/comprobante.php'=>'restaurante.accounts',
-        'contactos/index.php','contactos/archivo.php'=>'contactos.contacts',
+        'contactos/index.php','contactos/archivo.php','contactos/direcciones.php'=>'contactos.contacts',
         'ventas/index.php','ventas/producto.php'=>'ventas.orders',
         'ventas/comisiones.php'=>'ventas.commissions','ventas/pagos-comisiones.php'=>'ventas.commission_payments',
         'compras/index.php','compras/orden.php'=>'compras.orders',

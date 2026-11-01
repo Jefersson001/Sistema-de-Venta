@@ -131,7 +131,7 @@ try {
     expectSales($status === 200 && str_contains($body, 'Entrega · 1') && ! str_contains($body, 'value="create_delivery"'), 'No aparece el contador y enlace a la entrega existente.');
     expectSales(! str_contains($body, 'data-quotation-invoice'), 'Factura aparece antes de validar la entrega.');
     [$status, $body] = salesRequest($base, 'inventario/operaciones.php?type=delivery&id=' . $delivery['id'], $cookie);
-    expectSales($status === 200 && str_contains($body, $quotation['name']) && str_contains($body, $prefix . ' cliente') && ! str_contains($body, 'Calle de prueba') && str_contains($body, $prefix . ' main'), 'La entrega no muestra el documento de origen, cliente o productos.');
+    expectSales($status === 200 && str_contains($body, $quotation['name']) && str_contains($body, $prefix . ' cliente') && str_contains($body, 'Calle de prueba') && str_contains($body, $prefix . ' main'), 'La entrega no muestra el documento de origen, cliente, dirección guardada o productos.');
     $deliveryDom = new DOMDocument(); libxml_use_internal_errors(true); $deliveryDom->loadHTML('<?xml encoding="UTF-8">' . $body);
     $deliveryXpath = new DOMXPath($deliveryDom);
     expectSales($deliveryXpath->query('//*[@id="operation-other"]//label[contains(., "Vendedor relacionado")]/input')->length === 1

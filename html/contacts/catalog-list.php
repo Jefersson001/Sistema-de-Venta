@@ -5,7 +5,7 @@
                         <?php if ($section === 'countries'): ?><td><?= contactEscape($item['code'] ?: '—') ?></td><?php endif; ?>
                         <?php if ($section === 'document_types'): ?><td><?= contactEscape($item['code']) ?></td><?php endif; ?>
                         <?php if ($section === 'states'): ?><td><?= contactEscape(contactCatalogRecord($page['catalogs']['countries'], (int) $item['country_id'])['name'] ?? '') ?></td><?php endif; ?>
-                        <?php if ($section === 'cities'): ?><?php $state = contactCatalogRecord($page['catalogs']['states'], (int) $item['state_id']); ?><td><?= contactEscape($state['name'] ?? '') ?> / <?= contactEscape(contactCatalogRecord($page['catalogs']['countries'], (int) $state['country_id'])['name'] ?? '') ?></td><?php endif; ?>
+                        <?php if (in_array($section,['cities','municipalities'],true)): ?><?php $state = contactCatalogRecord($page['catalogs']['states'], (int) $item['state_id']); ?><td><?= contactEscape($state['name'] ?? '') ?> / <?= contactEscape(contactCatalogRecord($page['catalogs']['countries'], (int) $state['country_id'])['name'] ?? '') ?></td><?php endif; ?>
                         <td><a class="inline-link" href="configuracion.php?section=<?= $section ?>&amp;id=<?= (int) $item['id'] ?>">Editar<span class="visually-hidden"> <?= contactEscape($item['name']) ?></span></a></td></tr>
                     <?php endforeach; ?>
                     <?php if (! $page['catalogs'][$section]): ?><tr><td colspan="<?= $section === 'types' ? 2 : 3 ?>" class="contact-empty">Todavía no hay registros. Pulsa «Nuevo» para crear el primero.</td></tr><?php endif; ?>

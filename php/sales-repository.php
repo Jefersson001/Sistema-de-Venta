@@ -1,5 +1,6 @@
 <?php
 declare(strict_types=1);
+require_once __DIR__.'/contacts-repository.php';
 require_once __DIR__ . '/workflow-repository.php';
 require_once __DIR__.'/currency-repository.php';
 require_once __DIR__ . '/storage-repository.php';
@@ -99,7 +100,7 @@ function loadSalesCatalogs(PDO $db, ?array $existing): array
     $taxes = $db->query("SELECT id, name, rate FROM business_taxes WHERE module_key = 'ventas' ORDER BY name, id")->fetchAll();
     $terms = $db->query('SELECT id, name FROM accounting_payment_terms ORDER BY name, id')->fetchAll();
     return ['settings'=>$existing?['primary_code'=>$existing['currency_primary_code'],'alternate_code'=>$existing['currency_alternate_code'],'exchange_rate'=>$existing['exchange_rate']]:accountingCurrencies($db),'customers' => $customerRecords, 'salespeople' => $sellerRecords,
-        'products' => $products, 'taxes' => $taxes, 'terms' => $terms, 'commission_enabled'=>true];
+        'products' => $products, 'taxes' => $taxes, 'terms' => $terms, 'addresses'=>orderAddressCatalog($db,$customerRecords), 'commission_enabled'=>true];
 }
 
 function salesDecimal(mixed $value, int $integerDigits, int $scale): ?string
@@ -136,6 +137,7 @@ function validateSalesQuotation(array $input, array $catalogs, ?array $existing 
     $sameCustomer = $existing && (int) $existing['customer_id'] === $customerId;
     $seller = salesRecord($catalogs['salespeople'], $sellerId);
     $address = $customer ? salesAddress($customer) : '';
+    [$selectedAddresses,$addressErrors]=resolveOrderAddresses($input,$catalogs,$existing,$customerId);$errors=array_merge($errors,$addressErrors);
     $settings=$catalogs['settings']??['primary_code'=>'USD','alternate_code'=>'VES','exchange_rate'=>null];
     try{$settings['exchange_rate']=accountingExchangeRate($input['exchange_rate']??$existing['exchange_rate']??$settings['exchange_rate']);}catch(InvalidArgumentException $e){$errors[]=$e->getMessage();}
     $currency=$input['currency_code']??$existing['currency_code']??$settings['primary_code'];
@@ -145,6 +147,7 @@ function validateSalesQuotation(array $input, array $catalogs, ?array $existing 
         'delivery_address' => $sameCustomer ? $existing['delivery_address'] : $address,
         'warehouse_id' => salesId($seller['warehouse_id'] ?? null), 'location_id' => salesId($seller['location_id'] ?? null),
         'storage_label' => $seller['storage_label'] ?? ''];
+    $data=array_replace($data,$selectedAddresses);
     $rawLines = $input['lines'] ?? [];
     $lines = [];
     $total = '0.00'; $taxTotal = '0.00'; $baseTotal = '0.00';

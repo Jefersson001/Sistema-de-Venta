@@ -47,9 +47,10 @@ function renderInventoryOperations(): void
                 $page['sourceOrder'] = loadPurchaseOrder($db, (int) $existing['purchase_order_id']);
                 if ($page['sourceOrder']) { $page['documentKind'] = 'purchase'; $page['links'] = commerceLinks($db, 'purchase', (int) $existing['purchase_order_id']); }
             }
-            $query = $db->prepare('SELECT c.id, c.name, c.active, c.partner_location_id,c.salesperson_id FROM contacts c JOIN contact_types t ON t.id = c.type_id
+            $query = $db->prepare('SELECT c.* FROM contacts c JOIN contact_types t ON t.id = c.type_id
                 WHERE t.system_key = ? AND (c.active = 1 OR c.id = ?) ORDER BY c.name, c.id');
             $query->execute([$page['definition']['role'], $existing['contact_id'] ?? null]); $page['contacts'] = permissionFilterContacts($query->fetchAll());
+            $page['catalogs']['addresses']=orderAddressCatalog($db,$page['contacts']);
             $page['externalLocationLabel'] = '';
             if ($type !== 'internal') {
                 $locationType = $type === 'receipt' ? 'supplier' : 'customer';
@@ -108,7 +109,7 @@ function renderInventoryOperations(): void
                     } catch (InvalidArgumentException $exception) { $page['errors'][] = $exception->getMessage(); }
                 }
             } else {
-                [$data, $page['errors']] = validateInventoryOperation($_POST, $type, $page['storage'], $page['contacts']);
+                [$data, $page['errors']] = validateInventoryOperation($_POST, $type, $page['storage'], $page['contacts'], $page['catalogs']['addresses']??[], $existing);
                 if (!empty($existing['return_of_id'])) {
                     $data['source_location_id'] = (int)$existing['source_location_id']; $data['destination_location_id'] = (int)$existing['destination_location_id'];
                     $data['source_warehouse_id'] = inventoryId($existing['source_warehouse_id']); $data['destination_warehouse_id'] = inventoryId($existing['destination_warehouse_id']);

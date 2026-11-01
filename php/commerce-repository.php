@@ -36,7 +36,8 @@ function loadPurchaseCatalogs(PDO $db, ?array $existing): array
     if(!permissionHas('inventario.products'))$products=[];
     if(!permissionHas('inventario.products','view_cost'))foreach($products as &$product){$product['price']='0.00';$product['cost_price']='0.00';}unset($product);
     foreach($products as &$product)$product['sale_price']=$product['price'];unset($product);
-    return ['settings'=>$existing?['primary_code'=>$existing['currency_primary_code'],'alternate_code'=>$existing['currency_alternate_code'],'exchange_rate'=>$existing['exchange_rate']]:accountingCurrencies($db),'customers' => permissionFilterContacts($contacts->fetchAll()), 'products' => $products, 'supplierPrices' => permissionHas('inventario.products','view_cost')?$db->query('SELECT product_id,supplier_id,price FROM product_supplier_prices')->fetchAll():[],
+    $partnerRecords=permissionFilterContacts($contacts->fetchAll());
+    return ['settings'=>$existing?['primary_code'=>$existing['currency_primary_code'],'alternate_code'=>$existing['currency_alternate_code'],'exchange_rate'=>$existing['exchange_rate']]:accountingCurrencies($db),'customers' => $partnerRecords, 'addresses'=>orderAddressCatalog($db,$partnerRecords), 'products' => $products, 'supplierPrices' => permissionHas('inventario.products','view_cost')?$db->query('SELECT product_id,supplier_id,price FROM product_supplier_prices')->fetchAll():[],
         'taxes' => $db->query("SELECT id, name, rate FROM business_taxes WHERE module_key = 'compras' ORDER BY name, id")->fetchAll(),
         'terms' => $db->query('SELECT id, name FROM accounting_payment_terms ORDER BY name, id')->fetchAll(), 'salespeople' => [], 'storage' => loadStorageRelations($db)];
 }
@@ -50,11 +51,11 @@ function validatePurchaseOrder(array $input, array $catalogs, ?array $existing):
     $mode = $input['order_type'] ?? ($existing['order_type'] ?? 'receipt');
     $mapped['order_type'] = $mode === 'receipt' ? 'delivery' : $mode;
     $mapped['salesperson_id'] = '';
-    $old = $existing ? ['customer_id' => $existing['supplier_id'], 'invoice_address' => $existing['invoice_address'], 'delivery_address' => $existing['invoice_address'], 'lines' => $existing['lines'], 'currency_code'=>$existing['currency_code'],'exchange_rate'=>$existing['exchange_rate']] : null;
+    $old = $existing ? ['customer_id' => $existing['supplier_id'], 'invoice_address_id'=>$existing['invoice_address_id']??null, 'invoice_address' => $existing['invoice_address'], 'delivery_address' => $existing['invoice_address'], 'lines' => $existing['lines'], 'currency_code'=>$existing['currency_code'],'exchange_rate'=>$existing['exchange_rate']] : null;
     [$data, $lines, $errors] = validateSalesQuotation($mapped, $catalogs, $old);
     if (! is_string($mode) || ! in_array($mode, ['receipt', 'invoice'], true)) { $errors[] = 'Selecciona un tipo de orden de compra válido.'; }
     $data['supplier_id'] = $data['customer_id']; $data['order_type'] = $mode === 'invoice' ? 'invoice' : 'receipt';
-    unset($data['customer_id'], $data['salesperson_id'], $data['delivery_address'], $data['warehouse_id'], $data['location_id'], $data['storage_label']);
+    unset($data['customer_id'], $data['salesperson_id'], $data['delivery_address'], $data['delivery_address_id'], $data['warehouse_id'], $data['location_id'], $data['storage_label']);
     $location = salesId($input['destination_location_id'] ?? null);
     $destination = storageRecord($catalogs['storage']['locations'], $location);
     if (array_filter($lines, static fn($l)=>$l['product_type']==='goods') && (! $destination || $destination['location_type'] !== 'internal')) { $errors[] = 'Selecciona una ubicación interna de destino para la recepción.'; }

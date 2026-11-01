@@ -26,6 +26,9 @@ function bcvParsePublication(string $html): array
 
 function bcvFetchPublication(): array
 {
+    // Windows' TLS stack resolves the official certificate chain through its
+    // trusted store, including intermediate certificates. Never disable TLS.
+    if(PHP_OS_FAMILY==='Windows' && !getenv('NEXO_BCV_CA_FILE') && is_file('C:/Windows/System32/curl.exe'))return bcvFetchWindowsPublication();
     $curl=curl_init(BCV_SOURCE_URL);$html='';
     curl_setopt_array($curl,[CURLOPT_FOLLOWLOCATION=>false,CURLOPT_CONNECTTIMEOUT=>8,CURLOPT_TIMEOUT=>20,
         CURLOPT_SSL_VERIFYPEER=>true,CURLOPT_SSL_VERIFYHOST=>2,CURLOPT_PROTOCOLS=>CURLPROTO_HTTPS,
@@ -35,4 +38,19 @@ function bcvFetchPublication(): array
     $ok=curl_exec($curl);$status=curl_getinfo($curl,CURLINFO_RESPONSE_CODE);$error=curl_error($curl);curl_close($curl);
     if($ok===false||$status!==200)throw new RuntimeException('No se pudo consultar el BCV (HTTP '.$status.'). '.$error);
     return bcvParsePublication($html);
+}
+
+function bcvFetchWindowsPublication(): array
+{
+    $file=tempnam(sys_get_temp_dir(),'nexo-bcv-');
+    if($file===false)throw new RuntimeException('No se pudo preparar la consulta BCV.');
+    try{
+        $command=['C:/Windows/System32/curl.exe','--silent','--show-error','--fail','--proto','=https','--connect-timeout','8','--max-time','20','--max-filesize','2097152','--user-agent','Nexo/1.0 (consulta de tipo de cambio BCV)','--output',$file,'--write-out','%{http_code}',BCV_SOURCE_URL];
+        $process=proc_open($command,[0=>['pipe','r'],1=>['pipe','w'],2=>['pipe','w']],$pipes,null,null,['bypass_shell'=>true,'create_new_console'=>false]);
+        if(!is_resource($process))throw new RuntimeException('No se pudo iniciar la consulta HTTPS al BCV.');
+        fclose($pipes[0]);$status=stream_get_contents($pipes[1]);fclose($pipes[1]);$error=stream_get_contents($pipes[2]);fclose($pipes[2]);$code=proc_close($process);
+        if($code!==0||trim($status)!=='200')throw new RuntimeException('No se pudo consultar el BCV (HTTP '.trim($status).'). '.trim($error));
+        if(filesize($file)>2*1024*1024)throw new RuntimeException('La respuesta del BCV supera el tamaño permitido.');
+        return bcvParsePublication(file_get_contents($file));
+    }finally{if(is_file($file))unlink($file);}
 }

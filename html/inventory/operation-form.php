@@ -21,7 +21,9 @@
                 <?php if ($editing && empty($record[$side . '_location_id'])): ?><p class="section-subtitle contact-full">Selecciona la <?= mb_strtolower($label) ?> para guardar los cambios de esta operación.</p><?php endif; ?>
             <?php endforeach; ?>
             <?php if (! $page['storage']['locations']): ?><p class="section-subtitle contact-full">Crea una ubicación dentro del almacén para registrar operaciones. <a class="inline-link" href="configuracion.php?section=locations&amp;new=1">Crear ubicación</a></p><?php endif; ?>
+            <?php if(!$linked&&$page['type']!=='internal'): ?><?php $operationAddress=true;$addressKind=$page['type']==='delivery'?'delivery':'invoice';require dirname(__DIR__).'/commerce/address-field.php';unset($operationAddress); ?><?php endif; ?>
             <label>Fecha programada *<input type="date" name="scheduled_date" required value="<?= inventoryEscape($record['scheduled_date']) ?>"></label>
+            <?php if(!empty($record['partner_address'])): ?><label class="contact-full"><?= $page['type']==='delivery'?'Dirección de entrega guardada':'Dirección del proveedor guardada' ?><textarea readonly rows="3"><?= inventoryEscape($record['partner_address']) ?></textarea></label><?php endif; ?>
             <?php if ($page['type'] !== 'internal'): ?><label><?= $page['type'] === 'receipt' ? 'Ubicación de proveedor' : 'Ubicación de cliente' ?><input readonly data-operation-external value="<?= inventoryEscape($page['externalLocationLabel']) ?>"><small>Se toma de la ubicación relacionada en el contacto.</small></label><?php endif; ?>
             <?php if ($page['sourceOrder']): ?>
                 <label>Tipo de orden<input readonly value="<?= $page['sourceOrder']['order_type'] === 'invoice' ? 'Factura' : ($page['documentKind'] === 'sale' ? 'Orden de venta' : 'Orden de compra') ?>"></label>
@@ -44,3 +46,5 @@
 </section>
 <script type="application/json" data-operation-stock><?= json_encode($page['stock'], JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT | JSON_THROW_ON_ERROR) ?></script>
 <script src="../../js/inventory-operations.js" defer></script>
+
+<script type="application/json" data-order-address-catalog><?= json_encode($page['catalogs']['addresses']??[],JSON_HEX_TAG|JSON_HEX_AMP|JSON_HEX_APOS|JSON_HEX_QUOT) ?></script><script src="../../js/order-addresses.js?v=<?= filemtime(dirname(__DIR__,2).'/js/order-addresses.js') ?>" defer></script>

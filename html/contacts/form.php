@@ -25,6 +25,7 @@ $isExternalPartner = in_array($selectedType['system_key'] ?? '', ['client', 'sup
                 <label class="contact-full record-name-field">Nombre o razón social *<input name="name" required maxlength="160" autocomplete="name" value="<?= contactEscape($record['name'] ?? '') ?>"></label>
                 <label>Persona o empresa *<select name="entity_kind" required><option value="person" <?= ($record['entity_kind'] ?? '') === 'person' ? 'selected' : '' ?>>Persona</option><option value="company" <?= ($record['entity_kind'] ?? '') === 'company' ? 'selected' : '' ?>>Empresa</option></select></label>
                 <label>Tipo de contacto *<select name="type_id" required data-contact-type><option value="">Selecciona un tipo</option><?php foreach ($page['catalogs']['types'] as $type): ?><?php if (!empty($page['salesWizard']) && ($type['system_key'] ?? '') !== 'client') continue; ?><option value="<?= (int) $type['id'] ?>" data-contact-kind="<?= contactEscape($type['system_key'] ?? '') ?>" <?= (int) ($record['type_id'] ?? 0) === (int) $type['id'] ? 'selected' : '' ?>><?= contactEscape($type['name']) ?></option><?php endforeach; ?></select></label>
+                <p class="section-subtitle contact-full">El tipo Administrador clasifica al contacto. Los permisos del sistema se asignan en Ajustes → Usuarios y Grupos.</p>
                 <div class="document-field">
                     <label for="document-number">Documento</label>
                     <div class="document-controls">
@@ -47,9 +48,7 @@ $isExternalPartner = in_array($selectedType['system_key'] ?? '', ['client', 'sup
         <fieldset data-contact-location><legend>Dirección y localización</legend>
             <p class="section-subtitle">Selecciona primero el país, después el estado y la ciudad. <a class="inline-link" href="configuracion.php">Gestionar localizaciones</a></p>
             <div class="contact-form-grid">
-                <label>País<select name="country_id" data-country><option value="">Sin país</option><?php foreach ($page['catalogs']['countries'] as $country): ?><option value="<?= (int) $country['id'] ?>" <?= (int) ($record['country_id'] ?? 0) === (int) $country['id'] ? 'selected' : '' ?>><?= contactEscape($country['name']) ?></option><?php endforeach; ?></select></label>
-                <label>Estado<select name="state_id" data-state><option value="">Sin estado</option><?php foreach ($page['catalogs']['states'] as $state): ?><option data-parent="<?= (int) $state['country_id'] ?>" value="<?= (int) $state['id'] ?>" <?= (int) ($record['state_id'] ?? 0) === (int) $state['id'] ? 'selected' : '' ?>><?= contactEscape($state['name']) ?></option><?php endforeach; ?></select></label>
-                <label>Ciudad<select name="city_id" data-city><option value="">Sin ciudad</option><?php foreach ($page['catalogs']['cities'] as $city): ?><option data-parent="<?= (int) $city['state_id'] ?>" value="<?= (int) $city['id'] ?>" <?= (int) ($record['city_id'] ?? 0) === (int) $city['id'] ? 'selected' : '' ?>><?= contactEscape($city['name']) ?></option><?php endforeach; ?></select></label>
+                <?php $geoRecord=$record;$geoPrefix='';require __DIR__.'/geography.php'; ?>
                 <label>Código postal<input name="postal_code" maxlength="20" autocomplete="postal-code" value="<?= contactEscape($record['postal_code'] ?? '') ?>"></label>
                 <label class="contact-full">Dirección<input name="address" maxlength="255" autocomplete="street-address" value="<?= contactEscape($record['address'] ?? '') ?>" placeholder="Calle, edificio, local y referencias"></label>
             </div>
@@ -59,6 +58,7 @@ $isExternalPartner = in_array($selectedType['system_key'] ?? '', ['client', 'sup
             <nav class="notebook-tabs" data-notebook-tabs aria-label="Información del contacto">
                 <a id="tab-sales" href="#page-sales">Ventas y compras</a>
                 <a id="tab-accounting" href="#page-accounting">Contabilidad</a>
+                <a id="tab-addresses" href="#page-addresses">Direcciones</a>
                 <a id="tab-inventory" href="#page-inventory">Inventario</a>
                 <a id="tab-attachments" href="#page-attachments">Fotos y documentos</a>
                 <a id="tab-notes" href="#page-notes">Notas internas</a>
@@ -83,6 +83,7 @@ $isExternalPartner = in_array($selectedType['system_key'] ?? '', ['client', 'sup
                 <h2 class="notebook-page-title">Contabilidad</h2>
                 <p class="section-subtitle">Los datos contables del contacto estarán disponibles próximamente.</p>
             </section>
+            <section class="notebook-page" id="page-addresses" data-notebook-page aria-labelledby="tab-addresses"><?php require __DIR__.'/addresses.php'; ?></section>
             <section class="notebook-page" id="page-inventory" data-notebook-page aria-labelledby="tab-inventory">
                 <h2 class="notebook-page-title">Inventario</h2>
                 <div class="contact-form-grid" data-partner-location-field <?= ! $isExternalPartner ? 'hidden' : '' ?>>
@@ -109,3 +110,5 @@ $isExternalPartner = in_array($selectedType['system_key'] ?? '', ['client', 'sup
     </form>
 </section>
 <script src="../../js/contact-attachments.js?v=<?= filemtime(dirname(__DIR__,2).'/js/contact-attachments.js') ?>" defer></script>
+
+<script src="../../js/contact-addresses.js?v=<?= filemtime(dirname(__DIR__,2).'/js/contact-addresses.js') ?>" defer></script>

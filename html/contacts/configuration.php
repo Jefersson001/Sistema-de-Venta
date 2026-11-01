@@ -16,7 +16,7 @@ $editing = isset($record['id']);
         <?php if ($section !== null && $page['view'] === 'list'): ?><a class="contact-button contact-button-primary" href="configuracion.php?section=<?= $section ?>&amp;new=1">+ Nuevo <?= $definition['singular'] ?></a><?php endif; ?>
     </div>
     <?php if ($section === null): ?>
-        <?php foreach (['Localización' => ['countries', 'states', 'cities'], 'Contactos' => ['types', 'document_types']] as $group => $keys): ?>
+        <?php foreach (['Localización' => ['countries', 'states', 'municipalities', 'cities'], 'Contactos' => ['types', 'document_types']] as $group => $keys): ?>
             <h2 class="catalog-group-title"><?= $group ?></h2>
             <div class="catalog-options">
                 <?php foreach ($keys as $key): ?>
@@ -31,7 +31,7 @@ $editing = isset($record['id']);
         <div class="contact-config-layout">
             <nav class="contact-config-nav" aria-label="Configuración de contactos">
                 <strong>Localización</strong>
-                <?php foreach (['countries', 'states', 'cities'] as $key): ?><a href="configuracion.php?section=<?= $key ?>" <?= $section === $key ? 'aria-current="page"' : '' ?>><?= $definitions[$key]['label'] ?></a><?php endforeach; ?>
+                <?php foreach (['countries', 'states', 'municipalities', 'cities'] as $key): ?><a href="configuracion.php?section=<?= $key ?>" <?= $section === $key ? 'aria-current="page"' : '' ?>><?= $definitions[$key]['label'] ?></a><?php endforeach; ?>
                 <strong>Contactos</strong><a href="configuracion.php?section=types" <?= $section === 'types' ? 'aria-current="page"' : '' ?>>Tipos de contacto</a>
                 <a href="configuracion.php?section=document_types" <?= $section === 'document_types' ? 'aria-current="page"' : '' ?>>Tipos de documento</a>
             </nav>

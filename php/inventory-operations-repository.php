@@ -3,6 +3,7 @@ declare(strict_types=1);
 require_once __DIR__ . '/inventory-repository.php';
 require_once __DIR__ . '/storage-repository.php';
 require_once __DIR__ . '/inventory-stock-repository.php';
+require_once __DIR__.'/sales-repository.php';
 
 function inventoryOperationTypes(): array
 {
@@ -13,7 +14,7 @@ function inventoryOperationTypes(): array
     ];
 }
 
-function validateInventoryOperation(array $input, string $type, array $storage, array $contacts): array
+function validateInventoryOperation(array $input, string $type, array $storage, array $contacts, array $addresses=[], ?array $existing=null): array
 {
     $errors = [];
     $date = is_string($input['scheduled_date'] ?? null) ? $input['scheduled_date'] : '';
@@ -26,6 +27,17 @@ function validateInventoryOperation(array $input, string $type, array $storage, 
     $notes = is_string($input['notes'] ?? null) ? trim($input['notes']) : '';
     if (mb_strlen($notes) > 5000) { $errors[] = 'Las notas admiten hasta 5000 caracteres.'; }
     $data = ['operation_type' => $type, 'scheduled_date' => $date, 'contact_id' => $contact, 'notes' => $notes];
+    if($type!=='internal'){
+        if(!empty($existing['quotation_id'])||!empty($existing['purchase_order_id'])||!empty($existing['return_of_id'])){
+            $data['partner_address']=$existing['partner_address']??null;$data['partner_address_id']=$existing['partner_address_id']??null;
+        }else{
+            $kind=$type==='delivery'?'delivery':'invoice';$mapped=$input;
+            if(array_key_exists('partner_address_id',$input))$mapped[$kind.'_address_id']=$input['partner_address_id'];
+            $old=$existing?['customer_id'=>$existing['contact_id'],$kind.'_address_id'=>$existing['partner_address_id']??null,$kind.'_address'=>$existing['partner_address']??'']:null;
+            [$resolved,$addressErrors]=resolveOrderAddresses($mapped,['customers'=>$contacts,'addresses'=>$addresses],$old,$contact);$errors=array_merge($errors,$addressErrors);
+            $data['partner_address']=$resolved[$kind.'_address'];$data['partner_address_id']=$resolved[$kind.'_address_id'];
+        }
+    }
     $partner = storageRecord($contacts, $contact);
     foreach (['source', 'destination'] as $side) {
         $required = $side === 'source' ? $type !== 'receipt' : $type !== 'delivery';

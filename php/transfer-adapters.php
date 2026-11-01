@@ -24,6 +24,7 @@ function transferSave(PDO $db,array $m,array $input,?array $old,string $key): in
         return $save==='restaurant_areas'?restaurantSaveArea($db,$input,$id):restaurantSaveTable($db,$input,$id);
     }
     if($save==='contacts') {
+        if(!array_key_exists('municipality_id',$input))$input['municipality_id']=$old['municipality_id']??'';
         $data=transferValidated(validateContact($input,loadContactCatalogs($db),loadContactSalespeople($db,accessId($old['salesperson_id']??null),$id),$id,loadStorageRelations($db)));
         $data['active']=(int)($input['active']??'1');return saveContact($db,$data,$id);
     }
@@ -57,7 +58,7 @@ function transferSave(PDO $db,array $m,array $input,?array $old,string $key): in
     }
     if($save==='operations') {
         $storage=loadStorageRelations($db);$q=$db->prepare('SELECT c.* FROM contacts c JOIN contact_types t ON t.id=c.type_id WHERE t.system_key=? AND (c.active=1 OR c.id=?)');$q->execute([inventoryOperationTypes()[$m['type']]['role'],$old['contact_id']??null]);$contacts=permissionFilterContacts($q->fetchAll());
-        $data=transferValidated(validateInventoryOperation($input,$m['type'],$storage,$contacts));
+        $data=transferValidated(validateInventoryOperation($input,$m['type'],$storage,$contacts,orderAddressCatalog($db,$contacts),$old));
         if($id){$q=$db->prepare('SELECT * FROM inventory_operation_lines WHERE operation_id=? ORDER BY position,id');$q->execute([$id]);$oldLines=$q->fetchAll();
             if(!isset($input['lines']))$input['lines']=$oldLines;
             else foreach($input['lines'] as $position=>&$line)if(isset($oldLines[$position])&&(int)$oldLines[$position]['product_id']===(int)($line['product_id']??0))$line['id']=$oldLines[$position]['id'];unset($line);

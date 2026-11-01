@@ -2,12 +2,14 @@
 
 declare(strict_types=1);
 require_once __DIR__ . '/storage-repository.php';
+require_once __DIR__.'/contact-addresses.php';
 
 function contactCatalogDefinitions(): array
 {
     return [
         'countries' => ['table' => 'contact_countries', 'label' => 'Países', 'singular' => 'país'],
         'states' => ['table' => 'contact_states', 'label' => 'Estados', 'singular' => 'estado'],
+        'municipalities' => ['table' => 'contact_municipalities', 'label' => 'Municipios', 'singular' => 'municipio'],
         'cities' => ['table' => 'contact_cities', 'label' => 'Ciudades', 'singular' => 'ciudad'],
         'types' => ['table' => 'contact_types', 'label' => 'Tipos de contacto', 'singular' => 'tipo de contacto'],
         'document_types' => ['table' => 'contact_document_types', 'label' => 'Tipos de documento', 'singular' => 'tipo de documento'],
@@ -143,7 +145,7 @@ function validateContact(array $input, array $catalogs, array $salespeople = [],
         || ! in_array(strtolower((string) parse_url($data['website'], PHP_URL_SCHEME)), ['http', 'https'], true))) {
         $errors[] = 'El sitio web debe ser una dirección válida que comience con http:// o https://.';
     }
-    foreach (['country_id' => 'countries', 'state_id' => 'states', 'city_id' => 'cities'] as $field => $catalog) {
+    foreach (['country_id' => 'countries', 'state_id' => 'states', 'municipality_id'=>'municipalities', 'city_id' => 'cities'] as $field => $catalog) {
         $data[$field] = contactId($input[$field] ?? null);
         if (($input[$field] ?? '') !== '' && ! contactCatalogRecord($catalogs[$catalog], $data[$field])) {
             $errors[] = 'La localización seleccionada no es válida.';
@@ -157,11 +159,15 @@ function validateContact(array $input, array $catalogs, array $salespeople = [],
     if ($city && (int) $city['state_id'] !== $data['state_id']) {
         $errors[] = 'La ciudad debe pertenecer al estado seleccionado.';
     }
+    $geoErrors=[];validateContactGeography($input,$catalogs,$geoErrors);$errors=array_values(array_unique(array_merge($errors,$geoErrors)));
     return [$data, $errors];
 }
 
 function saveContact(PDO $db, array $data, ?int $id): int
 {
+    $own=!$db->inTransaction();if($own)$db->beginTransaction();
+    try{
+    if($id){$lock=$db->prepare('SELECT id FROM contacts WHERE id=? FOR UPDATE');$lock->execute([$id]);if(!$lock->fetchColumn())throw new InvalidArgumentException('El contacto ya no existe.');}
     if ($id) {
         $role = $db->prepare('SELECT system_key FROM contact_types WHERE id = ?');
         $role->execute([$data['type_id']]);
@@ -182,7 +188,10 @@ function saveContact(PDO $db, array $data, ?int $id): int
         $sql = 'INSERT INTO contacts (' . implode(', ', $fields) . ') VALUES (:' . implode(', :', $fields) . ')';
     }
     $db->prepare($sql)->execute($values);
-    return $id ?? (int) $db->lastInsertId();
+    $saved=$id ?? (int)$db->lastInsertId();
+    $q=$db->prepare('SELECT * FROM contacts WHERE id=?');$q->execute([$saved]);syncContactPrimaryAddress($db,$saved,$q->fetch());
+    if($own)$db->commit();return $saved;
+    }catch(Throwable $e){if($own&&$db->inTransaction())$db->rollBack();throw $e;}
 }
 
 function validateContactCatalog(string $section, array $input, array $catalogs, ?int $id): array
@@ -208,7 +217,7 @@ function validateContactCatalog(string $section, array $input, array $catalogs, 
             $errors[] = 'La letra de un tipo existente no puede cambiarse. Crea otro tipo para utilizar una letra diferente.';
         }
     }
-    foreach (['states' => ['country_id', 'countries'], 'cities' => ['state_id', 'states']] as $key => [$field, $parent]) {
+    foreach (['states' => ['country_id', 'countries'], 'municipalities'=>['state_id','states'], 'cities' => ['state_id', 'states']] as $key => [$field, $parent]) {
         if ($section === $key) {
             $data[$field] = contactId($input[$field] ?? null);
             if (! contactCatalogRecord($catalogs[$parent], $data[$field])) {
@@ -219,6 +228,13 @@ function validateContactCatalog(string $section, array $input, array $catalogs, 
                 $errors[] = 'No se puede cambiar la localización superior de un registro existente. Crea uno nuevo para conservar las relaciones.';
             }
         }
+    }
+    if($section==='cities'){
+        $data['municipality_id']=contactId($input['municipality_id']??null);
+        $municipality=contactCatalogRecord($catalogs['municipalities']??[],$data['municipality_id']);
+        if(($input['municipality_id']??'')!==''&&(!$municipality||(int)$municipality['state_id']!==$data['state_id']))$errors[]='Selecciona un municipio del estado de la ciudad.';
+        $original=contactCatalogRecord($catalogs[$section],$id);
+        if($original&&!empty($original['municipality_id'])&&$data['municipality_id']!==(int)$original['municipality_id'])$errors[]='El municipio de una ciudad relacionada no puede cambiarse. Crea otra ciudad para conservar las relaciones.';
     }
     return [$data, $errors];
 }

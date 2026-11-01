@@ -31,6 +31,7 @@
         if (!option) { option = new Option(record.name, String(record.id)); customer.add(option); }
         option.textContent = record.name; option.dataset.address = record.address;
         option.dataset.salesperson = String(record.salesperson_id || '');
+        option.dataset.addresses=JSON.stringify(Array.isArray(record.addresses)?record.addresses:[]);
         customer.value = String(record.id);
         customer.dispatchEvent(new Event('change', {bubbles: true}));
         check.checked = false; button.hidden = true; dialog.close();

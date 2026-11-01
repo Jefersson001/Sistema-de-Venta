@@ -62,34 +62,29 @@ document.addEventListener('keydown', (event) => {
     }
 });
 
-for (const locationFields of document.querySelectorAll('[data-contact-location]')) {
-    const country = locationFields.querySelector('[data-country]');
-    const state = locationFields.querySelector('[data-state]');
-    const city = locationFields.querySelector('[data-city]');
-    const states = [...state.options].map(option => option.cloneNode(true));
-    const cities = [...city.options].map(option => option.cloneNode(true));
-
-    function filterLocationOptions(select, options, parentId) {
-        const selected = select.value;
-        const matching = options.filter(option => !option.value || (parentId && option.dataset.parent === parentId));
-        select.replaceChildren(...matching.map(option => option.cloneNode(true)));
-        select.value = matching.some(option => option.value === selected) ? selected : '';
-        select.disabled = !parentId;
+const initializedContactLocations=new WeakSet();
+function initializeContactLocations(root){
+    for(const locationFields of root.querySelectorAll('[data-contact-location]')){
+        if(locationFields.closest?.('form')?.dataset?.permissionReadonly==='true')continue;
+        if(initializedContactLocations.has(locationFields))continue;initializedContactLocations.add(locationFields);
+        const country=locationFields.querySelector('[data-country]'),state=locationFields.querySelector('[data-state]'),city=locationFields.querySelector('[data-city]'),municipality=locationFields.querySelector('[data-municipality]');
+        const states=[...state.options].map(o=>o.cloneNode(true)),cities=[...city.options].map(o=>o.cloneNode(true)),municipalities=municipality?[...municipality.options].map(o=>o.cloneNode(true)):[];
+        function filter(select,options,parent,extra=()=>true){const old=select.value,matching=options.filter(o=>!o.value||(parent&&o.dataset.parent===parent&&extra(o)));select.replaceChildren(...matching.map(o=>o.cloneNode(true)));select.value=matching.some(o=>o.value===old)?old:'';select.disabled=!parent;}
+        function updateCities(){filter(city,cities,state.value,o=>!municipality||!o.dataset.municipality||o.dataset.municipality==='0'||o.dataset.municipality===municipality.value);}
+        function updateMunicipalities(){
+            if(municipality){
+                filter(municipality,municipalities,state.value);
+                const selectedCity=city.selectedOptions?.[0],cityMunicipality=selectedCity?.dataset.municipality;
+                if(!municipality.value&&cityMunicipality&&selectedCity.dataset.parent===state.value&&[...municipality.options].some(o=>o.value===cityMunicipality))municipality.value=cityMunicipality;
+            }
+            updateCities();
+        }
+        function updateStates(){filter(state,states,country.value);updateMunicipalities();}
+        country.addEventListener('change',updateStates);state.addEventListener('change',updateMunicipalities);municipality?.addEventListener('change',updateCities);updateStates();
     }
-
-    function updateCities() {
-        filterLocationOptions(city, cities, state.value);
-    }
-
-    function updateStates() {
-        filterLocationOptions(state, states, country.value);
-        updateCities();
-    }
-
-    country.addEventListener('change', updateStates);
-    state.addEventListener('change', updateCities);
-    updateStates();
 }
+initializeContactLocations(document);
+document.addEventListener('contact-addresses:added',event=>initializeContactLocations(event.detail));
 
 for (const notebook of document.querySelectorAll('[data-notebook]')) {
     const tabList = notebook.querySelector('[data-notebook-tabs]');
@@ -132,6 +127,7 @@ for (const notebook of document.querySelectorAll('[data-notebook]')) {
 
 for (const contactType of document.querySelectorAll('[data-contact-type]')) {
     const form = contactType.closest('form');
+    if(form.dataset?.permissionReadonly==='true')continue;
     const field = form.querySelector('[data-salesperson-field]');
     const help = form.querySelector('[data-salesperson-help]');
     const salesperson = field.querySelector('select');

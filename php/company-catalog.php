@@ -20,7 +20,7 @@ function companySharedTables(): array
 {
     return ['business_company','company_user_access','company_schema_tables','company_schema_state',
         'auth_users','auth_user_groups','auth_state','auth_login_limits','access_groups','access_permissions',
-        'access_group_permissions','contact_countries','contact_states','contact_cities','contact_types','contact_document_types'];
+        'access_group_permissions','contact_countries','contact_states','contact_cities','contact_municipalities','contact_types','contact_document_types'];
 }
 
 function companyResourceTable(string $resource): ?string
@@ -67,7 +67,7 @@ function companyRouteTable(string $path,array $query): ?string
     };
     return match($route){
         'restaurante/cuenta.php','restaurante/comprobante.php'=>'restaurant_accounts','restaurante/mesa.php'=>'restaurant_tables',
-        'contactos/index.php','contactos/archivo.php'=>'contacts','inventario/index.php','inventario/variantes.php','ventas/producto.php'=>'inventory_products',
+        'contactos/index.php','contactos/archivo.php','contactos/direcciones.php'=>'contacts','inventario/index.php','inventario/variantes.php','ventas/producto.php'=>'inventory_products',
         'ventas/index.php'=>'sales_quotations','compras/index.php','compras/orden.php'=>'purchase_orders',
         'inventario/operaciones.php'=>'inventory_operations','contabilidad/index.php','ventas/comisiones.php'=>'accounting_invoices',
         'contabilidad/pagos.php'=>'accounting_payments','contabilidad/tesoreria.php'=>'accounting_treasury_documents',
