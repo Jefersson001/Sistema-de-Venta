@@ -41,7 +41,7 @@ return [
         'category' => 'Operaciones',
         'initials' => 'VE',
         'color' => 'violet',
-        'features' => ['Cotizaciones', 'Pedidos de clientes', 'Seguimiento de ventas'],
+        'features' => ['Órdenes de venta', 'Pedidos de clientes', 'Seguimiento de ventas'],
     ],
     'contabilidad' => [
         'name' => 'Contabilidad',

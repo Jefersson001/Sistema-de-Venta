@@ -27,7 +27,7 @@ function salesTaxBreakdown(array $lines): array
 
 function salesStatuses(): array
 {
-    return ['draft' => 'Cotización', 'sent' => 'Cotización enviada', 'sale' => 'Orden de venta', 'cancel' => 'Cancelado'];
+    return ['draft' => 'Orden de venta (borrador)', 'sent' => 'Orden de venta enviada', 'sale' => 'Orden de venta', 'cancel' => 'Cancelado'];
 }
 
 function salesOrderTypes(): array
@@ -148,7 +148,7 @@ function validateSalesQuotation(array $input, array $catalogs, ?array $existing 
     $rawLines = $input['lines'] ?? [];
     $lines = [];
     $total = '0.00'; $taxTotal = '0.00'; $baseTotal = '0.00';
-    if (! is_array($rawLines) || count($rawLines) > 100) { $errors[] = 'La cotización admite hasta 100 líneas.'; $rawLines = []; }
+    if (! is_array($rawLines) || count($rawLines) > 100) { $errors[] = 'La orden de venta admite hasta 100 líneas.'; $rawLines = []; }
     foreach (array_values($rawLines) as $position => $raw) {
         $number = $position + 1;
         if (! is_array($raw)) { $errors[] = 'Línea ' . $number . ': datos no válidos.'; continue; }
@@ -199,7 +199,7 @@ function validateSalesQuotation(array $input, array $catalogs, ?array $existing 
             $lines[array_key_last($lines)]['commission_unit_amount']=$commissionUnit;
         }
     }
-    if (bccomp($total, '9999999999999999.99', 2) > 0) { $errors[] = 'El importe de la cotización excede el máximo permitido.'; }
+    if (bccomp($total, '9999999999999999.99', 2) > 0) { $errors[] = 'El importe de la orden de venta excede el máximo permitido.'; }
     $data['base_amount'] = $baseTotal; $data['tax_amount'] = $taxTotal;
     $data['total_amount'] = $total;
     return [$data, $lines, $errors];
@@ -213,9 +213,9 @@ function saveSalesQuotation(PDO $db, array $data, array $lines, ?int $id, ?int $
         if ($id) {
             $lock = $db->prepare('SELECT status, version FROM sales_quotations WHERE id = ? FOR UPDATE');
             $lock->execute([$id]); $current = $lock->fetch();
-            if (! $current || (int) $current['version'] !== $version) { throw new InvalidArgumentException('La cotización cambió en otra ventana. Recarga la página antes de guardar.'); }
+            if (! $current || (int) $current['version'] !== $version) { throw new InvalidArgumentException('La orden de venta cambió en otra ventana. Recarga la página antes de guardar.'); }
             if ($current['status'] === 'sale') { throw new InvalidArgumentException('La orden de venta ya está confirmada y no admite cambios.'); }
-            if ($current['status'] === 'cancel') { throw new InvalidArgumentException('La cotización cancelada no admite cambios.'); }
+            if ($current['status'] === 'cancel') { throw new InvalidArgumentException('La orden de venta cancelada no admite cambios.'); }
             $sql = 'UPDATE sales_quotations SET ' . implode(', ', array_map(static fn ($field) => $field . ' = :' . $field, $fields)) . ', version = version + 1 WHERE id = :id';
             $db->prepare($sql)->execute($data + ['id' => $id]);
             $db->prepare('DELETE FROM sales_quotation_lines WHERE quotation_id = ?')->execute([$id]);
@@ -238,9 +238,9 @@ function transitionSalesQuotation(PDO $db, int $id, ?int $version, string $targe
     try {
         $statement = $db->prepare('SELECT status, version FROM sales_quotations WHERE id = ? FOR UPDATE');
         $statement->execute([$id]); $current = $statement->fetch();
-        if (! $current || (int) $current['version'] !== $version) { throw new InvalidArgumentException('La cotización cambió. Recarga la página antes de continuar.'); }
+        if (! $current || (int) $current['version'] !== $version) { throw new InvalidArgumentException('La orden de venta cambió. Recarga la página antes de continuar.'); }
         if ($target === 'cancel') {
-            if (! in_array($current['status'], ['draft', 'sent', 'sale'], true)) throw new InvalidArgumentException('La cotización ya está cancelada.');
+            if (! in_array($current['status'], ['draft', 'sent', 'sale'], true)) throw new InvalidArgumentException('La orden de venta ya está cancelada.');
             cancelPendingOrderOperations($db, 'sale', $id);
             $db->prepare("UPDATE sales_quotations SET status = 'cancel', version = version + 1 WHERE id = ?")->execute([$id]);
             $db->commit(); return;

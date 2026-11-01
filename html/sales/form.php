@@ -6,8 +6,8 @@ $selectedSeller = salesRecord($page['catalogs']['salespeople'], $relatedSellerId
 $storageDisplay = $locked ? ($record['storage_label'] ?? '') : ($selectedSeller['storage_label'] ?? '');
 ?>
 <section aria-labelledby="quotation-title">
-    <div class="contact-toolbar"><div><a class="overview-link" href="index.php">← Cotizaciones</a><h1 id="quotation-title"><?= $editing ? salesEscape($record['name']) : 'Nueva cotización' ?></h1></div>
-        <ol class="quotation-status" aria-label="Estado de la cotización"><?php foreach (salesStatuses() as $key => $label): ?><li <?= $record['status'] === $key ? 'aria-current="step"' : '' ?>><?= $label ?></li><?php endforeach; ?></ol>
+    <div class="contact-toolbar"><div><a class="overview-link" href="index.php">← Órdenes de venta</a><h1 id="quotation-title"><?= $editing ? salesEscape($record['name']) : 'Nueva orden de venta' ?></h1></div>
+        <ol class="quotation-status" aria-label="Estado de la orden de venta"><?php foreach (salesStatuses() as $key => $label): ?><li <?= $record['status'] === $key ? 'aria-current="step"' : '' ?>><?= $label ?></li><?php endforeach; ?></ol>
     </div>
     <?php if ($editing): ?><div class="document-actions">
     <?php if ($editing && $locked): ?>
@@ -33,24 +33,17 @@ $storageDisplay = $locked ? ($record['storage_label'] ?? '') : ($selectedSeller[
             <section class="workspace-form-section" aria-labelledby="sale-document-heading">
             <h2 id="sale-document-heading" class="workspace-section-title">Cliente y documento</h2>
             <div class="contact-form-grid">
-                <label>Correlativo<input name="name" value="<?= salesEscape($record['name']) ?>" readonly><small>Se asigna automáticamente al guardar.</small></label>
-            <label>Tipo de orden<select name="order_type"><?php foreach (salesOrderTypes() as $value => $label): ?><option value="<?= salesEscape($value) ?>" <?= ($record['order_type'] ?? 'delivery') === $value ? 'selected' : '' ?>><?= salesEscape($label) ?></option><?php endforeach; ?></select></label>
                 <label>Cliente *<select name="customer_id" required data-quotation-customer><option value="">Selecciona un cliente</option><?php foreach ($page['catalogs']['customers'] as $customer): ?><option value="<?= (int) $customer['id'] ?>" data-address="<?= salesEscape(salesAddress($customer)) ?>" data-salesperson="<?= (int) ($customer['salesperson_id'] ?? 0) ?>" <?= (int) ($record['customer_id'] ?? 0) === (int) $customer['id'] ? 'selected' : '' ?>><?= salesEscape($customer['name']) ?><?= ! $customer['active'] ? ' (archivado)' : '' ?></option><?php endforeach; ?></select></label>
-                <label>Fecha de la orden *<input name="order_date" type="date" required value="<?= salesEscape($record['order_date']) ?>"></label>
-            </div></section>
-            <section class="workspace-form-section" aria-labelledby="sale-payment-heading">
-            <h2 id="sale-payment-heading" class="workspace-section-title">Moneda y condiciones de pago</h2>
-            <div class="contact-form-grid">
-                <label>Moneda<select name="currency_code" data-order-currency><?php foreach(array_unique(array_merge(accountingCurrencyCodes($page['catalogs']['settings']),[$record['currency_code']??null])) as $code): ?><?php if($code): ?><option value="<?= salesEscape($code) ?>" <?= ($record['currency_code']??$page['catalogs']['settings']['primary_code'])===$code?'selected':'' ?>><?= salesEscape($code) ?></option><?php endif; ?><?php endforeach; ?></select></label>
-                <label>Tasa de cambio<input name="exchange_rate" inputmode="decimal" data-order-exchange value="<?= salesEscape($record['exchange_rate']??$page['catalogs']['settings']['exchange_rate']??'') ?>"><small>1 <?= salesEscape($page['catalogs']['settings']['primary_code']) ?> = tasa en <?= salesEscape($page['catalogs']['settings']['alternate_code']) ?>.</small></label>
-                <label>Términos de pago<select name="payment_term_id"><option value="">Sin término de pago</option><?php foreach ($page['catalogs']['terms'] as $term): ?><option value="<?= (int) $term['id'] ?>" <?= (int) ($record['payment_term_id'] ?? 0) === (int) $term['id'] ? 'selected' : '' ?>><?= salesEscape($term['name']) ?></option><?php endforeach; ?></select><small><a class="inline-link" href="../contabilidad/configuracion.php?section=payment_terms">Gestionar términos de pago</a></small></label>
-            </div></section>
-            <details class="workspace-details"><summary>Direcciones de facturación y entrega</summary><div class="contact-form-grid">
+                <label>Tipo de orden<select name="order_type"><?php foreach (salesOrderTypes() as $value => $label): ?><option value="<?= salesEscape($value) ?>" <?= ($record['order_type'] ?? 'delivery') === $value ? 'selected' : '' ?>><?= salesEscape($label) ?></option><?php endforeach; ?></select></label>
                 <label>Dirección de factura<textarea rows="3" readonly data-invoice-address><?= salesEscape($record['invoice_address'] ?? '') ?></textarea></label>
                 <label>Dirección de entrega<textarea rows="3" readonly data-delivery-address><?= salesEscape($record['delivery_address'] ?? '') ?></textarea></label>
-            </div></details>
+                <label>Términos de pago<select name="payment_term_id"><option value="">Sin término de pago</option><?php foreach ($page['catalogs']['terms'] as $term): ?><option value="<?= (int) $term['id'] ?>" <?= (int) ($record['payment_term_id'] ?? 0) === (int) $term['id'] ? 'selected' : '' ?>><?= salesEscape($term['name']) ?></option><?php endforeach; ?></select><small><a class="inline-link" href="../contabilidad/configuracion.php?section=payment_terms">Gestionar términos de pago</a></small></label>
+                <label>Moneda<select name="currency_code" data-order-currency><?php foreach(array_unique(array_merge(accountingCurrencyCodes($page['catalogs']['settings']),[$record['currency_code']??null])) as $code): ?><?php if($code): ?><option value="<?= salesEscape($code) ?>" <?= ($record['currency_code']??$page['catalogs']['settings']['primary_code'])===$code?'selected':'' ?>><?= salesEscape($code) ?></option><?php endif; ?><?php endforeach; ?></select></label>
+                <label>Tasa de cambio<input name="exchange_rate" inputmode="decimal" data-order-exchange value="<?= salesEscape($record['exchange_rate']??$page['catalogs']['settings']['exchange_rate']??'') ?>"><small>1 <?= salesEscape($page['catalogs']['settings']['primary_code']) ?> = tasa en <?= salesEscape($page['catalogs']['settings']['alternate_code']) ?>.</small></label>
+                <label>Fecha de la orden *<input name="order_date" type="date" required value="<?= salesEscape($record['order_date']) ?>"></label>
+            </div></section>
             <div class="contact-notebook" data-notebook>
-                <nav class="notebook-tabs" data-notebook-tabs aria-label="Información de la cotización"><a id="quotation-tab-lines" href="#quotation-page-lines">Líneas de orden</a><a id="quotation-tab-other" href="#quotation-page-other">Otra información</a></nav>
+                <nav class="notebook-tabs" data-notebook-tabs aria-label="Información de la orden de venta"><a id="quotation-tab-lines" href="#quotation-page-lines">Líneas de orden</a><a id="quotation-tab-other" href="#quotation-page-other">Otra información</a></nav>
                 <section class="notebook-page" id="quotation-page-lines" data-notebook-page aria-labelledby="quotation-tab-lines">
                     <p class="section-subtitle" data-quotation-pricing-status role="status" hidden></p>
                     <p class="section-subtitle" data-quotation-commission-help hidden>Selecciona un vendedor en <button type="button" class="contact-button contact-button-link" data-pick-quotation-salesperson>Otra información</button> para aplicar la comisión configurada del producto.</p>
@@ -73,12 +66,12 @@ $storageDisplay = $locked ? ($record['storage_label'] ?? '') : ($selectedSeller[
                     </div>
                 </section>
             </div>
-            <aside class="workspace-document-summary" aria-label="Resumen de la cotización">
+            <aside class="workspace-document-summary" aria-label="Resumen de la orden de venta">
                 <dl class="quotation-totals" aria-live="polite"><div><dt>Base imponible</dt><dd data-quotation-base><?= salesEscape($record['base_amount']) ?></dd></div><?php foreach(salesTaxBreakdown($record['lines']) as $taxGroup): ?><div data-quotation-tax-group><dt><?= salesEscape($taxGroup['name'].' ('.$taxGroup['rate'].' %)') ?></dt><dd><?= salesEscape($taxGroup['amount']) ?></dd></div><?php endforeach; ?><div data-quotation-total-row><dt>Total</dt><dd data-quotation-total><?= salesEscape($record['total_amount']) ?></dd></div></dl>
                 <dl class="quotation-totals workspace-secondary-total"><div><dt>Comisión estimada</dt><dd data-quotation-commission><?= salesEscape($record['commission_estimated']??'0.00') ?></dd></div></dl>
             </aside>
         </fieldset>
-        <div class="contact-form-actions"><?php if (! $locked): ?><button class="contact-button contact-button-primary" type="submit">Guardar cotización</button><?php endif; ?><a class="contact-button" href="index.php">Volver al listado</a></div>
+        <div class="contact-form-actions"><?php if (! $locked): ?><button class="contact-button contact-button-primary" type="submit">Guardar orden de venta</button><?php endif; ?><a class="contact-button" href="index.php">Volver al listado</a></div>
     </form>
 </section>
 <script type="application/json" data-currency-settings><?= json_encode($page['catalogs']['settings'],JSON_HEX_TAG|JSON_HEX_AMP|JSON_HEX_APOS|JSON_HEX_QUOT) ?></script><script src="../../js/product-commissions.js?v=<?= filemtime(dirname(__DIR__,2).'/js/product-commissions.js') ?>" defer></script><script src="../../js/currency.js" defer></script><script src="../../js/sales.js?v=<?= filemtime(dirname(__DIR__,2).'/js/sales.js') ?>" defer></script>

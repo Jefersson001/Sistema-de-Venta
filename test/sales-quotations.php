@@ -63,7 +63,7 @@ try {
     [$status, $body] = salesRequest($base, 'contabilidad/configuracion.php?section=payment_terms&new=1', $cookie, $termPost);
     expectSales($status === 200 && str_contains($body, 'Ya existe un término'), 'Se permitió un término duplicado.');
     [$status, $form] = salesRequest($base, 'ventas/index.php?new=1', $cookie);
-    expectSales($status === 200 && ! str_contains($form, 'aria-label="Listado de cotizaciones"') && preg_match('/name="csrf" value="([a-f0-9]+)"/', $form, $matches) === 1, 'No se abrió el formulario de cotizaciones.');
+    expectSales($status === 200 && ! str_contains($form, 'aria-label="Listado de órdenes de venta"') && preg_match('/name="csrf" value="([a-f0-9]+)"/', $form, $matches) === 1, 'No se abrió el formulario de cotizaciones.');
     expectSales(str_contains($form, 'data-address="Calle de prueba, ' . $prefix . ', ' . $prefix . ', 12345, ' . $prefix . '"'), 'No se concatenaron todas las partes de la dirección.');
     expectSales(str_contains($form, 'name="order_type"') && str_contains($form, 'value="delivery" selected') && ! str_contains($form, 'data-quotation-delivery'), 'La cotización nueva no tiene el tipo por defecto o muestra Entrega antes de confirmar.');
     $post = ['csrf' => $matches[1], 'action' => 'save_quotation', 'customer_id' => $fixtures['customer'], 'order_date' => '2026-10-10',

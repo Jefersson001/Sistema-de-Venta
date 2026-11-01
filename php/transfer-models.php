@@ -16,7 +16,7 @@ function transferModels(): array
     foreach(['countries'=>['contact_countries','Países','name,code'],'states'=>['contact_states','Estados','name,country_id'],'cities'=>['contact_cities','Ciudades','name,state_id'],'types'=>['contact_types','Tipos de contacto','name'],'document_types'=>['contact_document_types','Tipos de documento','name,code']] as $key=>[$table,$label,$fields])$add($key,$table,$label,'contactos.configuration','contact_catalog',$fields,['section'=>$key]);
     foreach(['sale','purchase'] as $kind) {
         $sale=$kind==='sale';$add($kind.'_taxes','business_taxes',$sale?'Impuestos de ventas':'Impuestos de compras',($sale?'ventas':'compras').'.configuration','taxes','name,rate',['domain'=>['module_key'=>$sale?'ventas':'compras']]);
-        $add($kind.'_orders',$sale?'sales_quotations':'purchase_orders',$sale?'Ventas y cotizaciones':'Compras',($sale?'ventas':'compras').'.orders',$kind.'_orders',($sale?'customer_id,salesperson_id,delivery_address,warehouse_id,location_id':'supplier_id,destination_location_id').',order_date,order_type,payment_term_id,invoice_address,currency_code,exchange_rate',[
+        $add($kind.'_orders',$sale?'sales_quotations':'purchase_orders',$sale?'Órdenes de venta':'Compras',($sale?'ventas':'compras').'.orders',$kind.'_orders',($sale?'customer_id,salesperson_id,delivery_address,warehouse_id,location_id':'supplier_id,destination_location_id').',order_date,order_type,payment_term_id,invoice_address,currency_code,exchange_rate',[
             'defaults'=>['order_type'=>$sale?'delivery':'receipt'],'line_table'=>$sale?'sales_quotation_lines':'purchase_order_lines','line_fk'=>$sale?'quotation_id':'order_id',
             'line_write'=>['product_id','quantity','unit_price','tax_id'],'kind'=>$kind]);
     }

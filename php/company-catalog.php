@@ -44,7 +44,7 @@ function companyTableLabel(string $table): string
         'inventory_warehouses'=>'Almacenes','inventory_locations'=>'Ubicaciones','inventory_operations'=>'Operaciones de inventario',
         'inventory_operation_lines'=>'Líneas de inventario','inventory_stock'=>'Existencias','inventory_stock_moves'=>'Movimientos de existencias',
         'inventory_reservations'=>'Reservas','product_supplier_prices'=>'Precios de proveedores','business_taxes'=>'Impuestos',
-        'sales_quotations'=>'Ventas y cotizaciones','sales_quotation_lines'=>'Líneas de ventas',
+        'sales_quotations'=>'Órdenes de venta','sales_quotation_lines'=>'Líneas de ventas',
         'purchase_orders'=>'Compras','purchase_order_lines'=>'Líneas de compras','accounting_invoices'=>'Facturas y notas de crédito',
         'accounting_invoice_lines'=>'Líneas de facturas','accounting_invoice_payments'=>'Aplicaciones de pagos',
         'accounting_invoice_reversals'=>'Reversiones de facturas','accounting_payments'=>'Pagos',

@@ -60,7 +60,7 @@ function validatePurchaseOrder(array $input, array $catalogs, ?array $existing):
     if (array_filter($lines, static fn($l)=>$l['product_type']==='goods') && (! $destination || $destination['location_type'] !== 'internal')) { $errors[] = 'Selecciona una ubicación interna de destino para la recepción.'; }
     // Invoicing first never removes the physical destination of goods.
     $data['destination_location_id'] = $location;
-    $errors = array_map(static fn ($error) => str_replace(['cliente', 'Venta', 'Ventas', 'cotización'], ['proveedor', 'Compra', 'Compras', 'solicitud'], $error), $errors);
+    $errors = array_map(static fn ($error) => str_replace(['cliente', 'Venta', 'Ventas', 'orden de venta'], ['proveedor', 'Compra', 'Compras', 'solicitud'], $error), $errors);
     return [$data, $lines, $errors];
 }
 

@@ -20,9 +20,9 @@ function renderSalesQuotations(): void
         $db = createDatabaseConnection(); $page['databaseStatus']['connected'] = true; $page['available'] = true;
         $id = salesId($_GET['id'] ?? null);
         $page['view'] = $id || isset($_GET['new']) ? 'form' : 'list';
-        if (isset($_GET['id']) && ! $id) { http_response_code(404); $page['available'] = false; $page['errors'][] = 'La cotización solicitada no existe.'; }
+        if (isset($_GET['id']) && ! $id) { http_response_code(404); $page['available'] = false; $page['errors'][] = 'La orden de venta solicitada no existe.'; }
         $existing = $id ? loadSalesQuotation($db, $id) : null;
-        if ($id && ! $existing) { http_response_code(404); $page['available'] = false; $page['errors'][] = 'La cotización solicitada no existe.'; }
+        if ($id && ! $existing) { http_response_code(404); $page['available'] = false; $page['errors'][] = 'La orden de venta solicitada no existe.'; }
         $page['record'] = $existing ?? ['name' => 'Nuevo', 'status' => 'draft', 'order_type' => 'delivery', 'lines' => [], 'base_amount' => '0.00', 'total_amount' => '0.00',
             'order_date' => (new DateTimeImmutable('now', new DateTimeZone('America/Caracas')))->format('Y-m-d')];
         if ($page['view'] === 'form' && $page['available']) {
@@ -55,14 +55,14 @@ function renderSalesQuotations(): void
                 if (! $page['errors']) {
                     try {
                         $savedId = saveSalesQuotation($db, $data, $lines, $id, salesId($_POST['version'] ?? null));
-                        $_SESSION['sales_flash'] = 'Cotización guardada correctamente.';
+                        $_SESSION['sales_flash'] = 'Orden de venta guardada correctamente.';
                         header('Location: index.php?id=' . $savedId, true, 303); exit;
                     } catch (InvalidArgumentException $exception) { $page['errors'][] = $exception->getMessage(); }
                 }
             } elseif ($id && in_array($action, ['mark_sent', 'confirm_sale', 'cancel_quotation'], true)) {
                 try {
                     transitionSalesQuotation($db, $id, salesId($_POST['version'] ?? null), match ($action) { 'mark_sent' => 'sent', 'cancel_quotation' => 'cancel', default => 'sale' });
-                    $_SESSION['sales_flash'] = match ($action) { 'mark_sent' => 'Cotización marcada como enviada.', 'cancel_quotation' => 'Cotización cancelada.', default => 'Orden de venta confirmada.' };
+                    $_SESSION['sales_flash'] = match ($action) { 'mark_sent' => 'Orden de venta marcada como enviada.', 'cancel_quotation' => 'Orden de venta cancelada.', default => 'Orden de venta confirmada.' };
                     header('Location: index.php?id=' . $id, true, 303); exit;
                 } catch (InvalidArgumentException $exception) { $page['errors'][] = $exception->getMessage(); }
             } else { http_response_code(400); $page['errors'][] = 'La operación solicitada no es válida.'; }
@@ -86,8 +86,8 @@ function renderSalesQuotations(): void
             $list->execute($params); $page['quotations'] = $list->fetchAll();
         }
     } catch (PDOException $exception) {
-        error_log('Cotizaciones: ' . $exception->getMessage()); http_response_code(503); $page['available'] = false;
-        $page['errors'][] = 'No se pudieron cargar las cotizaciones. Verifica la conexión y la instalación de Ventas.';
+        error_log('Órdenes de venta: ' . $exception->getMessage()); http_response_code(503); $page['available'] = false;
+        $page['errors'][] = 'No se pudieron cargar las órdenes de venta. Verifica la conexión y la instalación de Ventas.';
     }
     renderModulePage('ventas', false, $page);
 }

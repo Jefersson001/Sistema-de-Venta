@@ -8,7 +8,7 @@
         if (/^(pagado|confirmado|hecho|registrado|orden de venta|orden de compra|listo)$/.test(state)) return 'success';
         if (/^(cancelado|revertido|retirado)$/.test(state)) return 'danger';
         if (/^(en espera|en proceso de pago|pago parcial|parcialmente pagado|sin pagar|no pagado|pendiente)$/.test(state)) return 'warning';
-        if (/^(enviado|cotizacion enviada|solicitud enviada)$/.test(state)) return 'info';
+        if (/^(enviado|cotizacion enviada|orden de venta enviada|solicitud enviada)$/.test(state)) return 'info';
         return 'neutral';
     };
     const numericColumn = text => /^(total|importe|saldo|pagado|pendiente|precio|base imponible|comision|cantidad|existencias|sin aplicar|movimiento confirmado)(\b|$)/.test(normalize(text));

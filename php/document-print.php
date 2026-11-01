@@ -11,7 +11,7 @@ function businessDocumentData(PDO $db,array $m,int $id): array
     $q=$db->prepare('SELECT name,legal_name,tax_id,address,phone,email,website,logo_data,logo_mime FROM business_company WHERE id=?');$q->execute([$row['company_id']]);$company=$q->fetch();
     $q=$db->prepare('SELECT * FROM '.$m['line_table'].' WHERE '.$m['line_fk'].'=? ORDER BY position,id');$q->execute([$id]);$lines=$q->fetchAll();
     $title=match($kind){
-        'sale_orders'=>$row['status']==='sale'?'Orden de venta':'Cotización',
+        'sale_orders'=>'Orden de venta',
         'purchase_orders'=>$row['status']==='purchase'?'Orden de compra':'Solicitud de cotización',
         'operations'=>match($row['operation_type']){'receipt'=>'Orden de recepción','internal'=>'Traslado interno',default=>'Orden de entrega'},
         'invoices'=>($row['document_type']==='credit'?'Nota de crédito':'Factura').' de '.($row['invoice_type']==='customer'?'cliente':'proveedor'),

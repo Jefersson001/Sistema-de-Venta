@@ -29,7 +29,7 @@ function accessResources(): array
         ['dashboard','commissions','Comisiones por vendedor','read',true],
         ['contactos','contacts','Contactos','read,create,edit,archive',true],
         ['contactos','configuration','Localización, tipos de contacto y documento','read,configure',false],
-        ['ventas','orders','Cotizaciones y órdenes de venta','read,create,edit,send,confirm,cancel,create_delivery,create_invoice',true],
+        ['ventas','orders','Órdenes de venta','read,create,edit,send,confirm,cancel,create_delivery,create_invoice',true],
         ['ventas','commissions','Comisiones','read,pay,reverse',true],
         ['ventas','commission_payments','Pagos de comisiones','read',true],
         ['ventas','configuration','Impuestos de venta','read,configure',false],

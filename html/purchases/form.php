@@ -18,7 +18,6 @@
         <input type="hidden" name="csrf" value="<?= salesEscape($page['csrf']) ?>"><input type="hidden" name="action" value="save_purchase"><input type="hidden" name="version" value="<?= (int) $record['version'] ?>">
         <fieldset <?= $locked ? 'disabled' : '' ?> class="quotation-fields">
         <section class="workspace-form-section" aria-labelledby="purchase-document-heading"><h2 id="purchase-document-heading" class="workspace-section-title">Proveedor y documento</h2><div class="contact-form-grid">
-            <label>Correlativo<input readonly value="<?= salesEscape($record['name']) ?>"></label>
             <label>Tipo de orden<select name="order_type" data-purchase-mode><option value="receipt" <?= $record['order_type'] === 'receipt' ? 'selected' : '' ?>>Orden de compra</option><option value="invoice" <?= $record['order_type'] === 'invoice' ? 'selected' : '' ?>>Factura</option></select></label>
             <label>Proveedor *<select name="supplier_id" required data-purchase-supplier><option value="">Selecciona un proveedor</option><?php foreach ($page['catalogs']['customers'] as $supplier): ?><option value="<?= (int) $supplier['id'] ?>" <?= (int) ($record['supplier_id'] ?? 0) === (int) $supplier['id'] ? 'selected' : '' ?>><?= salesEscape($supplier['name']) ?><?= ! $supplier['active'] ? ' (archivado)' : '' ?></option><?php endforeach; ?></select></label>
             <label>Fecha de la orden *<input type="date" name="order_date" required value="<?= salesEscape($record['order_date']) ?>"></label>
