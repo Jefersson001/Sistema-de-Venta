@@ -1,5 +1,6 @@
 <?php
 declare(strict_types=1);
+require_once __DIR__.'/payment-proofs.php';
 require_once __DIR__.'/sales-repository.php';
 require_once __DIR__.'/currency-repository.php';
 
@@ -118,7 +119,8 @@ function saveTreasuryDocument(PDO $db,array $input,?int $id,?int $version,string
         $data=validateTreasuryDocument($db,$input,$existing);
         if($id)$db->prepare('UPDATE accounting_treasury_documents SET '.implode(',',array_map(static fn($k)=>$k.'=:'.$k,array_keys($data))).',version=version+1 WHERE id=:id')->execute($data+['id'=>$id]);
         else $id=treasuryInsertDocument($db,$data+['creation_key'=>$key]);
-        $db->commit();return $id;
+        paymentProofBatch($input)?->attach($db,'treasury',$id);
+        $db->commit();paymentProofBatch($input)?->commit();return $id;
     }catch(Throwable $e){
         $db->rollBack();
         if($e instanceof PDOException&&($e->errorInfo[1]??null)===1062&&$key!==''){$q=$db->prepare('SELECT id FROM accounting_treasury_documents WHERE creation_key=?');$q->execute([$key]);if($old=$q->fetchColumn())return(int)$old;}

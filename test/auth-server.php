@@ -5,6 +5,7 @@ require_once dirname(__DIR__).'/php/auth-schema.php';
 require_once dirname(__DIR__).'/php/auth-repository.php';
 require_once dirname(__DIR__).'/php/company-schema.php';
 require_once dirname(__DIR__).'/php/contact-attachments-schema.php';
+require_once dirname(__DIR__).'/php/payment-proofs-schema.php';
 
 function startAuthTestServer(): array
 {
@@ -35,11 +36,13 @@ function startAuthTestServer(): array
         $db->exec('SET FOREIGN_KEY_CHECKS=1');installAuthentication($db);installMultiCompany($db);
         if($seedCompany){require_once dirname(__DIR__).'/php/company-repository.php';companySeedDefaults($db,1);}
         installContactAttachments($db);
+        installPaymentProofs($db);
         $socket=stream_socket_server('tcp://127.0.0.1:0',$errno,$error);if(!$socket)throw new RuntimeException('No se pudo reservar un puerto de prueba.');
         $port=(int)substr(strrchr(stream_socket_get_name($socket,false),':'),1);fclose($socket);
         $server['url']='http://127.0.0.1:'.$port.'/project';$server['log']=tempnam(__DIR__,'.auth-server-log-');
         $server['sessions']=sys_get_temp_dir().'/nexo-auth-sessions-'.bin2hex(random_bytes(8));mkdir($server['sessions'],0700);
         $env=getenv();$env['NEXO_DATABASE_NAME']=$name;$env['NEXO_CONTACT_UPLOAD_DIR']=$server['sessions'].'/contact-uploads';
+        $env['NEXO_PAYMENT_PROOF_DIR']=$server['sessions'].'/payment-proofs';
         $server['process']=proc_open([PHP_BINARY,'-d','session.save_path='.$server['sessions'],'-d','upload_tmp_dir='.$server['sessions'],'-S','127.0.0.1:'.$port,'-t',dirname(__DIR__),__DIR__.'/auth-router.php'],
             [0=>['pipe','r'],1=>['file',$server['log'],'a'],2=>['file',$server['log'],'a']],$pipes,dirname(__DIR__),$env,['bypass_shell'=>true,'create_new_console'=>false]);
         if(!is_resource($server['process']))throw new RuntimeException('No se pudo iniciar el servidor de prueba.');fclose($pipes[0]);
@@ -60,6 +63,8 @@ function stopAuthTestServer(array $server): void
         foreach(glob($server['sessions'].'/sess_*') as $file)if(is_file($file))unlink($file);
         $uploads=$server['sessions'].'/contact-uploads';
         if(is_dir($uploads)){foreach(glob($uploads.'/*.bin') as $file)if(is_file($file))unlink($file);rmdir($uploads);}
+        $proofs=$server['sessions'].'/payment-proofs';
+        if(is_dir($proofs)){foreach(glob($proofs.'/*.bin') as $file)if(is_file($file))unlink($file);rmdir($proofs);}
         rmdir($server['sessions']);
     }
     if(isset($server['database'])&&preg_match('/^nexo_auth_test_[a-f0-9]{16}$/D',$server['database'])) {

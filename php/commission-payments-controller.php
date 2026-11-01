@@ -37,6 +37,8 @@ function renderSalesCommissionPayments(): void
         if ($page['view']==='form') {
             $page['record'] = salesCommissionPaymentHistory($db,null,null,$id)['rows'][0]??null;
             if (!$page['record']) { http_response_code(404); throw new InvalidArgumentException('El pago de comisión no existe.'); }
+            if(isset($_GET['proof']))renderPaymentProof($db,'treasury',(int)$page['record']['treasury_document_id'],salesId($_GET['proof'])??0);
+            $page['proofs']=loadPaymentProofs($db,'treasury',(int)$page['record']['treasury_document_id']);
         } elseif ($page['view']==='list') {
             $page += salesCommissionPaymentHistory($db,$page['range'],$page['sellerId'],null,salesId($_GET['page']??null)??1);
         } else {
@@ -84,7 +86,7 @@ function renderSalesCommissionPayments(): void
                 http_response_code(403); $page['errors'][] = 'La solicitud de pago no es válida. Recarga la página.';
             } else {
                 try {
-                    $document = paySalesCommission($db,$invoiceId,$_POST,$key);
+                    $document = paySalesCommission($db,$invoiceId,paymentProofInput($_POST,$_FILES),$key);
                     $query = $db->prepare('SELECT id FROM sales_commission_payments WHERE treasury_document_id=?');
                     $query->execute([$document]); $payment = (int) $query->fetchColumn();
                     header('Location: pagos-comisiones.php?id='.$payment,true,303); exit;

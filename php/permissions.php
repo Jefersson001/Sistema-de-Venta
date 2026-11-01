@@ -122,6 +122,7 @@ function permissionAction(string $resource,mixed $action,?int $id): ?string
     if(in_array($action,['pos_add','pos_quantity','pos_remove','pos_note'],true))return 'edit';
     if($action==='pos_checkout')return 'confirm';
     if(str_starts_with($action,'save_'))return $resource==='ajustes.company'?'edit':($id?'edit':'create');
+    if($action==='add_payment_proof')return 'edit';
     return match($action){'toggle_active'=>'archive','mark_sent','mark_invoice_sent'=>'send',
         'confirm_sale','confirm_purchase','confirm_invoice','confirm_operation','post_payment','confirm_treasury'=>'confirm',
         'cancel_quotation','cancel_purchase','cancel_invoice','cancel_operation','cancel_payment','cancel_treasury'=>'cancel',

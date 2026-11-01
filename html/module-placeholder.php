@@ -13,6 +13,7 @@
     <script src="../../js/searchable-select.js?v=<?= filemtime(dirname(__DIR__) . '/js/searchable-select.js') ?>" defer></script>
     <script src="../../js/unsaved-changes.js?v=<?= filemtime(dirname(__DIR__) . '/js/unsaved-changes.js') ?>" defer></script>
     <script src="../../js/record-actions.js?v=<?= filemtime(dirname(__DIR__) . '/js/record-actions.js') ?>" defer></script>
+    <script src="../../js/payment-proofs.js?v=<?= filemtime(dirname(__DIR__) . '/js/payment-proofs.js') ?>" defer></script>
     <?php if($moduleKey==='restaurante'): ?>
     <link rel="stylesheet" href="../../css/restaurant.css?v=<?= filemtime(dirname(__DIR__).'/css/restaurant.css') ?>">
     <script src="../../js/restaurant.js?v=<?= filemtime(dirname(__DIR__).'/js/restaurant.js') ?>" defer></script>

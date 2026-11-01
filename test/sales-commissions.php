@@ -118,7 +118,7 @@ try {
     commissionCheck(str_contains($paymentForm,'data-commission-payment-form')&&str_contains($paymentForm,$prefix.'salesperson')&&str_contains($paymentForm,'Cuenta de egreso'),'El formulario de pago no recibe el vendedor y la comisión pendiente.');
     preg_match('/name="creation_key" value="([a-f0-9]+)"/',$paymentForm,$paymentCreation);
     preg_match('/name="csrf" value="([a-f0-9]+)"/',$paymentForm,$paymentCsrf);
-    preg_match('/<form method="post" action="([^"]+)" data-commission-payment-form/',$paymentForm,$paymentAction);
+    preg_match('/<form method="post" action="([^"]+)"[^>]*data-commission-payment-form/',$paymentForm,$paymentAction);
     $paymentPath='ventas/'.html_entity_decode($paymentAction[1],ENT_QUOTES,'UTF-8');
     [$status]=commissionRequest($paymentPath,$cookie,$paymentInput+['csrf'=>'wrong','creation_key'=>$paymentCreation[1],'action'=>'pay_commission']);commissionCheck($status===403,'La nueva vista de pagos no protege CSRF.');
     [$status]=commissionRequest($paymentPath,$cookie,$paymentInput+['csrf'=>$paymentCsrf[1],'creation_key'=>bin2hex(random_bytes(32)),'action'=>'pay_commission']);commissionCheck($status===403,'La nueva vista acepta una clave sin sesión.');

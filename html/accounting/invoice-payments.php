@@ -34,4 +34,5 @@
             </tbody></table></div>
         </details>
     <?php endif; ?>
+<?php $proofs=$page['proofs']??[];$proofBase='index.php?type='.$page['type'].'&id='.(int)$record['id'];require __DIR__.'/proof-list.php'; ?>
 </div>

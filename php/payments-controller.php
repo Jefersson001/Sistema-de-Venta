@@ -9,6 +9,7 @@ function renderAccountingPayments(): void
     try{
         $db=createDatabaseConnection();$page['databaseStatus']['connected']=true;$page['available']=$valid;$page['settings']=accountingCurrencies($db);
         $existing=$id?loadAccountingPayment($db,$id):null;
+        if($valid && $existing && $existing['partner_type']===$type && isset($_GET['proof'])) renderPaymentProof($db,'payment',$id,accountingId($_GET['proof'])??0);
         if(!$valid||(isset($_GET['id'])&&(!$id||!$existing||$existing['partner_type']!==$type))){http_response_code(404);$page['available']=false;$page['errors'][]='El pago solicitado no existe.';}
         $page['record']=$existing??['name'=>'Nuevo','partner_type'=>$type,'direction'=>$type==='customer'?'inbound':'outbound','status'=>'draft','version'=>0,'amount'=>'0.00','currency_code'=>$page['settings']['primary_code'],'primary_code'=>$page['settings']['primary_code'],'alternate_code'=>$page['settings']['alternate_code'],'exchange_rate'=>$page['settings']['exchange_rate'],'payment_date'=>commerceToday(),'reference'=>'','allocated'=>'0.00','available'=>'0.00','allocations'=>[]];
         if(!$id){$key=is_string($_POST['creation_key']??null)?$_POST['creation_key']:bin2hex(random_bytes(32));if($_SERVER['REQUEST_METHOD']!=='POST'){$_SESSION['payment_form_keys'][$key]=true;$_SESSION['payment_form_keys']=array_slice($_SESSION['payment_form_keys'], -50,null,true);}$page['creationKey']=$key;}
@@ -18,7 +19,9 @@ function renderAccountingPayments(): void
                 $action=$_POST['action']??'';
                 if($action==='save_payment'&&$page['view']==='form'){
                     if(!$id&&!isset($_SESSION['payment_form_keys'][$page['creationKey']]))throw new InvalidArgumentException('La sesión de creación del pago no es válida.');
-                    $input=$_POST;$input['partner_type']=$type;$saved=saveAccountingPayment($db,$input,$id,accountingId($_POST['version']??null),$page['creationKey']??'');$_SESSION['payment_flash']='Pago guardado.';header('Location: pagos.php?type='.$type.'&id='.$saved,true,303);exit;
+                    $input=paymentProofInput($_POST,$_FILES);$input['partner_type']=$type;$saved=saveAccountingPayment($db,$input,$id,accountingId($_POST['version']??null),$page['creationKey']??'');$_SESSION['payment_flash']='Pago guardado.';header('Location: pagos.php?type='.$type.'&id='.$saved,true,303);exit;
+                }elseif($id&&$action==='add_payment_proof'){
+                    addPaymentProofs($db,'payment',$id,$_FILES);header('Location: pagos.php?type='.$type.'&id='.$id,true,303);exit;
                 }elseif($id&&$action==='reverse_payment'){
                     $reversal=reverseAccountingPayment($db,$id,accountingId($_POST['version']??null),$_POST);header('Location: tesoreria.php?id='.$reversal,true,303);exit;
                 }elseif($id&&in_array($action,['post_payment','settle_payment','cancel_payment','apply_payment','unapply_payment'],true)){
@@ -27,6 +30,7 @@ function renderAccountingPayments(): void
             }catch(InvalidArgumentException $e){$page['errors'][]=$e->getMessage();if(($action??'')==='save_payment')$page['record']=$_POST+$page['record'];}
         }
         if($page['view']==='form'&&$page['available']){
+            $page['proofs']=$id?loadPaymentProofs($db,'payment',$id):[];
             $q=$db->prepare("SELECT c.id,c.name,c.salesperson_id FROM contacts c JOIN contact_types t ON t.id=c.type_id WHERE (t.system_key=? AND c.active=1) OR c.id=? ORDER BY c.name,c.id");$q->execute([$type==='customer'?'client':'supplier',$existing['contact_id']??0]);$page['contacts']=permissionFilterContacts($q->fetchAll());
             $page['accounts']=$db->query('SELECT * FROM accounting_payment_accounts ORDER BY name,id')->fetchAll();$page['methods']=$db->query('SELECT * FROM accounting_payment_methods ORDER BY name,id')->fetchAll();$page['candidates']=[];
             $page['concepts']=treasuryConcepts($db);$page['record']['concept_id']??=treasuryDefaultConcept($db,$type,$page['record']['direction']);

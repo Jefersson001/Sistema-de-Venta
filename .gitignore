@@ -1,5 +1,6 @@
 /php/backups/
 /php/uploads/contacts/
+/php/uploads/payment-proofs/
 /php/runtime/*.json
 /php/runtime/*.lock
 /php/runtime/*.pem

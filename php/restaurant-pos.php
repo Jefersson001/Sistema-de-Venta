@@ -93,7 +93,8 @@ function restaurantCheckout(PDO $db,int $id,array $input): int
     $customer=restaurantInt($input['customer_id']??null);$location=restaurantInt($input['location_id']??null);
     $requestPayments=$input['payments']??['account_id'=>$input['account_id']??null,'method_id'=>$input['method_id']??null,'received_amount'=>$input['received_amount']??null];
     if(!is_array($requestPayments)||count($requestPayments)>20)throw new InvalidArgumentException('Revisa el reparto de los pagos.');
-    return $db->atomicTransfer(function()use($db,$id,$input,$customer,$location,$requestPayments,$trace){
+    paymentProofBatch($input)?->validatePaymentCount(isset($input['payments'])?count($input['payments']):1);
+    $checkoutResult=$db->atomicTransfer(function()use($db,$id,$input,$customer,$location,$requestPayments,$trace){
         $account=restaurantRecord($db,'restaurant_accounts',$id,true);
         return restaurantRequest($db,'pos_checkout',restaurantText($input['request_key']??null,64),[$id,$customer,$location,$input['split_mode']??'full',$requestPayments],function()use($db,$id,$input,$account,$customer,$location,$trace){
             restaurantVersion($account,$input['version']??null);
@@ -130,4 +131,5 @@ function restaurantCheckout(PDO $db,int $id,array $input): int
             restaurantAudit($db,'pos_checkout',['account_id'=>$id,'sale_id'=>$sale,'invoice_id'=>$invoice,'amount'=>$cart['total']]+$collection);return $invoice;
         });
     });
+    paymentProofBatch($input)?->commit();return $checkoutResult;
 }

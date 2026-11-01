@@ -60,7 +60,8 @@ function saveAccountingPayment(PDO $db,array $input,?int $id,?int $version,strin
         $data=validateAccountingPayment($db,$input,$existing);
         if($id){$db->prepare('UPDATE accounting_payments SET '.implode(',',array_map(static fn($k)=>$k.'=:'.$k,array_keys($data))).',version=version+1 WHERE id=:id')->execute($data+['id'=>$id]);}
         else $id=insertAccountingPayment($db,$data,'draft',$key);
-        $db->commit();return $id;
+        paymentProofBatch($input)?->attach($db,'payment',$id);
+        $db->commit();paymentProofBatch($input)?->commit();return $id;
     }catch(Throwable $e){$db->rollBack();if($e instanceof PDOException&&($e->errorInfo[1]??null)===1062&&$key!==''){$q=$db->prepare('SELECT id FROM accounting_payments WHERE creation_key=?');$q->execute([$key]);if($old=$q->fetchColumn())return(int)$old;}throw $e;}
 }
 function paymentLockInvoices(PDO $db,array $ids): array
@@ -157,7 +158,9 @@ function paymentFromInvoice(PDO $db,int $invoiceId,?int $version,string $action,
             if (bccomp($balance, '0', 2) <= 0) throw new InvalidArgumentException('La factura ya está cubierta por sus pagos. El importe adicional se puede registrar desde Pagos.');
             $applied = paymentApplicableAmount($data['amount'], $balance, $data['currency_code'], $i['currency_code'], $data);
             if ($i['document_type'] === 'credit' && bccomp(accountingConvert($data['amount'], $data['currency_code'], $i['currency_code'], $data), $balance, 2) > 0) throw new InvalidArgumentException('El reembolso supera el importe pendiente de devolver.');
-            $id=insertAccountingPayment($db,$data,'pending');$p=loadAccountingPayment($db,$id);paymentApplyLocked($db,$p,$i,$applied);paymentRecomputeInvoices($db,$invoices);$db->commit();
+            $id=insertAccountingPayment($db,$data,'pending');$p=loadAccountingPayment($db,$id);paymentApplyLocked($db,$p,$i,$applied);paymentRecomputeInvoices($db,$invoices);
+            paymentProofBatch($input)?->attach($db,'payment',$id);
+            $db->commit();paymentProofBatch($input)?->commit();
         }catch(Throwable $e){$db->rollBack();throw $e;}
     }else{
         $allocation=salesId($input['payment_id']??null);$q=$db->prepare('SELECT payment_id FROM accounting_invoice_payments WHERE id=? AND invoice_id=? AND status!=?');$q->execute([$allocation,$invoiceId,'cancel']);$id=$q->fetchColumn();

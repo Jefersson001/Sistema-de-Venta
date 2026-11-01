@@ -19,7 +19,7 @@
 <?php if($editing): ?><a class="contact-button" href="ingresos-egresos.php?account_id=<?= (int)$record['account_id'] ?>&amp;period=custom&amp;date_from=<?= $e($record['movement_date']) ?>&amp;date_to=<?= $e($record['movement_date']) ?>">Historial de la cuenta</a><?php endif; ?>
 </div>
 <?php if(!empty($record['reversed_by_id'])): ?><p class="notice">Movimiento revertido. El original y su reversión se conservan en el historial.</p><?php endif; ?>
-<form class="contact-sheet" method="post" action="tesoreria.php?<?= $editing?'id='.(int)$record['id']:'new=1' ?>" data-treasury-form>
+<form class="contact-sheet" method="post" action="tesoreria.php?<?= $editing?'id='.(int)$record['id']:'new=1' ?>" enctype="multipart/form-data" data-treasury-form>
 <input type="hidden" name="csrf" value="<?= $e($page['csrf']) ?>"><input type="hidden" name="version" value="<?= (int)$record['version'] ?>"><input type="hidden" name="action" value="save_treasury"><?php if(!$editing): ?><input type="hidden" name="creation_key" value="<?= $e($page['creationKey']) ?>"><?php endif; ?>
 <fieldset class="quotation-fields" <?= $locked?'disabled':'' ?>>
 <section class="workspace-form-section" aria-labelledby="treasury-section-0"><h2 id="treasury-section-0" class="workspace-section-title">Movimiento y cuentas</h2><div class="contact-form-grid">
@@ -40,7 +40,9 @@
 <label data-treasury-method>Medio de pago *<select name="method_id"><option value="">Selecciona un medio de pago</option><?php foreach($page['methods'] as $m): ?><option value="<?= (int)$m['id'] ?>" <?= (int)($record['method_id']??0)===(int)$m['id']?'selected':'' ?>><?= $e($m['name']) ?></option><?php endforeach; ?></select></label>
 <label data-treasury-contact>Contacto<select name="contact_id"><option value="">Sin contacto</option><?php foreach($page['contacts'] as $c): ?><option value="<?= (int)$c['id'] ?>" <?= (int)($record['contact_id']??0)===(int)$c['id']?'selected':'' ?>><?= $e($c['name']) ?></option><?php endforeach; ?></select></label>
 <label class="contact-full"><?= $reversal?'Motivo de la reversión':'Referencia / descripción' ?><textarea name="reference" maxlength="255" rows="2"><?= $e($record['reference']) ?></textarea></label>
+<?php if(!$locked)require __DIR__.'/proof-input.php'; ?>
 </div></section></fieldset><div class="contact-form-actions"><?php if(!$locked): ?><button class="contact-button contact-button-primary">Guardar</button><?php endif; ?><a class="contact-button" href="tesoreria.php">Volver al listado</a></div></form>
+<?php $proofs=$page['proofs']??[];$proofBase='tesoreria.php?id='.(int)($record['id']??0);$proofResource=$editing?permissionTreasuryResource((int)$record['id']):'contabilidad.income';require __DIR__.'/proof-list.php';if($locked&&$proofResource)require __DIR__.'/proof-add.php'; ?>
 <?php if($page['entries']): ?><div class="contact-table-wrap"><table class="contact-table"><thead><tr><th>Cuenta</th><th>Fecha</th><th>Movimiento confirmado</th></tr></thead><tbody><?php foreach($page['entries'] as $entry): ?><tr><td><?= $e($entry['account_name']) ?></td><td><?= $e($entry['movement_date']) ?></td><td><?= $e($entry['amount'].' '.$entry['currency_code']) ?></td></tr><?php endforeach; ?></tbody></table></div><?php endif; ?>
 <?php if($editing&&$record['status']==='done'&&!$reversal&&empty($record['reversed_by_id'])): ?>
 <?php $reversalAction='reverse_treasury';$reversalTarget='tesoreria.php?id='.(int)$record['id'];$reversalDialog='treasury-reversal';require __DIR__.'/treasury-reversal-dialog.php'; ?>

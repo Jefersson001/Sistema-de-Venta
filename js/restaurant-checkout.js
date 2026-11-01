@@ -78,6 +78,7 @@
             row.querySelectorAll('[data-payment-field]').forEach(input => {
                 input.name = `payments[${index}][${input.dataset.paymentField}]`;
             });
+            const proof=row.querySelector('[data-pos-payment-proof]');if(proof)proof.name=`proof_files[${index}][]`;
             let productAmount = 0n;
             data.items.forEach(item => {
                 const input = row.querySelector(`[data-payment-item="${item.id}"]`);

@@ -184,12 +184,13 @@ function paySalesCommission(PDO $db,int $invoiceId,array $input,string $creation
         $data=validateTreasuryDocument($db,['kind'=>'expense','account_id'=>$input['account_id']??null,
             'currency_code'=>$currency,'amount'=>$money,'movement_date'=>$date,'exchange_rate'=>$settings['exchange_rate'],
             'concept_id'=>(string)$concept,'contact_id'=>(string)$commission['salesperson_id'],'method_id'=>$input['method_id']??null,
-            'reference'=>'Comisión de '.$commission['name']],null,true);
+            'reference'=>'Comisión de '.$commission['name'].(is_string($input['reference']??null)&&trim($input['reference'])!==''?' · '.trim($input['reference']):'')],null,true);
         if (bccomp(treasuryBalance($db,(int)$data['account_id'],$currency,$date),$money,2)<0) throw new InvalidArgumentException('El saldo de la cuenta de egreso no alcanza para pagar esta comisión.');
         $id=treasuryInsertDocument($db,$data+['status'=>'done','creation_key'=>$creationKey]);
         treasuryEntry($db,['account_id'=>$data['account_id'],'currency_code'=>$currency,'movement_date'=>$date,'amount'=>bcsub('0',$money,2),
             'category'=>'movement','document_id'=>$id,'concept_id'=>$data['concept_id'],'contact_id'=>$data['contact_id'],'method_id'=>$data['method_id']]);
         $db->prepare('INSERT INTO sales_commission_payments(invoice_id,treasury_document_id,amount) VALUES (?,?,?)')->execute([$invoiceId,$id,$amount]);
-        $db->commit(); return $id;
+        paymentProofBatch($input)?->attach($db,'treasury',$id);
+        $db->commit(); paymentProofBatch($input)?->commit(); return $id;
     } catch (Throwable $exception) { if ($db->inTransaction()) $db->rollBack(); throw $exception; }
 }

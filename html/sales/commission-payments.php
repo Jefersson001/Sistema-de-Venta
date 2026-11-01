@@ -29,7 +29,7 @@
         <div class="contact-sheet"><div class="contact-form-grid">
             <?php foreach(['seller_name'=>'Vendedor','customer_name'=>'Cliente','invoice_name'=>'Factura','movement_date'=>'Fecha de pago','account_name'=>'Cuenta de egreso','method_name'=>'Medio de pago'] as $key=>$label): ?><label><?= $label ?><input readonly value="<?= $e($record[$key]) ?>"></label><?php endforeach; ?>
             <label>Importe pagado<input readonly value="<?= $e($record['payment_amount'].' '.$record['currency_code']) ?>"></label><label>Comisión aplicada<input readonly value="<?= $e($record['amount'].' '.$record['invoice_currency']) ?>"></label><label>Tasa de cambio<input readonly value="<?= $e($record['exchange_rate']) ?>"></label><label>Referencia<input readonly value="<?= $e($record['reference']) ?>"></label>
-        </div><?php if($record['reversed_by_id']): ?><p class="notice">Este pago fue revertido. Su salida original y el movimiento de devolución se conservan en Tesorería.</p><?php endif; ?></div>
+        </div><?php $proofs=$page['proofs']??[];$proofBase='pagos-comisiones.php?id='.(int)$record['id'];require dirname(__DIR__).'/accounting/proof-list.php'; ?><?php if($record['reversed_by_id']): ?><p class="notice">Este pago fue revertido. Su salida original y el movimiento de devolución se conservan en Tesorería.</p><?php endif; ?></div>
     <?php else: ?>
         <p class="section-subtitle">Selecciona la factura cuya comisión vas a pagar. El período filtra la fecha de factura; el egreso quedará registrado en la fecha de pago.</p>
         <?php if($page['hasAdjustment']): ?><p class="notice notice-error">Este vendedor tiene un ajuste por recuperar, incluso fuera de este período. Revisa la comisión y su pago antes de registrar otro pago.</p><?php endif; ?>
@@ -38,7 +38,7 @@
             <div class="document-actions"><a class="contact-button" href="comisiones.php?id=<?= (int)$record['id'] ?>">Comisión relacionada</a><a class="contact-button" href="../contabilidad/index.php?type=customer&amp;id=<?= (int)$record['id'] ?>">Factura · <?= $e($record['name']) ?></a></div>
             <div class="contact-sheet"><div class="contact-form-grid"><label>Vendedor<input readonly value="<?= $e($record['seller_name']) ?>"></label><label>Cliente<input readonly value="<?= $e($record['customer_name']) ?>"></label><label>Factura<input readonly value="<?= $e($record['name']) ?>"></label><label>Pendiente de pago<input readonly value="<?= $e($record['commission_pending'].' '.$record['currency_code']) ?>"></label></div>
             <?php if(!$page['hasAdjustment'] && bccomp($record['commission_pending'],'0',2)>0): $input=$page['formInput']; ?>
-                <form method="post" action="<?= $e($page['paymentAction']) ?>" data-commission-payment-form>
+                <form method="post" action="<?= $e($page['paymentAction']) ?>" enctype="multipart/form-data" data-commission-payment-form>
                     <?php require __DIR__.'/commission-payment-fields.php'; ?>
                     <div class="contact-form-actions"><button class="contact-button contact-button-primary">Confirmar pago</button><a class="contact-button" href="pagos-comisiones.php">Cancelar</a></div>
                 </form>

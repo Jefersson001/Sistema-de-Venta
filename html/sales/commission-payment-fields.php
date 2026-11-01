@@ -5,4 +5,6 @@
 <label>Medio de pago *<select name="method_id" required><option value="">Selecciona un medio de pago</option><?php foreach($page['methods'] as $method): ?><option value="<?= (int)$method['id'] ?>" <?= (int)($input['method_id']??0)===(int)$method['id']?'selected':'' ?>><?= $e($method['name']) ?></option><?php endforeach; ?></select></label>
 <label>Moneda del pago<select name="currency_code" data-commission-currency><?php foreach(array_unique(array_merge(accountingCurrencyCodes($page['settings']),[$record['currency_code']])) as $code): ?><option value="<?= $e($code) ?>" <?= ($input['currency_code']??$record['currency_code'])===$code?'selected':'' ?>><?= $e($code) ?></option><?php endforeach; ?></select></label>
 <label>Tasa de cambio<input name="exchange_rate" inputmode="decimal" data-commission-rate value="<?= $e($input['exchange_rate']??$page['settings']['exchange_rate']??'') ?>"><small>1 <?= $e($page['settings']['primary_code']) ?> = tasa en <?= $e($page['settings']['alternate_code']) ?>.</small></label>
+<label>Referencia<input name="reference" maxlength="160" value="<?= $e($input['reference']??'') ?>"></label>
+<?php require dirname(__DIR__).'/accounting/proof-input.php'; ?>
 <p class="section-subtitle contact-full" data-commission-preview></p></div>

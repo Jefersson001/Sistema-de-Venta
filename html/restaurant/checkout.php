@@ -1,5 +1,5 @@
 <dialog class="restaurant-pos-dialog restaurant-checkout-dialog" data-pos-checkout-dialog aria-labelledby="restaurant-checkout-title">
-<form method="post" data-pos-command data-pos-checkout-form data-pos-customer-key="<?= $h('nexo-restaurant-customer:'.(int)permissionUser()['id'].':'.companyActiveId()) ?>">
+<form method="post" enctype="multipart/form-data" data-pos-command data-pos-checkout-form data-pos-customer-key="<?= $h('nexo-restaurant-customer:'.(int)permissionUser()['id'].':'.companyActiveId()) ?>">
 <?php restaurantPosFields($cart,'pos_checkout'); ?>
 <div class="restaurant-checkout-sticky"><div class="restaurant-pos-catalog-head"><h2 id="restaurant-checkout-title">Facturar y cobrar</h2><button type="button" class="button" data-pos-close-checkout aria-label="Cerrar">×</button></div>
 <div class="restaurant-checkout-total"><span>Total de la mesa</span><strong data-checkout-total><?= $h($cart['total'].' '.$cart['currency']) ?></strong><small>Impuestos incluidos</small></div></div>
@@ -26,6 +26,6 @@
 <label>Caja o banco<select data-payment-field="account_id" data-pos-preference="account_id" required><?php if(count($page['cashAccounts'])!==1): ?><option value="">Selecciona…</option><?php endif; ?><?php foreach($page['cashAccounts'] as $option): ?><option value="<?= (int)$option['id'] ?>" data-account-type="<?= $h($option['account_type']) ?>"><?= $h($option['name']) ?></option><?php endforeach; ?></select></label>
 <label>Importe a pagar<input data-payment-field="amount" type="number" min="0" step="0.01" inputmode="decimal" required></label>
 <label data-payment-received-field hidden>Efectivo recibido<input data-payment-field="received_amount" type="number" min="0" step="0.01" inputmode="decimal" placeholder="Importe exacto" disabled></label>
-</div><small data-payment-change></small>
+<label class="payment-proof-field">Comprobante de pago (opcional)<input type="file" accept=".jpg,.jpeg,.png,.webp,.gif,.pdf" data-payment-proof data-pos-payment-proof><small>Foto o PDF, hasta 10 MB.</small></label></div><small data-payment-change></small>
 </section></template>
 </form></dialog>

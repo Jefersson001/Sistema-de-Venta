@@ -25,6 +25,12 @@ function renderAccountingInvoices(): void
                 LEFT JOIN accounting_payment_terms t ON t.id = i.payment_term_id LEFT JOIN contacts s ON s.id = i.salesperson_id WHERE i.id = ? AND i.invoice_type = ?');
             $query->execute([$id, $type]); $page['record'] = $query->fetch();
             if (! $page['record']) { http_response_code(404); $page['available'] = false; $page['errors'][] = 'La factura no existe.'; }
+            if($page['available']&&isset($_GET['proof'])){
+                $proof=salesId($_GET['proof'])??0;
+                $proofQuery=$db->prepare('SELECT p.payment_id FROM payment_proofs p JOIN accounting_invoice_payments a ON a.payment_id=p.payment_id WHERE p.id=? AND a.invoice_id=?');$proofQuery->execute([$proof,$id]);$proofPayment=$proofQuery->fetchColumn();
+                if(!$proofPayment)authStop(404,'El comprobante no pertenece a esta factura.');
+                renderPaymentProof($db,'payment',(int)$proofPayment,$proof);
+            }
         }
         if ($_SERVER['REQUEST_METHOD'] === 'POST' && $page['available']) {
             if (! is_string($_POST['csrf'] ?? null) || ! hash_equals($page['csrf'], $_POST['csrf'])) { http_response_code(403); $page['errors'][] = 'La sesión del formulario no es válida.'; }
@@ -44,7 +50,8 @@ function renderAccountingInvoices(): void
             }
             elseif (! in_array($_POST['action'], ['save_invoice', 'confirm_invoice'], true)) {
                 try {
-                    transitionInvoiceStatus($db, $id, salesId($_POST['version'] ?? null), $_POST['action'], $_POST);
+                    $paymentInput=$_POST['action']==='register_payment'?paymentProofInput($_POST,$_FILES):$_POST;
+                    transitionInvoiceStatus($db, $id, salesId($_POST['version'] ?? null), $_POST['action'], $paymentInput);
                     $_SESSION['invoice_flash'] = match ($_POST['action']) { 'mark_invoice_sent' => 'Factura marcada como enviada. El envío se registra localmente.', 'register_payment' => 'Pago registrado en proceso de pago.', 'settle_payment' => 'Pago confirmado.', 'cancel_payment' => 'Pago cancelado.', 'reverse_invoice' => 'Factura revertida.', default => 'Factura cancelada.' };
                     header('Location: index.php?type=' . $type . '&id=' . $id, true, 303); exit;
                 } catch (InvalidArgumentException $exception) { $page['errors'][] = $exception->getMessage(); }
@@ -102,6 +109,8 @@ function renderAccountingInvoices(): void
             $page['documentKind'] = $type === 'customer' ? 'sale' : 'purchase';
             $page['links'] = commerceLinks($db, $page['documentKind'], (int) $page['record'][$type === 'customer' ? 'sale_id' : 'purchase_id']);
             $page['paymentDetails'] = invoicePaymentDetails($db, $id);
+            $page['proofs']=[];
+            foreach($page['paymentDetails']['payments'] as $payment)if(!empty($payment['payment_id']))$page['proofs']=array_merge($page['proofs'],loadPaymentProofs($db,'payment',(int)$payment['payment_id']));
             $page['settings']=accountingCurrencies($db);$page['paymentAccounts']=$db->query('SELECT * FROM accounting_payment_accounts ORDER BY name,id')->fetchAll();$page['paymentMethods']=$db->query('SELECT * FROM accounting_payment_methods ORDER BY name,id')->fetchAll();$page['availablePayments']=[];
             $page['paymentConcepts']=treasuryConcepts($db);
             $page['defaultPaymentConcept']=treasuryDefaultConcept($db,$type,(($type==='customer')===($page['record']['document_type']==='invoice'))?'inbound':'outbound');

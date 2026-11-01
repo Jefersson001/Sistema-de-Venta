@@ -73,6 +73,7 @@ function restaurantCollectPayments(PDO $db,int $accountId,array $account,int $in
             'payment_date'=>commerceToday(),'currency_code'=>$cart['currency'],'account_id'=>$row['account_id'],'method_id'=>$row['method_id'],
             'reference'=>$account['name'].($row['label']!==''?' · '.$row['label']:'')]);
         $paymentId=insertAccountingPayment($db,$payment,'pending',hash('sha256','restaurant:'.$accountId.':'.$invoice.':'.$index));
+        paymentProofBatch($input)?->attach($db,'payment',$paymentId,(string)$index);
         $q=$db->prepare('SELECT * FROM accounting_invoices WHERE id=?');$q->execute([$invoice]);
         paymentApplyLocked($db,loadAccountingPayment($db,$paymentId),$q->fetch(),$row['amount']);
         transitionAccountingPayment($db,$paymentId,1,'settle_payment');$paymentIds[]=$paymentId;

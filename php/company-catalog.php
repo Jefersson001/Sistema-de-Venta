@@ -52,7 +52,7 @@ function companyTableLabel(string $table): string
         'accounting_cash_concepts'=>'Conceptos de tesorería','accounting_treasury_documents'=>'Documentos de tesorería',
         'accounting_treasury_entries'=>'Movimientos de tesorería','accounting_currencies'=>'Monedas',
         'accounting_currency_rates'=>'Tasas de cambio','accounting_currency_settings'=>'Configuración de monedas',
-        'sales_commission_payments'=>'Pagos de comisiones',
+        'sales_commission_payments'=>'Pagos de comisiones','payment_proofs'=>'Comprobantes de pagos',
     ][$table]??'Registros adicionales';
 }
 

@@ -53,7 +53,7 @@ function renderRestaurantPage(string $view): void
         try {
             $action=$_POST['action']??'';
             if($view==='account' && $id && in_array($action,['pos_add','pos_quantity','pos_remove','pos_note','pos_checkout'],true)){
-                if($action==='pos_checkout')restaurantCheckout($db,$id,$_POST);else restaurantCartCommand($db,$id,$_POST);
+                if($action==='pos_checkout')restaurantCheckout($db,$id,paymentProofInput($_POST,$_FILES,true));else restaurantCartCommand($db,$id,$_POST);
                 if(str_contains($_SERVER['HTTP_ACCEPT']??'','application/json')){
                     $cart=restaurantCart($db,$id);$h='restaurantEscape';ob_start();require dirname(__DIR__).'/html/restaurant/cart.php';$html=ob_get_clean();
                     header('Content-Type: application/json; charset=utf-8');echo json_encode(['ok'=>true,'html'=>$html,'version'=>$cart['account']['version'],'closed'=>$cart['account']['status']==='closed','receipt_url'=>!empty($cart['header']['invoice_id'])?restaurantUrl('comprobante.php',['id'=>$id]):null],JSON_THROW_ON_ERROR);return;

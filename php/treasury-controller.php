@@ -8,6 +8,7 @@ function renderTreasury(): void
     try{
         $db=createDatabaseConnection();$page['available']=true;$id=accountingId($_GET['id']??null);$page['view']=$id||isset($_GET['new'])?'form':'list';
         $existing=$id?loadTreasuryDocument($db,$id):null;
+        if($existing&&isset($_GET['proof'])) renderPaymentProof($db,'treasury',$id,accountingId($_GET['proof'])??0);
         if(isset($_GET['id'])&&(!$id||!$existing)){http_response_code(404);$page['available']=false;$page['errors'][]='El movimiento no existe.';}
         $page['settings']=accountingCurrencies($db);$kind=is_string($_GET['kind']??null)&&in_array($_GET['kind'],['opening','transfer','income','expense'],true)?$_GET['kind']:'income';
         $page['record']=$existing??['name'=>'Nuevo','kind'=>$kind,'status'=>'draft','version'=>0,'movement_date'=>commerceToday(),'currency_code'=>$page['settings']['primary_code'],
@@ -24,7 +25,9 @@ function renderTreasury(): void
                 $action=$_POST['action']??'';
                 if($action==='save_treasury'&&$page['view']==='form'){
                     if(!$id&&!isset($_SESSION['treasury_form_keys'][$key]))throw new InvalidArgumentException('La sesión de creación no es válida.');
-                    $saved=saveTreasuryDocument($db,$_POST,$id,accountingId($_POST['version']??null),$key??'');header('Location: tesoreria.php?id='.$saved,true,303);exit;
+                    $saved=saveTreasuryDocument($db,paymentProofInput($_POST,$_FILES),$id,accountingId($_POST['version']??null),$key??'');header('Location: tesoreria.php?id='.$saved,true,303);exit;
+                }elseif($id&&$action==='add_payment_proof'){
+                    addPaymentProofs($db,'treasury',$id,$_FILES);header('Location: tesoreria.php?id='.$id,true,303);exit;
                 }elseif($id&&$action==='confirm_treasury'){confirmTreasuryDocument($db,$id,accountingId($_POST['version']??null));header('Location: tesoreria.php?id='.$id,true,303);exit;}
                 elseif($id&&$action==='cancel_treasury'){cancelTreasuryDocument($db,$id,accountingId($_POST['version']??null));header('Location: tesoreria.php?id='.$id,true,303);exit;}
                 elseif($id&&$action==='reverse_treasury'){$new=reverseTreasuryDocument($db,$id,accountingId($_POST['version']??null),$_POST);header('Location: tesoreria.php?id='.$new,true,303);exit;}
@@ -32,6 +35,7 @@ function renderTreasury(): void
             }catch(InvalidArgumentException $e){$page['errors'][]=$e->getMessage();if(($action??'')==='save_treasury')$page['record']=array_filter($_POST,'is_scalar')+$page['record'];}
         }
         if($page['view']==='form'){
+            $page['proofs']=$id?loadPaymentProofs($db,'treasury',$id):[];
             $page['accounts']=$db->query('SELECT * FROM accounting_payment_accounts ORDER BY name,id')->fetchAll();$page['methods']=$db->query('SELECT * FROM accounting_payment_methods ORDER BY name,id')->fetchAll();
             $page['concepts']=treasuryConcepts($db);$page['contacts']=$db->query('SELECT id,name FROM contacts ORDER BY name,id')->fetchAll();
             $page['entries']=[];if($id){$q=$db->prepare('SELECT e.*,a.name AS account_name FROM accounting_treasury_entries e JOIN accounting_payment_accounts a ON a.id=e.account_id WHERE e.document_id=? ORDER BY e.id');$q->execute([$id]);$page['entries']=$q->fetchAll();}
