@@ -3,33 +3,34 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta name="theme-color" content="#f5f7fb">
+    <meta name="theme-color" content="#F5F6FC">
     <title>Inicio | Vent-As</title><?php require __DIR__.'/partials/favicon.php'; ?>
     <link rel="stylesheet" href="css/app.css?v=<?= filemtime(dirname(__DIR__) . '/css/app.css') ?>">
     <script src="js/app.js?v=<?= filemtime(dirname(__DIR__) . '/js/app.js') ?>" defer></script>
-</head>
-<body>
+<?php require __DIR__.'/partials/theme.php'; ?></head>
+<body class="vent-as-home">
     <div class="app-shell">
         <?php $homeHref = 'index.php'; $isHomePage = true; require __DIR__ . '/partials/top-navigation.php'; ?>
         <main class="main-area">
             <div class="page-content">
                 <section class="module-section module-launcher" aria-labelledby="modules-title">
                     <div class="section-heading">
-                        <div>
-                            <p class="eyebrow">PANEL DE CONTROL / Mis módulos</p>
+                        <div class="launcher-heading">
+                            <svg class="launcher-symbol" viewBox="0 0 40 40" fill="currentColor" aria-hidden="true"><rect x="2" y="2" width="15" height="15" rx="5"/><rect x="23" y="2" width="15" height="15" rx="5" opacity=".45"/><rect x="2" y="23" width="15" height="15" rx="5" opacity=".65"/><rect x="23" y="23" width="15" height="15" rx="5" opacity=".85"/></svg>
+                            <div><h1 id="modules-title">Panel de Control</h1><p class="section-subtitle">Accede a los módulos de tu negocio con <strong>Vent-As.</strong></p></div>
                         </div>
                         <label class="module-search">
-                            <span aria-hidden="true">⌕</span>
+                            <svg class="module-search-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><circle cx="10.5" cy="10.5" r="6.5"/><path d="m16 16 4 4"/></svg>
                             <span class="visually-hidden">Buscar módulo</span>
-                            <input type="search" placeholder="Buscar módulo..." autocomplete="off" data-module-search>
-                            <kbd>/</kbd>
+                            <input type="search" placeholder="Buscar módulo..." autocomplete="off" aria-keyshortcuts="Control+K Meta+K /" data-module-search>
+                            <kbd>Ctrl K</kbd>
                         </label>
                     </div>
 
                     <div class="module-grid" data-module-grid>
                         <?php if(!$modules): ?><div class="notice contact-full">No tienes módulos autorizados. Solicita al administrador que revise tus grupos de acceso. Puedes consultar <a class="inline-link" href="perfil.php">tu perfil</a> y gestionar tu contraseña.</div><?php endif; ?>
                         <?php foreach ($modules as $key => $module): ?>
-                            <a class="module-card" href="<?= htmlspecialchars($module['url'], ENT_QUOTES, 'UTF-8') ?>" data-module-card data-module-name="<?= htmlspecialchars(mb_strtolower($module['name']), ENT_QUOTES, 'UTF-8') ?>">
+                            <a class="module-card" href="<?= htmlspecialchars($module['url'], ENT_QUOTES, 'UTF-8') ?>" data-module="<?= htmlspecialchars($key,ENT_QUOTES,'UTF-8') ?>" data-module-card data-module-name="<?= htmlspecialchars(mb_strtolower($module['name']), ENT_QUOTES, 'UTF-8') ?>">
                                 <span class="module-icon module-art module-art-<?= htmlspecialchars($key, ENT_QUOTES, 'UTF-8') ?>" aria-hidden="true"></span>
                                 <div class="module-card-content">
                                 <div class="module-card-copy">

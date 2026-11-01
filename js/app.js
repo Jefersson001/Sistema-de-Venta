@@ -56,6 +56,12 @@ searchInput?.addEventListener('input', () => {
 });
 
 document.addEventListener('keydown', (event) => {
+    if (searchInput && (event.ctrlKey || event.metaKey) && event.key.toLowerCase() === 'k') {
+        event.preventDefault();
+        searchInput.focus();
+        searchInput.select();
+        return;
+    }
     if (event.key === '/' && !['INPUT', 'TEXTAREA'].includes(document.activeElement?.tagName)) {
         event.preventDefault();
         searchInput?.focus();

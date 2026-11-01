@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta name="theme-color" content="#f5f7fb">
+    <meta name="theme-color" content="#F5F6FC">
     <title><?= $isConfiguration ? 'Configuración | ' : '' ?><?= htmlspecialchars($module['name'], ENT_QUOTES, 'UTF-8') ?> | Vent-As</title><?php require __DIR__.'/partials/favicon.php'; ?>
     <link rel="stylesheet" href="../../css/app.css?v=<?= filemtime(dirname(__DIR__) . '/css/app.css') ?>">
     <link rel="stylesheet" href="../../css/modules.css?v=<?= filemtime(dirname(__DIR__) . '/css/modules.css') ?>">
@@ -20,8 +20,8 @@
     <script src="../../js/restaurant.js?v=<?= filemtime(dirname(__DIR__).'/js/restaurant.js') ?>" defer></script>
     <script src="../../js/restaurant-checkout.js?v=<?= filemtime(dirname(__DIR__).'/js/restaurant-checkout.js') ?>" defer></script>
     <?php endif; ?>
-</head>
-<body class="module-workspace<?= !empty($modulePageData['salesWizard']) ? ' contact-sales-wizard' : '' ?>">
+<?php require __DIR__.'/partials/theme.php'; ?></head>
+<body class="module-workspace<?= !empty($modulePageData['salesWizard']) ? ' contact-sales-wizard' : '' ?>" data-module="<?= htmlspecialchars($moduleKey,ENT_QUOTES,'UTF-8') ?>">
     <div class="app-shell">
         <?php $homeHref = '../../index.php'; $isHomePage = false; require __DIR__ . '/partials/top-navigation.php'; ?>
         <main class="main-area">

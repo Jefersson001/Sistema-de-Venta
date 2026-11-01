@@ -1,0 +1,20 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1920" height="180" viewBox="0 0 1920 180" preserveAspectRatio="none" fill="none">
+  <defs>
+    <linearGradient id="back" x1="0" y1="50" x2="1920" y2="150" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#DED0FA"/><stop offset=".5" stop-color="#E7DFF8"/><stop offset="1" stop-color="#D7C2F6"/>
+    </linearGradient>
+    <linearGradient id="middle" x1="0" y1="80" x2="1920" y2="130" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#B68BEF"/><stop offset=".5" stop-color="#C3A0EF"/><stop offset="1" stop-color="#9560DC"/>
+    </linearGradient>
+    <linearGradient id="front" x1="0" y1="25" x2="1920" y2="180" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#9254DB"/><stop offset=".45" stop-color="#7132C6"/><stop offset="1" stop-color="#4B13A3"/>
+    </linearGradient>
+    <linearGradient id="base" x1="960" y1="95" x2="960" y2="180" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#6425D9" stop-opacity="0"/><stop offset="1" stop-color="#39117A" stop-opacity=".4"/>
+    </linearGradient>
+  </defs>
+  <path d="M0 53C240 139 365 65 620 88C910 114 1035 211 1340 132C1590 67 1730 23 1920 8V180H0Z" fill="url(#back)"/>
+  <path d="M0 100C230 190 470 121 720 143C1010 169 1190 179 1410 102C1660 15 1760 106 1920 69V180H0Z" fill="url(#middle)"/>
+  <path d="M0 34C220 123 455 181 775 169C1040 159 1260 207 1550 111C1710 58 1820 29 1920 45V180H0Z" fill="url(#front)"/>
+  <path d="M0 91C300 179 605 162 900 170C1220 186 1510 115 1730 102C1820 98 1870 103 1920 91V180H0Z" fill="url(#base)"/>
+</svg>
