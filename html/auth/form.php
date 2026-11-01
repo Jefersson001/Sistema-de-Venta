@@ -1,7 +1,7 @@
 <!DOCTYPE html>
-<html lang="es"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title><?= $mode==='login'?'Iniciar sesión':($mode==='activate'?'Activar administrador':'Cambiar contraseña') ?> | Nexo</title><link rel="stylesheet" href="<?= authBasePath() ?>/css/app.css?v=<?= filemtime(dirname(__DIR__,2).'/css/app.css') ?>"></head>
+<html lang="es"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title><?= $mode==='login'?'Iniciar sesión':($mode==='activate'?'Activar administrador':'Cambiar contraseña') ?> | Vent-As</title><?php require dirname(__DIR__).'/partials/favicon.php'; ?><link rel="stylesheet" href="<?= authBasePath() ?>/css/app.css?v=<?= filemtime(dirname(__DIR__,2).'/css/app.css') ?>"></head>
 <body><main class="auth-page"><section class="contact-sheet auth-card">
-    <div class="auth-brand"><span class="brand-mark">N</span><strong>nexo<span>.</span></strong></div>
+    <div class="auth-brand"><span class="brand-mark brand-mark--vent-as" aria-hidden="true"></span><strong>Vent-<span>As</span></strong></div>
     <h1><?= $mode==='login'?'Inicia sesión':($mode==='activate'?'Crea tu administrador':'Cambia tu contraseña') ?></h1>
     <p class="section-subtitle"><?= $mode==='login'?'Accede a la gestión de tu negocio.':($mode==='activate'?'Esta será la primera cuenta administradora del negocio.':($user['must_change_password']?'Elige una contraseña personal para reemplazar la temporal y continuar.':'Introduce tu contraseña actual y elige una nueva.')) ?></p>
     <?php foreach($errors as $error): ?><p class="notice notice-error" role="alert"><?= authEscape($error) ?></p><?php endforeach; ?>

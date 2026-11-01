@@ -2,7 +2,7 @@
 <?php $activeCompanyLabel='Empresa '.$companyContext['active'];foreach($companyContext['companies'] as $choice)if((int)$choice['id']===$companyContext['active'])$activeCompanyLabel=$choice['name']?:'Empresa '.$choice['id']; ?>
 <details class="company-selector"><summary title="Empresas · <?= authEscape($activeCompanyLabel) ?>" aria-label="Seleccionar empresas. Empresa principal: <?= authEscape($activeCompanyLabel) ?>">
 <svg class="company-selector-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 21V5a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v16M17 9h2a1 1 0 0 1 1 1v11M2 21h20M8 7h1m3 0h1M8 11h1m3 0h1M8 15h1m3 0h1M9 21v-3h3v3"/></svg>
-<span class="visually-hidden"><?= authEscape($activeCompanyLabel) ?></span>
+<span class="company-selector-copy"><small>Empresa principal</small><strong><?= authEscape($activeCompanyLabel) ?></strong></span>
 <?php if(count($companyContext['selected'])>1): ?><span class="company-selection-count">+<?= count($companyContext['selected'])-1 ?></span><?php endif; ?>
 <svg class="company-selector-chevron" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><path d="m3 4.5 3 3 3-3"/></svg></summary>
 <form method="post" action="<?= authBasePath() ?>/empresas.php" data-company-selector>

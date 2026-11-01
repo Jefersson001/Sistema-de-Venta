@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="theme-color" content="#f5f7fb">
-    <title>Inicio | Nexo</title>
+    <title>Inicio | Vent-As</title><?php require __DIR__.'/partials/favicon.php'; ?>
     <link rel="stylesheet" href="css/app.css?v=<?= filemtime(dirname(__DIR__) . '/css/app.css') ?>">
     <script src="js/app.js?v=<?= filemtime(dirname(__DIR__) . '/js/app.js') ?>" defer></script>
 </head>
@@ -30,10 +30,8 @@
                         <?php if(!$modules): ?><div class="notice contact-full">No tienes módulos autorizados. Solicita al administrador que revise tus grupos de acceso. Puedes consultar <a class="inline-link" href="perfil.php">tu perfil</a> y gestionar tu contraseña.</div><?php endif; ?>
                         <?php foreach ($modules as $key => $module): ?>
                             <a class="module-card" href="<?= htmlspecialchars($module['url'], ENT_QUOTES, 'UTF-8') ?>" data-module-card data-module-name="<?= htmlspecialchars(mb_strtolower($module['name']), ENT_QUOTES, 'UTF-8') ?>">
-                                <div class="module-card-top">
-                                    <span class="module-icon icon-<?= htmlspecialchars($module['color'], ENT_QUOTES, 'UTF-8') ?>"><?= htmlspecialchars($module['initials'], ENT_QUOTES, 'UTF-8') ?></span>
-                                    <span class="module-status"><span></span> <?= in_array($key, ['contactos', 'dashboard', 'ajustes'], true) ? 'Disponible' : 'En desarrollo' ?></span>
-                                </div>
+                                <span class="module-icon module-art module-art-<?= htmlspecialchars($key, ENT_QUOTES, 'UTF-8') ?>" aria-hidden="true"></span>
+                                <div class="module-card-content">
                                 <div class="module-card-copy">
                                     <div class="module-title-row">
                                         <h2><?= htmlspecialchars($module['name'], ENT_QUOTES, 'UTF-8') ?></h2>
@@ -44,6 +42,7 @@
                                 <div class="module-card-footer">
                                     <span class="module-category"><?= htmlspecialchars($module['category'], ENT_QUOTES, 'UTF-8') ?></span>
                                     <span class="module-open">Abrir módulo <span aria-hidden="true">→</span></span>
+                                </div>
                                 </div>
                             </a>
                         <?php endforeach; ?>

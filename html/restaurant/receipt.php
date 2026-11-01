@@ -1,5 +1,5 @@
 <?php $invoice=$receipt['invoice'];$currency=$invoice['currency_code']; ?>
-<!doctype html><html lang="es"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title><?= $h($invoice['name']) ?> · Comprobante</title>
+<!doctype html><html lang="es"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title><?= $h($invoice['name']) ?> · Comprobante</title><?php require dirname(__DIR__).'/partials/favicon.php'; ?>
 <link rel="stylesheet" href="../../css/restaurant-receipt.css?v=<?= filemtime(dirname(__DIR__,2).'/css/restaurant-receipt.css') ?>"><script src="../../js/restaurant-receipt.js" defer></script></head><body>
 <nav class="receipt-actions" aria-label="Acciones del comprobante"><a href="index.php">← Volver a las mesas</a><button type="button" data-receipt-print>Imprimir / Guardar PDF</button><a href="cuenta.php?id=<?= (int)$receipt['account']['id'] ?>">Ver cuenta</a></nav>
 <main class="receipt"><header><p class="receipt-eyebrow">COMPROBANTE DE LA MESA</p><h1><?= $h($receipt['company']['legal_name']?:$receipt['company']['name']) ?></h1><p><?= $h($receipt['company']['tax_id']) ?></p><p><?= $h($receipt['company']['address']) ?></p><?php if($receipt['company']['phone']): ?><p><?= $h($receipt['company']['phone']) ?></p><?php endif; ?></header>

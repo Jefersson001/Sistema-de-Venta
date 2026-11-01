@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="es"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>Mi perfil | Nexo</title><link rel="stylesheet" href="<?= authBasePath() ?>/css/app.css?v=<?= filemtime(dirname(__DIR__,2).'/css/app.css') ?>"><script src="<?= authBasePath() ?>/js/app.js" defer></script></head>
+<html lang="es"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>Mi perfil | Vent-As</title><?php require dirname(__DIR__).'/partials/favicon.php'; ?><link rel="stylesheet" href="<?= authBasePath() ?>/css/app.css?v=<?= filemtime(dirname(__DIR__,2).'/css/app.css') ?>"><script src="<?= authBasePath() ?>/js/app.js" defer></script></head>
 <body><div class="app-shell"><?php $homeHref=authBasePath().'/index.php';$isHomePage=false;require dirname(__DIR__).'/partials/top-navigation.php'; ?>
 <main class="main-area"><div class="page-content"><div class="contact-toolbar"><div><p class="eyebrow">MI CUENTA</p><h1><?= authEscape($user['name']) ?></h1></div><a class="contact-button" href="<?= authBasePath() ?>/cambiar-contrasena.php">Cambiar contraseña</a></div>
     <?php if($flash): ?><p class="notice" role="status"><?= authEscape($flash) ?></p><?php endif; ?>

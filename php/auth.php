@@ -72,7 +72,7 @@ function authStop(int $status,string $message,bool $json=false,?string $redirect
     if($json){header('Content-Type: application/json; charset=utf-8');echo json_encode(['error'=>$message,'redirect'=>$redirect],JSON_UNESCAPED_UNICODE);}
     else {
         header('Content-Type: text/html; charset=utf-8');
-        echo '<!doctype html><html lang="es"><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>Acceso | Nexo</title><link rel="stylesheet" href="'.authBasePath().'/css/app.css"><main class="auth-page"><section class="contact-sheet auth-card"><h1>Acceso al sistema</h1><p>'.authEscape($message).'</p><a class="contact-button" href="'.authEscape($redirect??authBasePath().'/index.php').'">Continuar</a></section></main></html>';
+        echo '<!doctype html><html lang="es"><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>Acceso | Vent-As</title><link rel="icon" type="image/png" href="'.authBasePath().'/img/Logo%20moderno%20de%20Vent-As%20con%20crecimiento%20y%20ventas.png"><link rel="stylesheet" href="'.authBasePath().'/css/app.css"><main class="auth-page"><section class="contact-sheet auth-card"><h1>Acceso al sistema</h1><p>'.authEscape($message).'</p><a class="contact-button" href="'.authEscape($redirect??authBasePath().'/index.php').'">Continuar</a></section></main></html>';
     }
     exit;
 }
