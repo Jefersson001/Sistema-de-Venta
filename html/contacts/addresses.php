@@ -4,8 +4,8 @@ $addressDefaults=['invoice'=>'primary','delivery'=>'primary'];
 foreach($addressRows as $index=>$row)foreach(['invoice','delivery'] as $kind)if($row['default_'.$kind])$addressDefaults[$kind]='row_'.$index;
 if(!empty($page['addressInput'])){$addressRows=$page['addressInput']['rows'];$addressDefaults=$page['addressInput']['defaults'];}
 ?>
-<h2 class="notebook-page-title">Direcciones del contacto</h2>
-<p class="section-subtitle">La dirección principal se edita en Dirección y localización. Agrega aquí sucursales o destinos alternativos. Guarda el contacto para conservar los cambios.</p>
+<h2 class="notebook-page-title">Direcciones secundarias</h2>
+<p class="section-subtitle">La dirección principal se edita en la subpestaña Principal. Agrega aquí sucursales o destinos alternativos y elige las direcciones predeterminadas para facturación y entrega. Guarda el contacto para conservar los cambios.</p>
 <input type="hidden" name="addresses_present" value="1">
 <input type="hidden" name="addresses_revision" value="<?= contactEscape(is_string($_POST['addresses_revision']??null)?$_POST['addresses_revision']:contactAddressesRevision($page['addresses']??[])) ?>">
 <div class="contact-address-row"><strong>Principal</strong><p><?= contactEscape(contactAddressText($record,$page['catalogs'])?:'Completa la dirección principal en Dirección y localización.') ?></p><div class="contact-address-options">

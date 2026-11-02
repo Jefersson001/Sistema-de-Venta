@@ -75,9 +75,12 @@ initializeContactLocations(document);
 document.addEventListener('contact-addresses:added',event=>initializeContactLocations(event.detail));
 
 for (const notebook of document.querySelectorAll('[data-notebook]')) {
-    const tabList = notebook.querySelector('[data-notebook-tabs]');
+    const tabList = [...notebook.querySelectorAll('[data-notebook-tabs]')]
+        .find(list => list.closest('[data-notebook]') === notebook);
+    if (!tabList) continue;
     const tabs = [...tabList.querySelectorAll('a')];
-    const pages = [...notebook.querySelectorAll('[data-notebook-page]')];
+    const pages = [...notebook.querySelectorAll('[data-notebook-page]')]
+        .filter(page => page.closest('[data-notebook]') === notebook);
     tabList.setAttribute('role', 'tablist');
 
     function activateTab(index, focus = false) {

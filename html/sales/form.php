@@ -49,7 +49,6 @@ $storageDisplay = $locked ? ($record['storage_label'] ?? '') : ($selectedSeller[
                 <?php if(!$locked): ?><div class="contact-full"><button type="button" class="contact-button contact-button-link" data-update-order-addresses>Actualizar direcciones desde el contacto</button><small>Las direcciones guardadas se conservan hasta que elijas otra o solicites actualizarlas.</small></div><?php endif; ?>
                 <label>Fecha de la orden *<input name="order_date" type="date" required value="<?= salesEscape($record['order_date']) ?>"></label>
             </div></section>
-            <?php require __DIR__.'/geolocation.php'; ?>
             <div class="contact-notebook" data-notebook>
                 <nav class="notebook-tabs" data-notebook-tabs aria-label="Información de la orden de venta"><a id="quotation-tab-lines" href="#quotation-page-lines">Líneas de orden</a><a id="quotation-tab-other" href="#quotation-page-other">Otra información</a></nav>
                 <section class="notebook-page" id="quotation-page-lines" data-notebook-page aria-labelledby="quotation-tab-lines">
@@ -69,6 +68,7 @@ $storageDisplay = $locked ? ($record['storage_label'] ?? '') : ($selectedSeller[
                         <div><h2 class="notebook-page-title">Ventas</h2><label>Vendedor relacionado<select name="salesperson_id" data-quotation-salesperson><option value="">Sin vendedor asignado</option><?php foreach ($page['catalogs']['salespeople'] as $seller): ?><option value="<?= (int) $seller['id'] ?>" data-storage-label="<?= salesEscape($seller['storage_label']) ?>" <?= $relatedSellerId === (int) $seller['id'] ? 'selected' : '' ?>><?= salesEscape($seller['name']) ?><?= ! $seller['active'] ? ' (archivado)' : '' ?></option><?php endforeach; ?></select><small>Se trae del vendedor asignado en la ficha del cliente. Puedes asignar otro vendedor.</small></label></div>
                         <div><h2 class="notebook-page-title">Entrega</h2><label>Ubicación<input readonly data-quotation-storage data-preserve-storage="<?= $locked ? 'true' : 'false' ?>" value="<?= salesEscape($storageDisplay) ?>" placeholder="Sin almacén relacionado"><small>Se trae del almacén relacionado al vendedor.</small></label></div>
                     </div>
+                    <?php require __DIR__.'/geolocation.php'; ?>
                 </section>
             </div>
             <aside class="workspace-document-summary" aria-label="Resumen de la orden de venta">

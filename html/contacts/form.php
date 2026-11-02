@@ -45,29 +45,41 @@ $isExternalPartner = in_array($selectedType['system_key'] ?? '', ['client', 'sup
                 <label class="contact-full">Sitio web<input name="website" type="url" maxlength="200" value="<?= contactEscape($record['website'] ?? '') ?>" placeholder="https://"></label>
             </div>
         </fieldset>
-        <fieldset data-contact-location><legend>Dirección y localización</legend>
-            <p class="section-subtitle">Selecciona primero el país, después el estado y la ciudad. <a class="inline-link" href="configuracion.php">Gestionar localizaciones</a></p>
-            <div class="contact-form-grid">
-                <?php $geoRecord=$record;$geoPrefix='';require __DIR__.'/geography.php'; ?>
-                <label>Código postal<input name="postal_code" maxlength="20" autocomplete="postal-code" value="<?= contactEscape($record['postal_code'] ?? '') ?>"></label>
-                <label class="contact-full">Dirección<input name="address" maxlength="255" autocomplete="street-address" value="<?= contactEscape($record['address'] ?? '') ?>" placeholder="Calle, edificio, local y referencias"></label>
-            </div>
-            <?php if (! $page['catalogs']['countries']): ?><p class="section-subtitle">Aún no hay países registrados. Puedes guardar el contacto sin localización o cargar los catálogos desde Configuración.</p><?php endif; ?>
-        </fieldset>
+
         <div class="contact-notebook" data-notebook>
-            <?php
-            $geoRole='address';$geoTitle='Ubicación de la dirección principal';$geoHint='Guarda aquí el punto del cliente. La ubicación de cada venta se registra por separado en Ventas.';
-            $geoLatName='latitude';$geoLonName='longitude';$geoLatitude=$record['latitude']??null;$geoLongitude=$record['longitude']??null;$geoSourceName=null;$geoReadonly=!permissionHas('contactos.contacts',$editing?'edit':'create');
-            require dirname(__DIR__).'/partials/geolocation-fields.php';unset($geoHint,$geoReadonly);
-            ?>
             <nav class="notebook-tabs" data-notebook-tabs aria-label="Información del contacto">
+                <a id="tab-addresses" href="#page-addresses">Direcciones</a>
                 <a id="tab-sales" href="#page-sales">Ventas y compras</a>
                 <a id="tab-accounting" href="#page-accounting">Contabilidad</a>
-                <a id="tab-addresses" href="#page-addresses">Direcciones</a>
                 <a id="tab-inventory" href="#page-inventory">Inventario</a>
                 <a id="tab-attachments" href="#page-attachments">Fotos y documentos</a>
                 <a id="tab-notes" href="#page-notes">Notas internas</a>
             </nav>
+            <section class="notebook-page" id="page-addresses" data-notebook-page aria-labelledby="tab-addresses">
+                <div class="contact-notebook" data-notebook>
+                    <nav class="notebook-tabs" data-notebook-tabs aria-label="Direcciones del contacto">
+                        <a id="tab-primary-address" href="#page-primary-address">Principal</a>
+                        <a id="tab-secondary-addresses" href="#page-secondary-addresses">Secundarias</a>
+                    </nav>
+                    <section class="notebook-page" id="page-primary-address" data-notebook-page aria-labelledby="tab-primary-address">
+                        <fieldset data-contact-location><legend>Dirección y localización</legend>
+                            <p class="section-subtitle">Selecciona primero el país, después el estado y la ciudad. <a class="inline-link" href="configuracion.php">Gestionar localizaciones</a></p>
+                            <div class="contact-form-grid">
+                                <?php $geoRecord=$record;$geoPrefix='';require __DIR__.'/geography.php'; ?>
+                                <label>Código postal<input name="postal_code" maxlength="20" autocomplete="postal-code" value="<?= contactEscape($record['postal_code'] ?? '') ?>"></label>
+                                <label class="contact-full">Dirección<input name="address" maxlength="255" autocomplete="street-address" value="<?= contactEscape($record['address'] ?? '') ?>" placeholder="Calle, edificio, local y referencias"></label>
+                            </div>
+                            <?php if (! $page['catalogs']['countries']): ?><p class="section-subtitle">Aún no hay países registrados. Puedes guardar el contacto sin localización o cargar los catálogos desde Configuración.</p><?php endif; ?>
+                        </fieldset>
+                        <?php
+                        $geoRole='address';$geoTitle='Ubicación de la dirección principal';$geoHint='Guarda aquí el punto del cliente. La ubicación de cada venta se registra por separado en Ventas.';
+                        $geoLatName='latitude';$geoLonName='longitude';$geoLatitude=$record['latitude']??null;$geoLongitude=$record['longitude']??null;$geoSourceName=null;$geoReadonly=!permissionHas('contactos.contacts',$editing?'edit':'create');
+                        require dirname(__DIR__).'/partials/geolocation-fields.php';unset($geoHint,$geoReadonly);
+                        ?>
+                    </section>
+                    <section class="notebook-page" id="page-secondary-addresses" data-notebook-page aria-labelledby="tab-secondary-addresses"><?php require __DIR__.'/addresses.php'; ?></section>
+                </div>
+            </section>
             <section class="notebook-page" id="page-sales" data-notebook-page aria-labelledby="tab-sales">
                 <h2 class="notebook-page-title">Ventas y compras</h2>
                 <div class="contact-form-grid" data-salesperson-field <?= ! $isClient ? 'hidden' : '' ?>>
@@ -88,7 +100,7 @@ $isExternalPartner = in_array($selectedType['system_key'] ?? '', ['client', 'sup
                 <h2 class="notebook-page-title">Contabilidad</h2>
                 <p class="section-subtitle">Los datos contables del contacto estarán disponibles próximamente.</p>
             </section>
-            <section class="notebook-page" id="page-addresses" data-notebook-page aria-labelledby="tab-addresses"><?php require __DIR__.'/addresses.php'; ?></section>
+
             <section class="notebook-page" id="page-inventory" data-notebook-page aria-labelledby="tab-inventory">
                 <h2 class="notebook-page-title">Inventario</h2>
                 <div class="contact-form-grid" data-partner-location-field <?= ! $isExternalPartner ? 'hidden' : '' ?>>

@@ -54,7 +54,15 @@
         panel.querySelector('[data-geo-status]').textContent='';
     });
     document.addEventListener('submit',event=>{
-        for(const panel of event.target.querySelectorAll('[data-geolocation]'))if(state(panel).pending){event.preventDefault();panel.querySelector('[data-geo-status]').textContent='Espera a que termine la captura antes de guardar.';}
+        for(const panel of event.target.querySelectorAll('[data-geolocation]'))if(state(panel).pending){
+            event.preventDefault();panel.querySelector('[data-geo-status]').textContent='Espera a que termine la captura antes de guardar.';
+            for(let page=panel.parentElement;page;page=page.parentElement){
+                if(!page.matches('[data-notebook-page]')||!page.hidden)continue;
+                const notebook=page.closest('[data-notebook]');
+                const tab=[...(notebook?.querySelectorAll('[data-notebook-tabs] a')||[])].find(link=>link.getAttribute('href')==='#'+page.id);
+                tab?.click();
+            }
+        }
     },true);
     init(document);
     new MutationObserver(records=>{for(const record of records)for(const node of record.addedNodes)if(node.nodeType===1)init(node);}).observe(document.body,{childList:true,subtree:true});
