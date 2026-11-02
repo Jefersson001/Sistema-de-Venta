@@ -5,6 +5,8 @@ require_once __DIR__.'/company-schema.php';
 function transferFieldLabel(string $name): string
 {
     if($name==='restaurant_enabled')return 'Es para restaurante';
+    $trackingLabels=['tracking_mode'=>'Seguimiento de inventario','expiration_enabled'=>'Controlar vencimiento','expiration_days'=>'Vida útil (días)','alert_days'=>'Alerta antes de vencer (días)','removal_days'=>'Retirada antes de vencer (días)','best_before_days'=>'Consumo preferente antes de vencer (días)'];
+    if(isset($trackingLabels[$name]))return $trackingLabels[$name];
     if(preg_match('/^(?:(customer|sale)_)?(latitude|longitude)$/D',$name,$coordinate))return ($coordinate[2]==='latitude'?'Latitud':'Longitud').(($coordinate[1]??'')==='customer'?' del cliente':(($coordinate[1]??'')==='sale'?' de la venta':''));
     if($name==='municipality_id')return 'Municipio (ID)';
     if($name==='invoice_address_id')return 'Dirección de facturación del contacto (ID)';

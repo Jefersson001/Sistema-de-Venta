@@ -4,6 +4,7 @@ declare(strict_types=1);
 require_once __DIR__.'/commission-math.php';
 require_once __DIR__.'/product-variants-repository.php';
 require_once __DIR__.'/product-details.php';
+require_once __DIR__.'/inventory-tracking.php';
 
 function inventoryConfigurationDefinitions(): array
 {
@@ -159,6 +160,7 @@ function validateInventoryProduct(array $input, array $categories = [], array $p
         if($input['parent_product_id']!==null&&$input['parent_product_id']!==''&&!$data['parent_product_id'])$errors[]='Selecciona un producto principal válido.';
     }
     [$details,$detailErrors]=validateInventoryProductDetails($input);
+    try{$data+=trackingProductData($input);}catch(InvalidArgumentException $e){$detailErrors[]=$e->getMessage();}
     return [$data+$details, array_merge($errors,$detailErrors)];
 }
 
@@ -167,6 +169,7 @@ function inventoryProductRevision(array $record,array $suppliers): string
     $snapshot=[];
     foreach(['id','name','sale_enabled','purchase_enabled','sale_price','category_id','purchase_tax_id','sale_tax_id','product_type','invoice_policy','cost_price','currency_code','commission_type','commission_value','parent_product_id'] as $field)$snapshot[$field]=isset($record[$field])?(string)$record[$field]:null;
     foreach(inventoryProductDetailFields() as $field=>$label)$snapshot[$field]=isset($record[$field])?(string)$record[$field]:null;
+    foreach(['tracking_mode','expiration_enabled','expiration_days','alert_days','removal_days','best_before_days'] as $field)$snapshot[$field]=isset($record[$field])?(string)$record[$field]:null;
     $prices=[];foreach($suppliers as $row)$prices[(int)$row['supplier_id']]=(string)$row['price'];ksort($prices,SORT_NUMERIC);
     return hash_hmac('sha256',json_encode([$snapshot,$prices],JSON_THROW_ON_ERROR),$_SESSION['auth_csrf']??'inventory-cli');
 }
@@ -195,6 +198,7 @@ function saveInventoryProduct(PDO $db, array $data, ?int $id,?string $expectedRe
     [$details,$detailErrors]=validateInventoryProductDetails($data);
     if($detailErrors)throw new InvalidArgumentException(implode(' ',$detailErrors));
     foreach(inventoryProductDetailFields() as $field=>$label)$data[$field]=array_key_exists($field,$details)?$details[$field]:($current[$field]??null);
+    trackingGuardProduct($db,$data,$current??null);
     if ($id && $data['product_type']==='service') {
         $q=$db->prepare('SELECT COUNT(*) FROM inventory_operation_lines WHERE product_id=?');$q->execute([$id]);
         if($q->fetchColumn())throw new InvalidArgumentException('Un producto con movimientos de inventario debe conservar el tipo Mercancía.');
@@ -203,10 +207,11 @@ function saveInventoryProduct(PDO $db, array $data, ?int $id,?string $expectedRe
         $data['id'] = $id;
         $sql = 'UPDATE inventory_products SET name = :name, sale_enabled = :sale_enabled, purchase_enabled = :purchase_enabled,
             sale_price = :sale_price, category_id = :category_id, purchase_tax_id = :purchase_tax_id, sale_tax_id = :sale_tax_id, product_type=:product_type, invoice_policy=:invoice_policy, cost_price=:cost_price, currency_code=:currency_code, commission_type=:commission_type, commission_value=:commission_value, parent_product_id=:parent_product_id,
-            barcode=:barcode,color=:color,weight_kg=:weight_kg,width_cm=:width_cm,height_cm=:height_cm,depth_cm=:depth_cm WHERE id = :id';
+            barcode=:barcode,color=:color,weight_kg=:weight_kg,width_cm=:width_cm,height_cm=:height_cm,depth_cm=:depth_cm,
+            tracking_mode=:tracking_mode,expiration_enabled=:expiration_enabled,expiration_days=:expiration_days,alert_days=:alert_days,removal_days=:removal_days,best_before_days=:best_before_days WHERE id = :id';
     } else {
-        $sql = 'INSERT INTO inventory_products (name, sale_enabled, purchase_enabled, sale_price, category_id, purchase_tax_id, sale_tax_id, product_type, invoice_policy, cost_price, currency_code,commission_type,commission_value,parent_product_id,barcode,color,weight_kg,width_cm,height_cm,depth_cm)
-            VALUES (:name, :sale_enabled, :purchase_enabled, :sale_price, :category_id, :purchase_tax_id, :sale_tax_id, :product_type, :invoice_policy, :cost_price, :currency_code,:commission_type,:commission_value,:parent_product_id,:barcode,:color,:weight_kg,:width_cm,:height_cm,:depth_cm)';
+        $sql = 'INSERT INTO inventory_products (name, sale_enabled, purchase_enabled, sale_price, category_id, purchase_tax_id, sale_tax_id, product_type, invoice_policy, cost_price, currency_code,commission_type,commission_value,parent_product_id,barcode,color,weight_kg,width_cm,height_cm,depth_cm,tracking_mode,expiration_enabled,expiration_days,alert_days,removal_days,best_before_days)
+            VALUES (:name, :sale_enabled, :purchase_enabled, :sale_price, :category_id, :purchase_tax_id, :sale_tax_id, :product_type, :invoice_policy, :cost_price, :currency_code,:commission_type,:commission_value,:parent_product_id,:barcode,:color,:weight_kg,:width_cm,:height_cm,:depth_cm,:tracking_mode,:expiration_enabled,:expiration_days,:alert_days,:removal_days,:best_before_days)';
     }
     $db->prepare($sql)->execute($data);
     $saved=$id??(int)$db->lastInsertId();if($ownTransaction)$db->commit();return $saved;

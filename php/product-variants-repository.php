@@ -16,7 +16,7 @@ function inventoryCreateVariant(PDO $db,array $input): int
     $ownTransaction=!$db->inTransaction();if($ownTransaction)$db->beginTransaction();
     try{
         $parent=inventoryProductParent($db,$parentId,true);
-        $data=array_intersect_key($parent,array_flip(['sale_enabled','purchase_enabled','sale_price','category_id','purchase_tax_id','sale_tax_id','product_type','invoice_policy','cost_price','currency_code','commission_type','commission_value','color','weight_kg','width_cm','height_cm','depth_cm']));
+        $data=array_intersect_key($parent,array_flip(['sale_enabled','purchase_enabled','sale_price','category_id','purchase_tax_id','sale_tax_id','product_type','invoice_policy','cost_price','currency_code','commission_type','commission_value','color','weight_kg','width_cm','height_cm','depth_cm','tracking_mode','expiration_enabled','expiration_days','alert_days','removal_days','best_before_days']));
         $data['name']=is_string($input['name']??null)?trim($input['name']):'';$data['parent_product_id']=$parentId;
         if($data['name']===''||mb_strlen($data['name'])>160)throw new InvalidArgumentException('Escribe el nombre de la variante, de hasta 160 caracteres.');
         if(array_key_exists('sale_price',$input)&&$input['sale_price']!==''){

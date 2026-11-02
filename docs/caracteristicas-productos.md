@@ -15,7 +15,7 @@ Al crear una variante, se proponen el color, peso y dimensiones del principal. E
 
 Los listados de Productos y Variantes permiten buscar por código de barras. Los campos también están disponibles en el menú Opciones para importar y exportar CSV. Una actualización que omite estos campos conserva sus valores; una celda vacía en una columna incluida los borra. Un archivo con códigos repetidos se rechaza sin dejar productos parcialmente guardados. Al abrir un CSV en una hoja de cálculo, seleccionar formato Texto para la columna del código de barras, para que esa aplicación conserve sus ceros iniciales.
 
-Esta entrega incorpora los datos básicos. La definición de atributos por categoría y el seguimiento por números de serie son etapas posteriores. El código de barras se guarda como texto; todavía no se incorpora impresión de etiquetas ni lectura automática en el punto de venta.
+Esta entrega incorpora los datos básicos. La definición de atributos por categoría queda para una etapa posterior. El seguimiento por lotes, series y vencimientos se describe en [Lotes, series y vencimientos](lotes-series-vencimientos.md). El código de barras se guarda como texto; todavía no se incorpora impresión de etiquetas ni lectura automática en el punto de venta.
 
 ## Instalación
 

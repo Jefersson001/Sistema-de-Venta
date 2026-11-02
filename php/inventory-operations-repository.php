@@ -90,13 +90,18 @@ function saveInventoryOperation(PDO $db, array $data, ?int $id, ?int $version, a
             $name = inventoryOperationTypes()[$data['operation_type']]['prefix'] . '/' . str_pad((string) $id, 5, '0', STR_PAD_LEFT);
             $db->prepare('UPDATE inventory_operations SET name = ? WHERE id = ?')->execute([$name, $id]);
         }
+        trackingLockProducts($db,$lines);
         if (!empty($current['quotation_id']) || !empty($current['purchase_order_id']) || !empty($current['return_of_id'])) {
             $update=$db->prepare('UPDATE inventory_operation_lines SET quantity=? WHERE id=? AND operation_id=?');
             foreach($lines as $line) $update->execute([$line['quantity'],$line['id'],$id]);
+            foreach($lines as $line)trackingSaveLine($db,$current,$line);
         } else {
             $db->prepare('DELETE FROM inventory_operation_lines WHERE operation_id = ?')->execute([$id]);
             $insert = $db->prepare('INSERT INTO inventory_operation_lines (operation_id, position, product_id, demand, quantity) VALUES (?, ?, ?, ?, ?)');
-            foreach ($lines as $position => $line) $insert->execute([$id,$position,$line['product_id'],$line['demand'],$line['quantity']]);
+            foreach ($lines as $position => $line) {
+                $insert->execute([$id,$position,$line['product_id'],$line['demand'],$line['quantity']]);
+                $line['id']=(int)$db->lastInsertId();trackingSaveLine($db,$data,$line);
+            }
         }
         $db->commit(); return $id;
     } catch (Throwable $exception) { $db->rollBack(); throw $exception; }

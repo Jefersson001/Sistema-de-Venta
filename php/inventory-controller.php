@@ -39,7 +39,7 @@ function renderInventoryProducts(bool $variantCreation=false): void
             if($parentValue!==null&&$parentValue!==''&&!$parentId)throw new InvalidArgumentException('Selecciona un producto principal válido.');
             if($parentId){
                 $parent=inventoryProductParent($db,$parentId);
-                $page['record']=array_intersect_key($parent,array_flip(['name','sale_enabled','purchase_enabled','sale_price','category_id','purchase_tax_id','sale_tax_id','product_type','invoice_policy','cost_price','currency_code','commission_type','commission_value','color','weight_kg','width_cm','height_cm','depth_cm']));
+                $page['record']=array_intersect_key($parent,array_flip(['name','sale_enabled','purchase_enabled','sale_price','category_id','purchase_tax_id','sale_tax_id','product_type','invoice_policy','cost_price','currency_code','commission_type','commission_value','color','weight_kg','width_cm','height_cm','depth_cm','tracking_mode','expiration_enabled','expiration_days','alert_days','removal_days','best_before_days']));
                 $page['record']['parent_product_id']=$parentId;
             }
         }
@@ -52,7 +52,7 @@ function renderInventoryProducts(bool $variantCreation=false): void
             $page['errors'][] = 'El producto solicitado no existe.';
         }
         if ($id) {
-            $statement = $db->prepare('SELECT id, name, sale_enabled, purchase_enabled, sale_price, category_id, purchase_tax_id, sale_tax_id, product_type, invoice_policy, cost_price, currency_code, commission_type, commission_value,parent_product_id,barcode,color,weight_kg,width_cm,height_cm,depth_cm FROM inventory_products WHERE id = ?');
+            $statement = $db->prepare('SELECT id, name, sale_enabled, purchase_enabled, sale_price, category_id, purchase_tax_id, sale_tax_id, product_type, invoice_policy, cost_price, currency_code, commission_type, commission_value,parent_product_id,barcode,color,weight_kg,width_cm,height_cm,depth_cm,tracking_mode,expiration_enabled,expiration_days,alert_days,removal_days,best_before_days FROM inventory_products WHERE id = ?');
             $statement->execute([$id]);
             $page['record'] = $statement->fetch() ?: [];
             if (! $page['record']) {
@@ -96,6 +96,7 @@ function renderInventoryProducts(bool $variantCreation=false): void
                 }
                 foreach(inventoryProductDetailFields() as $field=>$label)if(!array_key_exists($field,$_POST))$_POST[$field]=$page['record'][$field]??null;
                 $input=$_POST;$input['currency_code']??=$page['record']['currency_code']??$page['settings']['primary_code'];
+                foreach(['tracking_mode','expiration_enabled','expiration_days','alert_days','removal_days','best_before_days'] as $field)if(!array_key_exists($field,$input)&&isset($page['record'][$field]))$input[$field]=$page['record'][$field];
                 $input['parent_product_id']=$page['record']['parent_product_id']??null;
                 if($variantCreation&&!$input['parent_product_id'])$page['errors'][]='Selecciona el producto principal de la variante.';
                 $input['commission_type']??=$page['record']['commission_type']??'none';

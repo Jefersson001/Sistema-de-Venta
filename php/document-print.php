@@ -1,6 +1,7 @@
 <?php
 declare(strict_types=1);
 require_once __DIR__.'/record-actions.php';
+require_once __DIR__.'/inventory-tracking.php';
 
 function businessDocumentData(PDO $db,array $m,int $id): array
 {
@@ -28,7 +29,7 @@ function businessDocumentData(PDO $db,array $m,int $id): array
     if($stock){
         if(!empty($row['partner_address']))$contact['address']=$row['partner_address'];
         foreach(['source'=>'Origen','destination'=>'Destino'] as $side=>$label){$q=$db->prepare('SELECT l.name,w.name AS warehouse FROM inventory_locations l LEFT JOIN inventory_warehouses w ON w.id=l.warehouse_id WHERE l.id=?');$q->execute([$row[$side.'_location_id']]);$place=$q->fetch();$meta[$label]=$place?implode(' / ',array_filter([$place['warehouse'],$place['name']])):'—';}
-        foreach($lines as &$line){$q=$db->prepare('SELECT name FROM inventory_products WHERE id=?');$q->execute([$line['product_id']]);$line['product_name']=$q->fetchColumn()?:'Producto #'.$line['product_id'];}unset($line);
+        foreach($lines as &$line){$q=$db->prepare('SELECT name FROM inventory_products WHERE id=?');$q->execute([$line['product_id']]);$line['product_name']=$q->fetchColumn()?:'Producto #'.$line['product_id'];$line['tracking']=trackingLoadLine($db,(int)$line['id']);}unset($line);
     }else{
         if(!empty($row['invoice_address']))$contact['address']=$row['invoice_address'];
         if(!empty($row['payment_term_id'])){$q=$db->prepare('SELECT name FROM accounting_payment_terms WHERE id=?');$q->execute([$row['payment_term_id']]);if($term=$q->fetchColumn())$meta['Condiciones']=$term;}

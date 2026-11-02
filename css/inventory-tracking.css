@@ -1,0 +1,9 @@
+.tracking-dialog { width:min(900px,calc(100vw - 24px)); }
+.tracking-rows { display:grid; gap:12px; }
+.tracking-row { display:grid; grid-template-columns:minmax(150px,2fr) minmax(80px,1fr) minmax(140px,1fr) auto; align-items:end; gap:10px; padding:12px; border:1px solid var(--vent-line); border-radius:12px; background:#FAF8FE; }
+.tracking-row label { display:grid; min-width:0; gap:5px; font-size:13px; color:var(--vent-muted); }
+.tracking-row input,.tracking-dialog textarea { box-sizing:border-box; width:100%; min-width:0; min-height:36px; padding:7px 10px; border:1px solid #D3CAE5; border-radius:8px; color:var(--vent-text); background:white; font:inherit; }
+.tracking-editor-actions { margin:12px 0; flex-wrap:wrap; }
+.tracking-dialog .workspace-details textarea { display:block; width:100%; min-height:100px; margin-bottom:10px; }
+[data-tracking-summary] { display:block; max-width:180px; max-height:60px; overflow:auto; overflow-wrap:anywhere; }
+@media(max-width:720px){.tracking-row{grid-template-columns:minmax(0,1fr) minmax(0,1fr);}.tracking-row>label:first-child{grid-column:1/-1;}.tracking-row input{font-size:16px;min-height:42px;}.tracking-dialog .invoice-wizard-body{padding:14px;}}

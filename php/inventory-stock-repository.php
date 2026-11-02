@@ -16,7 +16,8 @@ function inventoryQuantity(mixed $value): ?string
 function loadInventoryOperationLines(PDO $db, int $id): array
 {
     $query = $db->prepare('SELECT * FROM inventory_operation_lines WHERE operation_id = ? ORDER BY position, id');
-    $query->execute([$id]); return $query->fetchAll();
+    $query->execute([$id]); $lines=$query->fetchAll();
+    foreach($lines as &$line)$line['tracking']=trackingLoadLine($db,(int)$line['id']);unset($line);return $lines;
 }
 
 function validateInventoryOperationLines(mixed $input, array $products): array
@@ -33,7 +34,7 @@ function validateInventoryOperationLines(mixed $input, array $products): array
         if ($demand === null || bccomp($demand, '0', 2) <= 0) { $errors[] = 'Línea ' . ($index + 1) . ': la demanda debe ser positiva, con hasta dos decimales.'; }
         if ($quantity === null) { $errors[] = 'Línea ' . ($index + 1) . ': la cantidad debe ser no negativa, con hasta dos decimales.'; }
         $lines[] = ['id' => inventoryId($raw['id'] ?? null), 'product_id' => $product, 'demand' => $demand ?? (is_string($raw['demand'] ?? null) ? $raw['demand'] : ''),
-            'quantity' => $quantity ?? (is_string($raw['quantity'] ?? null) ? $raw['quantity'] : '')];
+            'quantity' => $quantity ?? (is_string($raw['quantity'] ?? null) ? $raw['quantity'] : ''), 'tracking'=>$raw['tracking']??[]];
     }
     return [$lines, $errors];
 }
@@ -69,7 +70,9 @@ function validateInventoryStockOperation(PDO $db, int $id, ?int $version): void
             throw new InvalidArgumentException('Guarda ubicaciones válidas antes de validar.');
         }
         $lines = loadInventoryOperationLines($db, $id);
-        $lines = validateLinkedOperationLines($db, $operation, $lines); $deltas = []; $moves = [];
+        $operation['source_location_id']=$source;$operation['destination_location_id']=$destination;
+        $lines = validateLinkedOperationLines($db, $operation, $lines);
+        $lines = trackingCheckOperation($db,$operation,$lines,false); $deltas = []; $moves = [];
         foreach ($lines as $line) {
             if (bccomp($line['quantity'], '0', 2) <= 0) { continue; }
             foreach (['source' => $source, 'destination' => $destination] as $side => $location) {
@@ -96,6 +99,7 @@ function validateInventoryStockOperation(PDO $db, int $id, ?int $version): void
         }
         $insert = $db->prepare('INSERT INTO inventory_stock_moves (operation_id, line_id, product_id, location_id, quantity) VALUES (:operation_id, :line_id, :product_id, :location_id, :quantity)');
         foreach ($moves as $move) { $insert->execute($move); }
+        trackingApplyOperation($db,$operation,$lines);
         if ($type==='receipt' && empty($operation['return_of_id'])) {
             $costs=[];
             foreach($lines as $line) if($line['purchase_line_id'] && bccomp($line['quantity'],'0',2)>0) {

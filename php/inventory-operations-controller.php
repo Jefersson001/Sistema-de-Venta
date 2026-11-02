@@ -65,7 +65,8 @@ function renderInventoryOperations(): void
                     if ($externalLocation) { $page['externalLocationLabel'] = $externalLocation['name']; }
                 }
             }
-            $page['products'] = permissionHas('inventario.products')?$db->query("SELECT id, name FROM inventory_products WHERE product_type='goods' ORDER BY name, id")->fetchAll():[];
+            $page['products'] = permissionHas('inventario.products')?$db->query("SELECT id, name,tracking_mode FROM inventory_products WHERE product_type='goods' ORDER BY name, id")->fetchAll():[];
+            $page['trackingLots']=$db->query('SELECT id AS lot_id,product_id,name,expiration_date FROM inventory_lots ORDER BY name,id')->fetchAll();
             $page['stock'] = permissionHas('inventario.stock')?$db->query('SELECT product_id, location_id, quantity FROM inventory_stock')->fetchAll():[];
         }
         if ($_SERVER['REQUEST_METHOD'] === 'POST' && $page['available']) {

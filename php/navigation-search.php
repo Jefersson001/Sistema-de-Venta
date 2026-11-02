@@ -15,6 +15,7 @@ function navigationSearchCatalog(): array
     foreach(['countries'=>'Países','states'=>'Estados','municipalities'=>'Municipios','cities'=>'Ciudades','types'=>'Tipos de contacto','document_types'=>'Tipos de documento'] as $section=>$label)$add('contactos',['Configuración',$label],'configuracion.php?section='.$section);
     $add('inventario',['Productos'],'index.php','artículos mercancía servicios catálogo');
     $add('inventario',['Productos','Variantes del producto'],'variantes.php','colores tallas');
+    $add('inventario',['Productos','Lotes y números de serie'],'lotes.php','series seriales vencimientos caducidad trazabilidad');
     foreach(['delivery'=>'Entregas','receipt'=>'Recepciones','internal'=>'Movimientos internos'] as $type=>$label)$add('inventario',['Operaciones',$label],'operaciones.php?type='.$type);
     foreach(['movements'=>'Historial de movimientos','stock'=>'Existencias por ubicación'] as $view=>$label)$add('inventario',['Informes',$label],'informes.php?view='.$view,'stock almacén');
     foreach(['categories'=>'Categorías','warehouses'=>'Almacenes','locations'=>'Ubicaciones'] as $section=>$label)$add('inventario',['Configuración',$label],'configuracion.php?section='.$section);

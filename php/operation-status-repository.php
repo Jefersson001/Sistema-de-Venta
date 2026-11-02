@@ -24,6 +24,7 @@ function transitionInventoryOperation(PDO $db,int $id,?int $version,string $acti
             $destinationType=$return?($type==='receipt'?'supplier':'internal'):($type==='delivery'?'customer':'internal');
             if($source['location_type']!==$sourceType || $dest['location_type']!==$destinationType)throw new InvalidArgumentException('Guarda ubicaciones válidas para el tipo de operación.');
             validateLinkedOperationLines($db,$o,$lines);
+            trackingCheckOperation($db,$o,$lines,true);
             $needed=[];
             $hasQuantities=(bool)array_filter($lines,static fn($l)=>bccomp($l['quantity'],'0',2)>0);
             foreach($lines as $l){

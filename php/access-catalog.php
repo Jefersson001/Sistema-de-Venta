@@ -39,6 +39,7 @@ function accessResources(): array
         ['compras','orders','Solicitudes y órdenes de compra','read,create,edit,send,confirm,cancel,create_receipt,create_invoice',false],
         ['compras','configuration','Impuestos de compra','read,configure',false],
         ['inventario','products','Productos y variantes','read,create,edit,view_cost,set_commission',false],
+        ['inventario','lots','Lotes y números de serie','read,create,edit',false],
         ['inventario','deliveries','Entregas','read,create,edit,confirm,reserve,validate,cancel,return,create_invoice',true],
         ['inventario','receipts','Recepciones','read,create,edit,confirm,reserve,validate,cancel,return,create_invoice',false],
         ['inventario','internal','Movimientos internos','read,create,edit,confirm,reserve,validate,cancel',false],

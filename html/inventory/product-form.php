@@ -91,6 +91,15 @@ $indicatorViews = ['on-hand' => 'stock', 'sold' => 'sold', 'purchased' => 'purch
                         <label>Precio para vendedor<input readonly data-product-seller-price value="<?= inventoryEscape(bcadd($commissionPreviewPrice,$commissionPreviewUnit,2)) ?>"></label>
                     </div>
                     <p class="section-subtitle">El importe fijo usa la moneda del producto. El porcentaje se calcula sobre su precio de venta en tienda. Con vendedor asignado, la comisión se suma al precio al agregar el producto a la venta.</p>
+                <?php elseif ($key==='inventory'): ?>
+                    <h2 class="workspace-section-title">Trazabilidad y vencimientos</h2>
+                    <div class="contact-form-grid">
+                        <label>Seguimiento<select name="tracking_mode"><?php foreach(trackingModes() as $value=>$trackingLabel): ?><option value="<?= $value ?>" <?= ($record['tracking_mode']??'none')===$value?'selected':'' ?>><?= $trackingLabel ?></option><?php endforeach; ?></select></label>
+                        <label>Controlar vencimiento<select name="expiration_enabled"><option value="0" <?= empty($record['expiration_enabled'])?'selected':'' ?>>No</option><option value="1" <?= !empty($record['expiration_enabled'])?'selected':'' ?>>Sí</option></select><small>Disponible para lotes y series. No aplica a servicios.</small></label>
+                        <?php foreach(['expiration_days'=>'Vida útil desde la recepción (días)','best_before_days'=>'Consumo preferente: días antes del vencimiento','removal_days'=>'Retirada: días antes del vencimiento','alert_days'=>'Alerta: días antes del vencimiento'] as $field=>$trackingLabel): ?><label><?= $trackingLabel ?><input name="<?= $field ?>" type="number" min="0" max="36500" step="1" value="<?= (int)($record[$field]??0) ?>"></label><?php endforeach; ?>
+                    </div>
+                    <p class="section-subtitle">Vida útil 0: indica manualmente el vencimiento al recibir. Las fechas se guardan por lote o serie. Las salidas proponen primero los identificadores con fecha de retirada más próxima (FEFO).</p>
+                    <?php if($editing): ?><div class="document-controls"><a class="contact-button" href="lotes.php?product_id=<?= (int)$record['id'] ?>">Ver lotes y números de serie</a><a class="contact-button" href="lotes.php?initialize=1&amp;product_id=<?= (int)$record['id'] ?>">Identificar existencias iniciales</a></div><?php endif; ?>
                 <?php elseif ($key==='purchases'&&permissionHas('inventario.products','view_cost')): ?>
                     <h2 class="notebook-page-title">Precios por proveedor</h2>
                     <div class="contact-table-wrap"><table class="contact-table"><thead><tr><th>Proveedor</th><th>Precio de compra</th></tr></thead><tbody>

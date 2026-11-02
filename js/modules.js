@@ -18,9 +18,9 @@
     const normalize = text => text.normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/\s+/g, ' ').trim().toLowerCase();
     const statusTone = text => {
         const state = normalize(text).replace(/\s*\(activo\)$/, '');
-        if (/^(pagado|confirmado|hecho|registrado|orden de venta|orden de compra|listo)$/.test(state)) return 'success';
-        if (/^(cancelado|revertido|retirado)$/.test(state)) return 'danger';
-        if (/^(en espera|en proceso de pago|pago parcial|parcialmente pagado|sin pagar|no pagado|pendiente)$/.test(state)) return 'warning';
+        if (/^(pagado|confirmado|hecho|registrado|orden de venta|orden de compra|listo|vigente)$/.test(state)) return 'success';
+        if (/^(cancelado|revertido|retirado|vencido)$/.test(state)) return 'danger';
+        if (/^(en espera|en proceso de pago|pago parcial|parcialmente pagado|sin pagar|no pagado|pendiente|proximo a vencer)$/.test(state)) return 'warning';
         if (/^(enviado|cotizacion enviada|orden de venta enviada|solicitud enviada)$/.test(state)) return 'info';
         return 'neutral';
     };

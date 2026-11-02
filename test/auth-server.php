@@ -40,6 +40,7 @@ function startAuthTestServer(): array
         installPhase15Schema($db);
         installGeolocation($db);
         installProductDetails($db);
+        require_once dirname(__DIR__).'/php/inventory-tracking-schema.php';installInventoryTracking($db);
         if($seedCompany){require_once dirname(__DIR__).'/php/company-repository.php';companySeedDefaults($db,1);}
         installContactAttachments($db);
         installPaymentProofs($db);

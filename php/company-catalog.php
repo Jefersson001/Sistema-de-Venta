@@ -28,6 +28,7 @@ function companyResourceTable(string $resource): ?string
     return match($resource){
         'restaurante.accounts'=>'restaurant_accounts','restaurante.tables'=>'restaurant_tables',
         'contactos.contacts'=>'contacts','inventario.products'=>'inventory_products',
+        'inventario.lots'=>'inventory_lots',
         'ventas.orders'=>'sales_quotations','compras.orders'=>'purchase_orders',
         'inventario.deliveries','inventario.receipts','inventario.internal'=>'inventory_operations',
         'contabilidad.customer_invoices','contabilidad.supplier_invoices','ventas.commissions'=>'accounting_invoices',
@@ -70,6 +71,7 @@ function companyRouteTable(string $path,array $query): ?string
         'contactos/index.php','contactos/archivo.php','contactos/direcciones.php'=>'contacts','inventario/index.php','inventario/variantes.php','ventas/producto.php'=>'inventory_products',
         'ventas/index.php'=>'sales_quotations','compras/index.php','compras/orden.php'=>'purchase_orders',
         'inventario/operaciones.php'=>'inventory_operations','contabilidad/index.php','ventas/comisiones.php'=>'accounting_invoices',
+        'inventario/lotes.php'=>'inventory_lots',
         'contabilidad/pagos.php'=>'accounting_payments','contabilidad/tesoreria.php'=>'accounting_treasury_documents',
         'ventas/pagos-comisiones.php'=>'sales_commission_payments',default=>null,
     };

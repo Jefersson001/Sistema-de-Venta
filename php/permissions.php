@@ -101,6 +101,7 @@ function permissionRoute(string $path,array $query): ?string
         'ventas/comisiones.php'=>'ventas.commissions','ventas/pagos-comisiones.php'=>'ventas.commission_payments',
         'compras/index.php','compras/orden.php'=>'compras.orders',
         'inventario/index.php','inventario/variantes.php'=>'inventario.products',
+        'inventario/lotes.php'=>'inventario.lots',
         'inventario/operaciones.php'=>permissionOperationResource(is_string($query['type']??null)?$query['type']:'delivery'),
         'inventario/informes.php'=>match($query['view']??'movements'){'stock'=>'inventario.stock','sold'=>'ventas.orders','purchased'=>'compras.orders',default=>'inventario.movements'},
         'contabilidad/index.php'=>permissionInvoiceResource(is_string($query['type']??null)?$query['type']:'customer'),
@@ -123,6 +124,7 @@ function permissionAction(string $resource,mixed $action,?int $id): ?string
     if($action==='pos_checkout')return 'confirm';
     if(str_starts_with($action,'save_'))return $resource==='ajustes.company'?'edit':($id?'edit':'create');
     if($action==='add_payment_proof')return 'edit';
+    if($action==='initialize_tracking')return 'create';
     return match($action){'toggle_active'=>'archive','mark_sent','mark_invoice_sent'=>'send',
         'confirm_sale','confirm_purchase','confirm_invoice','confirm_operation','post_payment','confirm_treasury'=>'confirm',
         'cancel_quotation','cancel_purchase','cancel_invoice','cancel_operation','cancel_payment','cancel_treasury'=>'cancel',
@@ -139,7 +141,7 @@ function permissionModuleUrl(string $module): ?string
         'restaurante'=>['index.php','cuentas.php','configuracion.php'],
         'ventas'=>['index.php','comisiones.php','pagos-comisiones.php','configuracion.php'],
         'compras'=>['index.php','configuracion.php'],
-        'inventario'=>['index.php','operaciones.php?type=delivery','operaciones.php?type=receipt','operaciones.php?type=internal','informes.php?view=stock','informes.php?view=movements','configuracion.php'],
+        'inventario'=>['index.php','lotes.php','operaciones.php?type=delivery','operaciones.php?type=receipt','operaciones.php?type=internal','informes.php?view=stock','informes.php?view=movements','configuracion.php'],
         'contabilidad'=>['index.php?type=customer','index.php?type=supplier','pagos.php?type=customer','pagos.php?type=supplier','tesoreria.php?kind=income','tesoreria.php?kind=expense','tesoreria.php?kind=transfer','tesoreria.php?kind=opening','ingresos-egresos.php','configuracion.php'],
         'ajustes'=>['index.php','empresa.php','grupos.php','usuarios.php'],default=>[]};
     foreach($routes as $route){$url=authBasePath().'/modules/'.$module.'/'.$route;if(permissionUrlAllowed($url))return $url;}
@@ -161,6 +163,7 @@ function permissionUrlAllowed(string $url): bool
     }
     $resource=permissionRoute($path,$query);if(!$resource)return false;
     if(!permissionHas($resource))return false;
+    if($resource==='inventario.lots'&&isset($query['initialize'])&&!permissionHas($resource,'create'))return false;
     $id=accessId($query['id']??null);
     if($path===authBasePath().'/modules/ventas/producto.php')$id=null;
     if($path===authBasePath().'/modules/inventario/informes.php')$id=null;
@@ -200,6 +203,7 @@ function permissionGuard(bool $json=false): void
     }
     $recordId=str_ends_with($path,'/producto.php')||str_ends_with($path,'/informes.php')?null:$id;
     permissionRequire($resource,'read',$recordId,$json);
+    if($resource==='inventario.lots'&&isset($_GET['initialize']))permissionRequire($resource,'create',null,$json);
     if($resource==='dashboard.cash_flow')permissionRequire('contabilidad.cash_flow','read',null,$json);
     if(str_ends_with($path,'/producto.php')){permissionRequire('inventario.products','read',null,$json);return;}
     if(in_array($path,[authBasePath().'/modules/ajustes/index.php',authBasePath().'/modules/ajustes/logo.php',authBasePath().'/modules/inventario/informes.php',authBasePath().'/modules/contabilidad/ingresos-egresos.php',authBasePath().'/modules/dashboard/ingresos-egresos.php'],true))return;
