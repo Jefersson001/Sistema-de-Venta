@@ -195,6 +195,7 @@ function trackingInitialize(PDO $db,int $product,int $location,mixed $input): vo
     $rows=trackingRows($input);$db->beginTransaction();
     try{
         $p=trackingProduct($db,$product,true);if($p['tracking_mode']==='none')throw new InvalidArgumentException('Activa el seguimiento en la ficha del producto.');
+        inventoryRequireConcreteProducts($db,[['product_id'=>$product]]);
         $q=$db->prepare("SELECT id FROM inventory_locations WHERE id=? AND location_type='internal'");$q->execute([$location]);if(!$q->fetchColumn())throw new InvalidArgumentException('Selecciona una ubicación interna de la empresa activa.');
         $q=$db->prepare('SELECT quantity FROM inventory_stock WHERE product_id=? AND location_id=? FOR UPDATE');$q->execute([$product,$location]);$stock=$q->fetchColumn()?:'0';
         $q=$db->prepare('SELECT COALESCE(SUM(quantity),0) FROM inventory_lot_stock WHERE product_id=? AND location_id=?');$q->execute([$product,$location]);$pending=bcsub($stock,(string)$q->fetchColumn(),2);

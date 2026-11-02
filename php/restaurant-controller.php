@@ -25,7 +25,7 @@ function restaurantMapRows(PDO $db): array
 function restaurantLoadCatalog(PDO $db,array &$page): void
 {
     $pair=$page['cart']['header']?:accountingCurrencies($db);$currency=$page['cart']['currency'];
-    $page['products']=restaurantRows($db,'SELECT p.id,p.name,p.sale_price,p.currency_code,p.category_id,c.name AS category_name FROM inventory_products p LEFT JOIN inventory_categories c ON c.id=p.category_id WHERE p.sale_enabled=1 AND p.company_id=? ORDER BY p.name',[companyActiveId()]);
+    $page['products']=restaurantRows($db,'SELECT p.id,p.name,p.sale_price,p.currency_code,p.category_id,c.name AS category_name FROM inventory_products p LEFT JOIN inventory_categories c ON c.id=p.category_id WHERE p.sale_enabled=1 AND p.company_id=? AND '.inventoryConcreteCondition('p').' ORDER BY p.name',[companyActiveId()]);
     $page['productCategories']=restaurantRows($db,'SELECT id,name,parent_id,restaurant_enabled FROM inventory_categories WHERE company_id=? ORDER BY name,id',[companyActiveId()]);
     $page['restaurantCategoryIds']=inventoryRestaurantCategoryIds($page['productCategories']);
     $page['productCategories']=array_values(array_filter($page['productCategories'],static fn($category)=>in_array((int)$category['id'],$page['restaurantCategoryIds'],true)));

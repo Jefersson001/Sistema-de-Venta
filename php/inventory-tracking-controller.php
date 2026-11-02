@@ -9,7 +9,8 @@ function renderInventoryLots(): void
     unset($_SESSION['inventory_flash']);
     try{
         $db=createDatabaseConnection();$id=inventoryId($_GET['id']??null);
-        $page['products']=$db->query("SELECT id,name,tracking_mode,expiration_enabled FROM inventory_products WHERE product_type='goods' AND tracking_mode<>'none' ORDER BY name,id")->fetchAll();
+        $productCondition=$page['view']==='list'?"(p.tracking_mode<>'none' OR EXISTS(SELECT 1 FROM inventory_products v WHERE v.parent_product_id=p.id AND v.tracking_mode<>'none'))":"p.tracking_mode<>'none' AND ".inventoryConcreteCondition('p');
+        $page['products']=$db->query("SELECT id,name,tracking_mode,expiration_enabled FROM inventory_products p WHERE product_type='goods' AND ".$productCondition.' ORDER BY name,id')->fetchAll();
         $page['locations']=$db->query("SELECT l.id,l.name,w.name AS warehouse_name FROM inventory_locations l JOIN inventory_warehouses w ON w.id=l.warehouse_id WHERE l.location_type='internal' ORDER BY w.name,l.name")->fetchAll();
         if(isset($_GET['id'])){
             $q=$db->prepare('SELECT t.*,p.name AS product_name FROM inventory_lots t JOIN inventory_products p ON p.id=t.product_id WHERE t.id=?');$q->execute([$id]);$page['record']=$q->fetch()?:[];
@@ -26,6 +27,7 @@ function renderInventoryLots(): void
                     $db->beginTransaction();
                     try{
                         $p=trackingProduct($db,$product,true);if($p['tracking_mode']==='none')throw new InvalidArgumentException('Selecciona un producto con seguimiento.');
+                        if(!$id)inventoryRequireConcreteProducts($db,[['product_id'=>$product]]);
                         $expiration=trackingDate($_POST['expiration_date']??null);
                         if($id){
                             $q=$db->prepare('SELECT version FROM inventory_lots WHERE id=? FOR UPDATE');$q->execute([$id]);
@@ -58,7 +60,7 @@ function renderInventoryLots(): void
             $page['expiry']=in_array($_GET['expiry']??'',['expired','alert'],true)?$_GET['expiry']:'';
             $where=' WHERE 1=1';$params=[];
             if($page['search']!==''){$where.=' AND (t.name LIKE ? OR p.name LIKE ?)';$params[]='%'.$page['search'].'%';$params[]='%'.$page['search'].'%';}
-            if($page['productId']){$where.=' AND t.product_id=?';$params[]=$page['productId'];}
+            if($page['productId']){$where.=' AND t.product_id IN ('.implode(',',inventoryFamilyIds($db,$page['productId'],($_GET['exact']??'')==='1')).')';}
             if($page['mode']){$where.=' AND t.tracking_mode=?';$params[]=$page['mode'];}
             if($page['locationId']){$where.=' AND EXISTS(SELECT 1 FROM inventory_lot_stock ls WHERE ls.lot_id=t.id AND ls.location_id=? AND ls.quantity>0)';$params[]=$page['locationId'];}
             if($page['expiry']){$where.=$page['expiry']==='expired'?' AND t.expiration_date<?':' AND COALESCE(t.alert_date,t.expiration_date)<=?';$params[]=trackingToday();}

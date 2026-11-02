@@ -9,7 +9,11 @@ En **Inventario → Productos** se despliegan **Productos** y **Variantes del pr
 
 La variante toma inicialmente del principal categoría, impuestos, moneda, tipo, permisos de venta/compra, costo, comisión y precios por proveedor. Los cambios posteriores del principal no reemplazan los valores de variantes ya creadas. El nombre escrito es el que aparece en compras, ventas, entregas, facturas y Restaurante. La categoría heredada permite utilizarla en Restaurante cuando su categoría principal esté habilitada para ese módulo.
 
-Cada variante tiene su propio registro del catálogo e inventario, reutilizando los movimientos y documentos existentes. Comienza sin existencias. Crear variantes no reparte ni traslada el inventario del principal: si el principal ya tenía existencias, las conserva. El principal también mantiene sus opciones Venta/Compra; puedes desmarcarlas en su ficha si solo comercializas sus variantes.
+Cada variante tiene su propio registro del catálogo e inventario y comienza sin existencias. Al tener variantes, el principal funciona como **plantilla**: las compras, ventas, recepciones, entregas, traslados, importaciones de operaciones y pedidos de Restaurante nuevos deben utilizar un producto concreto. Un producto sin variantes mantiene su comportamiento normal. La plantilla conserva opciones y precios como valores iniciales para crear variantes; no se selecciona como artículo nuevo en las operaciones.
+
+La ficha principal suma existencias, reservas, disponibilidad e indicadores comerciales de sus variantes. Su pestaña Variantes muestra el desglose de cantidades. Los enlaces a informes y sus exportaciones consultan la misma familia sin insertar saldos adicionales ni duplicar cantidades. Por ejemplo, 10 tortas de fresa y 10 de chocolate muestran 20 en el principal; vender 3 de fresa deja 7 de fresa, 10 de chocolate y un total de 17.
+
+Crear variantes no mueve existencias anteriores del principal ni supone a qué sabor corresponden. Si existen saldos o reservas anteriores, la ficha los muestra separados del total de variantes y ofrece consultar el registro original mediante `exact=1`. Los documentos confirmados anteriores conservan sus referencias y pueden completar sus movimientos relacionados o devoluciones con el producto original. Los borradores comerciales y movimientos manuales no confirmados deben corregirse para seleccionar una variante antes de continuar; pueden cancelarse para liberar reservas. No se reescribe ningún documento histórico. Las alertas de falta de existencias del Dashboard se calculan sobre productos concretos y omiten las plantillas.
 
 El listado **Productos** muestra los principales y un enlace a sus variantes. El listado **Variantes del producto** permite buscar por nombre y filtrar por principal. Editar una variante abre la misma ficha de producto, con sus indicadores y el vínculo al principal. La relación con el principal se conserva al editar; no se admiten variantes de variantes ni dos variantes del mismo nombre dentro de un principal. No se ofrece eliminación de registros con historial.
 
@@ -29,9 +33,12 @@ El esquema puede retirarse con `--rollback-empty` únicamente si no hay ninguna 
 
 ## Verificación
 
+- `php test/variant-templates.php`: totales de familia, reservas, ventas/devoluciones, bloqueo de plantillas en operaciones nuevas, documentos anteriores, informes/exportaciones y navegador en escritorio y móvil.
 - `php test/product-variants.php`: migración repetible, creación por nombre, valores iniciales, duplicados, relaciones, aislamiento de empresas, permisos, inventario independiente y venta/factura/cobro mediante Restaurante.
 - `php test/run-authenticated.php inventory-products`: regresión de productos existentes en una base temporal.
 - `php test/transfer.php`: importación/exportación y operaciones atómicas.
 - Con un navegador temporal CDP en el puerto 9340: `php test/product-variants.php <carpeta-de-capturas>` verifica las vistas en escritorio y móvil.
 
 Las pruebas usan bases y usuarios temporales. No crean tortas ni existencias de ejemplo en los datos del negocio.
+
+La corrección de plantillas utiliza las relaciones de variantes existentes y no requiere otra migración ni modifica las existencias del negocio. La creación por nombres completos se conserva; no se incorpora generación de combinaciones por atributos en esta entrega.

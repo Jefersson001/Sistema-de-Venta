@@ -17,6 +17,7 @@ function renderSalesProductSnapshot(): void
         $q=$db->prepare('SELECT id,name,sale_price,currency_code,commission_type,commission_value,sale_tax_id FROM inventory_products WHERE id=?');
         $q->execute([$id]);$product=$q->fetch();
         if (!$product) { http_response_code(404);echo json_encode(['error'=>'El producto solicitado no existe.']);return; }
+        if(inventoryIsTemplate($db,$id))throw new InvalidArgumentException('Selecciona una variante concreta; este producto es una plantilla.');
         if ($product['commission_type']==='fixed') $product['commission_value']=bcadd($product['commission_value'],'0',2);
         $tax=null;
         if ($product['sale_tax_id']) {

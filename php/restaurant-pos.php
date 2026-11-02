@@ -53,6 +53,7 @@ function restaurantCartCommand(PDO $db,int $id,array $input): int
                 $q=$db->prepare("SELECT p.*,t.name AS tax_name,t.rate AS tax_rate FROM inventory_products p
                     LEFT JOIN business_taxes t ON t.id=p.sale_tax_id WHERE p.id=? AND p.sale_enabled=1");$q->execute([$target]);$product=$q->fetch();
                 if(!$product)throw new InvalidArgumentException('El producto no está habilitado para venta.');
+                inventoryRequireConcreteProducts($db,[['product_id'=>$target]]);
                 if(!in_array((int)$product['category_id'],inventoryRestaurantCategoryIds(loadInventoryCategories($db)),true)){
                     throw new InvalidArgumentException('El producto no pertenece a una categoría principal marcada como Es para restaurante.');
                 }

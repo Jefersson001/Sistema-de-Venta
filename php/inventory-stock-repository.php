@@ -1,6 +1,7 @@
 <?php
 declare(strict_types=1);
 require_once __DIR__.'/permissions.php';
+require_once __DIR__.'/product-variants-repository.php';
 require_once __DIR__ . '/storage-repository.php';
 require_once __DIR__ . '/workflow-operations.php';
 
@@ -72,6 +73,7 @@ function validateInventoryStockOperation(PDO $db, int $id, ?int $version): void
         $lines = loadInventoryOperationLines($db, $id);
         $operation['source_location_id']=$source;$operation['destination_location_id']=$destination;
         $lines = validateLinkedOperationLines($db, $operation, $lines);
+        inventoryRequireConcreteProducts($db,$lines,$operation);
         $lines = trackingCheckOperation($db,$operation,$lines,false); $deltas = []; $moves = [];
         foreach ($lines as $line) {
             if (bccomp($line['quantity'], '0', 2) <= 0) { continue; }
@@ -118,35 +120,37 @@ function validateInventoryStockOperation(PDO $db, int $id, ?int $version): void
     } catch (Throwable $exception) { $db->rollBack(); throw $exception; }
 }
 
-function loadInventoryProductStock(PDO $db, int $id): array
+function loadInventoryProductStock(PDO $db, int $id,bool $exact=false): array
 {
-    $query = $db->prepare("SELECT s.product_id, s.location_id, s.quantity, COALESCE((SELECT SUM(r.quantity) FROM inventory_reservations r WHERE r.product_id=s.product_id AND r.location_id=s.location_id),0) AS reserved FROM inventory_stock s JOIN inventory_locations l ON l.id = s.location_id WHERE s.product_id = ? AND l.location_type = 'internal' ORDER BY s.location_id");
-    $query->execute([$id]); $rows = $query->fetchAll(); $total = '0.00'; $reserved='0.00';
+    $ids=inventoryFamilyIds($db,$id,$exact);
+    $query = $db->query("SELECT s.product_id, s.location_id, s.quantity, COALESCE((SELECT SUM(r.quantity) FROM inventory_reservations r WHERE r.product_id=s.product_id AND r.location_id=s.location_id),0) AS reserved FROM inventory_stock s JOIN inventory_locations l ON l.id = s.location_id WHERE s.product_id IN (".implode(',',$ids).") AND l.location_type = 'internal' ORDER BY s.location_id,s.product_id");
+    $rows = $query->fetchAll(); $total = '0.00'; $reserved='0.00';
     foreach ($rows as &$row) { $total = bcadd($total, $row['quantity'], 2); $reserved=bcadd($reserved,$row['reserved'],2); $row['available']=bcsub($row['quantity'],$row['reserved'],2); } unset($row);
     return ['total' => $total, 'locations' => $rows, 'reserved'=>$reserved, 'available'=>bcsub($total,$reserved,2)];
 }
 
-function loadInventoryProductIndicators(PDO $db, int $id): array
+function loadInventoryProductIndicators(PDO $db, int $id,bool $exact=false): array
 {
+    $ids=implode(',',inventoryFamilyIds($db,$id,$exact));
     $values = ['incoming' => '0', 'outgoing' => '0', 'sold' => null, 'purchased' => '0.00'];
     $pending = $db->prepare("SELECT CASE WHEN (o.operation_type='receipt' AND o.return_of_id IS NULL) OR (o.operation_type='delivery' AND o.return_of_id IS NOT NULL) THEN 'receipt' ELSE 'delivery' END AS flow_type, COUNT(*) AS quantity
         FROM inventory_operation_lines l JOIN inventory_operations o ON o.id = l.operation_id
         JOIN (SELECT line_id, MIN(created_at) AS moved_at FROM inventory_stock_moves GROUP BY line_id) m ON m.line_id = l.id
-        WHERE l.product_id = ? AND o.status = 'done' AND o.operation_type IN ('receipt', 'delivery')
+        WHERE l.product_id IN ($ids) AND o.status = 'done' AND o.operation_type IN ('receipt', 'delivery')
         AND ".permissionWhere('inventario.movements','o')." AND m.moved_at >= DATE_SUB(CURRENT_TIMESTAMP, INTERVAL 1 YEAR)
         GROUP BY flow_type");
-    $pending->execute([$id]);
+    $pending->execute();
     foreach ($pending->fetchAll() as $row) {
         $values[$row['flow_type'] === 'receipt' ? 'incoming' : 'outgoing'] = (string) $row['quantity'];
     }
     if ($db->query("SHOW TABLES LIKE 'sales_quotation_lines'")->fetch()) {
         $sold = $db->prepare("SELECT COALESCE(SUM(l.quantity), 0.00) FROM sales_quotation_lines l JOIN sales_quotations q ON q.id = l.quotation_id
-            WHERE l.product_id = :product AND q.status = 'sale' AND ".permissionWhere('ventas.orders','q')." AND q.order_date >= :since");
-        $sold->execute(['product' => $id, 'since' => inventorySalesHistorySince()]); $values['sold'] = (string) $sold->fetchColumn();
+            WHERE l.product_id IN ($ids) AND q.status = 'sale' AND ".permissionWhere('ventas.orders','q')." AND q.order_date >= :since");
+        $sold->execute(['since' => inventorySalesHistorySince()]); $values['sold'] = (string) $sold->fetchColumn();
     }
     $bought = $db->prepare("SELECT COALESCE(SUM(l.quantity), 0.00) FROM purchase_order_lines l JOIN purchase_orders o ON o.id = l.order_id
-        WHERE l.product_id = :product AND o.status = 'purchase' AND ".permissionWhere('compras.orders','o')." AND o.approved_date >= :since");
-    $bought->execute(['product' => $id, 'since' => (new DateTimeImmutable('now', new DateTimeZone('America/Caracas')))->modify('-1 year')->format('Y-m-d')]);
+        WHERE l.product_id IN ($ids) AND o.status = 'purchase' AND ".permissionWhere('compras.orders','o')." AND o.approved_date >= :since");
+    $bought->execute(['since' => (new DateTimeImmutable('now', new DateTimeZone('America/Caracas')))->modify('-1 year')->format('Y-m-d')]);
     $values['purchased'] = (string) $bought->fetchColumn();
     return $values;
 }

@@ -12,6 +12,7 @@ function transitionInventoryOperation(PDO $db,int $id,?int $version,string $acti
         $q=$db->prepare('SELECT * FROM inventory_operations WHERE id=? FOR UPDATE');$q->execute([$id]);$o=$q->fetch();
         if((int)$o['version']!==$version)throw new InvalidArgumentException('La operación cambió. Recarga antes de continuar.');
         $lines=loadInventoryOperationLines($db,$id);
+        inventoryRequireConcreteProducts($db,$lines,$o);
         if(!$lines)throw new InvalidArgumentException('Agrega al menos un producto antes de confirmar la operación.');
         if($action==='confirm_operation'){
             if($o['status']!=='draft')throw new InvalidArgumentException('Solo puedes confirmar un borrador.');$target='waiting';

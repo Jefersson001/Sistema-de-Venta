@@ -38,7 +38,7 @@ function loadDashboard(PDO $db): array
         foreach($q->fetchAll() as $p)if(bccomp($p['available'],'0',2)>0){$code=$p['currency_code'];$d['unallocated'][$code]=bcadd($d['unallocated'][$code]??'0.00',$p['available'],2);}
     }
     if(permissionHas('dashboard.inventory')&&permissionHas('inventario.stock')&&permissionHas('inventario.products')) {
-        $q=$db->query("SELECT p.id,p.name,COALESCE((SELECT SUM(s.quantity) FROM inventory_stock s JOIN inventory_locations l ON l.id=s.location_id WHERE s.product_id=p.id AND l.location_type='internal'),0)-COALESCE((SELECT SUM(r.quantity) FROM inventory_reservations r WHERE r.product_id=p.id),0) AS available FROM inventory_products p WHERE p.product_type='goods' AND (p.sale_enabled=1 OR p.purchase_enabled=1) HAVING available<=0 ORDER BY p.name,p.id");
+        $q=$db->query("SELECT p.id,p.name,COALESCE((SELECT SUM(s.quantity) FROM inventory_stock s JOIN inventory_locations l ON l.id=s.location_id WHERE s.product_id=p.id AND l.location_type='internal'),0)-COALESCE((SELECT SUM(r.quantity) FROM inventory_reservations r WHERE r.product_id=p.id),0) AS available FROM inventory_products p WHERE p.product_type='goods' AND (p.sale_enabled=1 OR p.purchase_enabled=1) AND ".inventoryConcreteCondition('p')." HAVING available<=0 ORDER BY p.name,p.id");
         $alerts=$q->fetchAll();$d['alert_count']=count($alerts);$d['alerts']=array_slice($alerts,0,5);
     }
     foreach(['delivery','receipt','internal'] as $type) {

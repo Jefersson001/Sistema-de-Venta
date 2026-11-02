@@ -63,6 +63,8 @@ function renderInventoryProducts(bool $variantCreation=false): void
         }
         if ($page['view'] === 'form' && $page['available']) {
             $page['variants']=$id?inventoryProductVariants($db,$id):[];
+            $page['isTemplate']=!empty($page['variants']);
+            $page['legacyStock']=$page['isTemplate']&&permissionHas('inventario.stock')?loadInventoryProductStock($db,$id,true):null;
             $page['variantParent']=null;
             if(!empty($page['record']['parent_product_id'])){
                 $q=$db->prepare('SELECT id,name FROM inventory_products WHERE id=?');$q->execute([$page['record']['parent_product_id']]);$page['variantParent']=$q->fetch();$page['area']='variant_form';

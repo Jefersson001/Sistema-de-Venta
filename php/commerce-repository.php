@@ -30,9 +30,9 @@ function loadPurchaseCatalogs(PDO $db, ?array $existing): array
         LEFT JOIN contact_countries country ON country.id = c.country_id LEFT JOIN contact_states state ON state.id = c.state_id LEFT JOIN contact_cities city ON city.id = c.city_id
         WHERE (t.system_key = 'supplier' AND c.active = 1) OR c.id = ? ORDER BY c.name, c.id");
     $contacts->execute([$existing['supplier_id'] ?? null]);
-    $products = $db->query('SELECT id, name, purchase_enabled, purchase_tax_id AS tax_id, cost_price AS price, product_type, invoice_policy, cost_price, currency_code FROM inventory_products ORDER BY name, id')->fetchAll();
+    $products = $db->query('SELECT id, name, purchase_enabled, purchase_tax_id AS tax_id, cost_price AS price, product_type, invoice_policy, cost_price, currency_code, NOT ('.inventoryConcreteCondition('p').') AS is_template FROM inventory_products p ORDER BY name, id')->fetchAll();
     $assigned = array_map(static fn ($line) => (int) $line['product_id'], $existing['lines'] ?? []);
-    $products = array_values(array_filter($products, static fn ($product) => $product['purchase_enabled'] || in_array((int) $product['id'], $assigned, true)));
+    $products = array_values(array_filter($products, static fn ($product) => ($product['purchase_enabled']&&!$product['is_template']) || in_array((int) $product['id'], $assigned, true)));
     if(!permissionHas('inventario.products'))$products=[];
     if(!permissionHas('inventario.products','view_cost'))foreach($products as &$product){$product['price']='0.00';$product['cost_price']='0.00';}unset($product);
     foreach($products as &$product)$product['sale_price']=$product['price'];unset($product);
@@ -83,6 +83,7 @@ function savePurchaseOrder(PDO $db, array $data, array $lines, ?int $id, ?int $v
         }
         $insert = $db->prepare('INSERT INTO purchase_order_lines (order_id, position, product_id, product_name, quantity, unit_price, tax_id, tax_name, tax_rate, tax_amount, product_type, invoice_policy, unit_cost, base_amount, total_amount)
             VALUES (:order_id, :position, :product_id, :product_name, :quantity, :unit_price, :tax_id, :tax_name, :tax_rate, :tax_amount, :product_type, :invoice_policy, :unit_cost, :base_amount, :total_amount)');
+        inventoryRequireConcreteProducts($db,$lines);
         foreach ($lines as $position => $line) { $insert->execute($line + ['order_id' => $id, 'position' => $position]); }
         $db->commit(); return $id;
     } catch (Throwable $exception) { $db->rollBack(); throw $exception; }
@@ -103,6 +104,7 @@ function transitionPurchaseOrder(PDO $db, int $id, ?int $version, string $target
         if (!(($target === 'sent' && $order['status'] === 'draft') || ($target === 'purchase' && in_array($order['status'], ['draft', 'sent'], true)))) throw new InvalidArgumentException('El cambio de estado no es válido.');
         $lines = $db->prepare('SELECT COUNT(*) FROM purchase_order_lines WHERE order_id = ?'); $lines->execute([$id]);
         if (! $lines->fetchColumn()) throw new InvalidArgumentException('Agrega al menos un producto antes de confirmar.');
+        $products=$db->prepare('SELECT product_id FROM purchase_order_lines WHERE order_id=?');$products->execute([$id]);inventoryRequireConcreteProducts($db,$products->fetchAll());
         $db->prepare('UPDATE purchase_orders SET status = ?, approved_date = ?, version = version + 1 WHERE id = ?')->execute([$target, $target === 'purchase' ? commerceToday() : null, $id]);
         $db->commit();
     } catch (Throwable $exception) { $db->rollBack(); throw $exception; }

@@ -19,6 +19,9 @@ function renderInventoryReports(): void
         $page['storage'] = loadStorageRelations($db);
         $page['products'] = $db->query('SELECT id, name FROM inventory_products ORDER BY name, id')->fetchAll();
         $page['productId'] = inventoryId($_GET['product_id'] ?? null);
+        $page['exact']=($_GET['exact']??'')==='1';
+        $page['familyIds']=$page['productId']?inventoryFamilyIds($db,$page['productId'],$page['exact']):[];
+        $page['isFamily']=$page['productId']&&$page['familyIds']!==[$page['productId']];
         $page['locationId'] = inventoryId($_GET['location_id'] ?? null);
         $page['search'] = is_string($_GET['q'] ?? null) ? mb_substr(trim($_GET['q']), 0, 160) : '';
         $page['display'] = is_string($_GET['display'] ?? null) && in_array($_GET['display'], ['list', 'pivot', 'graph'], true) ? $_GET['display'] : 'list';
@@ -36,7 +39,7 @@ function renderInventoryReports(): void
                     : "((o.operation_type='delivery' AND o.return_of_id IS NULL) OR (o.operation_type='receipt' AND o.return_of_id IS NOT NULL))";
                 $where[] = "o.status='done' AND ".$direction." AND m.moved_at >= DATE_SUB(CURRENT_TIMESTAMP, INTERVAL 1 YEAR)";
             }
-            if ($page['productId']) { $where[] = 'l.product_id = :product'; $params['product'] = $page['productId']; }
+            if ($page['productId']) { $where[] = 'l.product_id IN ('.implode(',',$page['familyIds']).')'; }
             if ($page['locationId']) {
                 $where[] = '(o.source_location_id = :source OR o.destination_location_id = :destination)';
                 $params['source'] = $params['destination'] = $page['locationId'];
@@ -54,7 +57,7 @@ function renderInventoryReports(): void
             $where[] = $isPurchase ? "o.status = 'purchase'" : "o.status = 'sale'";
             $where[]=permissionWhere($isPurchase?'compras.orders':'ventas.orders','o');
             if (! $isPurchase) { $where[] = 'o.order_date >= :since'; $params['since'] = inventorySalesHistorySince(); }
-            if ($page['productId']) { $where[] = 'l.product_id = :product'; $params['product'] = $page['productId']; }
+            if ($page['productId']) { $where[] = 'l.product_id IN ('.implode(',',$page['familyIds']).')'; }
             if ($page['search'] !== '') { $where[] = '(p.name LIKE :product_name OR o.name LIKE :reference OR c.name LIKE :contact_name)'; $params['product_name'] = $params['reference'] = $params['contact_name'] = '%' . $page['search'] . '%'; }
             $select = 'SELECT l.product_id, l.quantity, p.name AS product_name, o.id AS operation_id, o.name AS reference, o.order_date AS moved_at, c.name AS contact_name,
                 c.id AS contact_id, ' . ($isPurchase ? 'l.quantity * l.unit_price' : 'l.base_amount') . ' AS subtotal';
@@ -63,7 +66,7 @@ function renderInventoryReports(): void
             $from = ' FROM inventory_stock s JOIN inventory_products p ON p.id = s.product_id JOIN inventory_locations loc ON loc.id = s.location_id';
             $where[] = 's.quantity <> 0';
             $where[] = "loc.location_type = 'internal'";
-            if ($page['productId']) { $where[] = 's.product_id = :product'; $params['product'] = $page['productId']; }
+            if ($page['productId']) { $where[] = 's.product_id IN ('.implode(',',$page['familyIds']).')'; }
             if ($page['locationId']) { $where[] = 's.location_id = :location'; $params['location'] = $page['locationId']; }
             if ($page['search'] !== '') { $where[] = 'p.name LIKE :search'; $params['search'] = '%' . $page['search'] . '%'; }
             $select = 'SELECT s.*, p.name AS product_name, COALESCE((SELECT SUM(r.quantity) FROM inventory_reservations r WHERE r.product_id=s.product_id AND r.location_id=s.location_id),0) AS reserved'; $order = ' ORDER BY p.name, s.product_id, s.location_id';

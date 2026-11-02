@@ -6,6 +6,7 @@ require_once __DIR__.'/currency-repository.php';
 require_once __DIR__ . '/storage-repository.php';
 require_once __DIR__.'/commission-math.php';
 require_once __DIR__.'/permissions.php';
+require_once __DIR__.'/product-variants-repository.php';
 
 function salesEscape(mixed $value): string
 {
@@ -94,8 +95,8 @@ function loadSalesCatalogs(PDO $db, ?array $existing): array
     }
     unset($seller);
     $assignedProducts = array_map(static fn ($line) => (int) $line['product_id'], $existing['lines'] ?? []);
-    $products = $db->query('SELECT id, name, sale_price, sale_tax_id, sale_enabled, product_type, invoice_policy, cost_price, currency_code,commission_type,commission_value FROM inventory_products ORDER BY name, id')->fetchAll();
-    $products = array_values(array_filter($products, static fn ($product) => $product['sale_enabled'] || in_array((int) $product['id'], $assignedProducts, true)));
+    $products = $db->query('SELECT id, name, sale_price, sale_tax_id, sale_enabled, product_type, invoice_policy, cost_price, currency_code,commission_type,commission_value, NOT ('.inventoryConcreteCondition('p').') AS is_template FROM inventory_products p ORDER BY name, id')->fetchAll();
+    $products = array_values(array_filter($products, static fn ($product) => ($product['sale_enabled']&&!$product['is_template']) || in_array((int) $product['id'], $assignedProducts, true)));
     if(!permissionHas('inventario.products'))$products=[];
     $taxes = $db->query("SELECT id, name, rate FROM business_taxes WHERE module_key = 'ventas' ORDER BY name, id")->fetchAll();
     $terms = $db->query('SELECT id, name FROM accounting_payment_terms ORDER BY name, id')->fetchAll();
@@ -160,6 +161,7 @@ function validateSalesQuotation(array $input, array $catalogs, ?array $existing 
         $productId = salesId($raw['product_id'] ?? null);
         $product = salesRecord($catalogs['products'], $productId);
         if (! $product) { $errors[] = 'Línea ' . $number . ': selecciona un producto habilitado para Venta.'; }
+        elseif(!empty($product['is_template'])){$errors[]='Línea '.$number.': selecciona una variante concreta; el producto principal es una plantilla.';}
         $quantity = salesDecimal($raw['quantity'] ?? '1', 9, 2);
         $oldLine = isset($raw['line_id']) ? salesRecord($existing['lines']??[],salesId($raw['line_id'])) : ($existing['lines'][$position] ?? null);
         $sameProduct = $oldLine && (int)$oldLine['product_id'] === $productId;
@@ -231,6 +233,7 @@ function saveSalesQuotation(PDO $db, array $data, array $lines, ?int $id, ?int $
         }
         $insert = $db->prepare('INSERT INTO sales_quotation_lines (quotation_id, position, product_id, product_name, quantity, unit_price, tax_id, tax_name, tax_rate, tax_amount, product_type, invoice_policy, unit_cost, base_amount, total_amount, commission_reference_price,commission_unit_amount)
             VALUES (:quotation_id, :position, :product_id, :product_name, :quantity, :unit_price, :tax_id, :tax_name, :tax_rate, :tax_amount, :product_type, :invoice_policy, :unit_cost, :base_amount, :total_amount, :commission_reference_price,:commission_unit_amount)');
+        inventoryRequireConcreteProducts($db,$lines);
         foreach ($lines as $position => $line) { unset($line['line_id']);$insert->execute($line + ['quotation_id' => $id, 'position' => $position,'commission_reference_price'=>null,'commission_unit_amount'=>null]); }
         $db->commit(); return $id;
     } catch (Throwable $exception) { $db->rollBack(); throw $exception; }
@@ -255,6 +258,7 @@ function transitionSalesQuotation(PDO $db, int $id, ?int $version, string $targe
         $count = $db->prepare('SELECT COUNT(*) FROM sales_quotation_lines WHERE quotation_id = ?');
         $count->execute([$id]);
         if ((int) $count->fetchColumn() === 0) { throw new InvalidArgumentException('Agrega al menos una línea antes de cambiar el estado.'); }
+        $products=$db->prepare('SELECT product_id FROM sales_quotation_lines WHERE quotation_id=?');$products->execute([$id]);inventoryRequireConcreteProducts($db,$products->fetchAll());
         $db->prepare('UPDATE sales_quotations SET status = ?, version = version + 1 WHERE id = ?')->execute([$target, $id]);
         $db->commit();
     } catch (Throwable $exception) { $db->rollBack(); throw $exception; }

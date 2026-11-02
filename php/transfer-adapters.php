@@ -64,7 +64,7 @@ function transferSave(PDO $db,array $m,array $input,?array $old,string $key): in
             if(!isset($input['lines']))$input['lines']=$oldLines;
             else foreach($input['lines'] as $position=>&$line)if(isset($oldLines[$position])&&(int)$oldLines[$position]['product_id']===(int)($line['product_id']??0))$line['id']=$oldLines[$position]['id'];unset($line);
         }
-        $products=permissionHas('inventario.products')?$db->query("SELECT id,name FROM inventory_products WHERE product_type='goods'")->fetchAll():[];
+        $products=permissionHas('inventario.products')?$db->query("SELECT id,name FROM inventory_products p WHERE product_type='goods' AND ".inventoryConcreteCondition('p'))->fetchAll():[];
         $lines=transferValidated(validateInventoryOperationLines($input['lines']??[],$products));return saveInventoryOperation($db,$data,$id,$version,$lines);
     }
     if($save==='payments'){if(($input['concept_id']??null)==='')unset($input['concept_id']);return saveAccountingPayment($db,$input,$id,$version,$key);}

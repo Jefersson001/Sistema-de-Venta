@@ -39,6 +39,10 @@ function transferDomain(PDO $db,array $m,array $filters=[],bool $editing=false):
     } elseif($m['key']==='treasury')$where[]=permissionTreasuryWhere('r');
     elseif(!str_ends_with($m['resource'],'.configuration'))$where[]=permissionWhere($m['resource'],'r');
     if($editing)return [$where,$args];
+    if($m['key']==='stock'){
+        $where[]='r.quantity<>0';
+        $where[]="EXISTS(SELECT 1 FROM inventory_locations report_location WHERE report_location.id=r.location_id AND report_location.location_type='internal')";
+    }
     if(in_array($m['key'],['products','variants'],true)&&!isset($filters['id'])){
         $where[]='r.parent_product_id IS '.($m['key']==='variants'?'NOT NULL':'NULL');
         if($m['key']==='variants'&&accessId($filters['parent_id']??null)){$where[]='r.parent_product_id=?';$args[]=accessId($filters['parent_id']);}
@@ -55,7 +59,7 @@ function transferDomain(PDO $db,array $m,array $filters=[],bool $editing=false):
         elseif($m['table']==='accounting_invoices'&&in_array($filters['status'],['not_paid','in_payment','partial','paid','reversed'],true)){$where[]="r.status='posted' AND r.payment_state=?";$args[]=$filters['status'];}
         else {$where[]='r.status=?';$args[]=$filters['status'];}
     }
-    foreach(['product_id','location_id','account_id','contact_id','category_id','sale_id','purchase_id'] as $field)if(isset($schema[$field])&&accessId($filters[$field]??null)){$where[]='r.'.$field.'=?';$args[]=accessId($filters[$field]);}
+    foreach(['product_id','location_id','account_id','contact_id','category_id','sale_id','purchase_id'] as $field)if(isset($schema[$field])&&accessId($filters[$field]??null)){if($field==='product_id'&&in_array($m['key'],['stock','movements','sold','purchased'],true)){$where[]='r.product_id IN ('.implode(',',inventoryFamilyIds($db,accessId($filters[$field]),($filters['exact']??'')==='1')).')';}else{$where[]='r.'.$field.'=?';$args[]=accessId($filters[$field]);}}
     if($m['table']==='accounting_invoices'&&(($filters['unpaid']??'')==='1'||($filters['overdue']??'')==='1'))$where[]="r.status='posted' AND r.document_type='invoice' AND r.payment_state IN('not_paid','in_payment','partial')";
     if($m['table']==='accounting_invoices'&&($filters['overdue']??'')==='1'){$where[]='r.due_date<?';$args[]=commerceToday();}
     if(in_array($m['save'],['sale_orders','purchase_orders'],true)&&($filters['pending']??'')==='1'){require_once __DIR__.'/dashboard-repository.php';$where[]=dashboardPendingOrderCondition($m['kind'],'r');}

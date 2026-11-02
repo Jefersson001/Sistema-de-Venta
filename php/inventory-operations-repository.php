@@ -91,6 +91,7 @@ function saveInventoryOperation(PDO $db, array $data, ?int $id, ?int $version, a
             $db->prepare('UPDATE inventory_operations SET name = ? WHERE id = ?')->execute([$name, $id]);
         }
         trackingLockProducts($db,$lines);
+        inventoryRequireConcreteProducts($db,$lines,$current??null);
         if (!empty($current['quotation_id']) || !empty($current['purchase_order_id']) || !empty($current['return_of_id'])) {
             $update=$db->prepare('UPDATE inventory_operation_lines SET quantity=? WHERE id=? AND operation_id=?');
             foreach($lines as $line) $update->execute([$line['quantity'],$line['id'],$id]);
