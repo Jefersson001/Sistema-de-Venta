@@ -4,6 +4,7 @@ declare(strict_types=1);
 require_once __DIR__ . '/storage-repository.php';
 require_once __DIR__.'/contact-addresses.php';
 require_once __DIR__.'/geolocation.php';
+require_once __DIR__.'/input-validation.php';
 
 function contactCatalogDefinitions(): array
 {
@@ -47,6 +48,7 @@ function contactCatalogRecord(array $records, ?int $id): ?array
 
 function contactText(array $input, string $key, int $max, array &$errors, string $label): string
 {
+    if(isset($input[$key])&&!is_string($input[$key]))$errors[]=$label.': escribe un valor de texto válido.';
     $value = is_string($input[$key] ?? null) ? trim($input[$key]) : '';
     if (mb_strlen($value, 'UTF-8') > $max) {
         $errors[] = $label . ': máximo ' . $max . ' caracteres.';
@@ -132,13 +134,16 @@ function validateContact(array $input, array $catalogs, array $salespeople = [],
     if ($data['tax_id'] === '' && $documentType) {
         $errors[] = 'Escribe el número del documento o deja ambos campos vacíos.';
     }
-    if ($documentType && preg_match('/^([A-Za-z])\s*-\s*(.+)$/u', $data['tax_id'], $parts)) {
+    if ($documentType && preg_match('/^([A-Za-z])\s*-\s*(.+)$/u', $data['tax_id'], $parts)
+        && (documentInputFormat($documentType['code'])!=='alphanumeric'||strtoupper($parts[1])===$documentType['code'])) {
         if (strtoupper($parts[1]) === $documentType['code']) {
             $data['tax_id'] = trim($parts[2]);
         } else {
             $errors[] = 'La letra del documento no coincide con el tipo seleccionado.';
         }
     }
+    if($documentType&&($documentError=documentFormatError($data['tax_id'],$documentType['code'])))$errors[]=$documentError;
+    foreach(['phone'=>'Teléfono','mobile'=>'Móvil'] as $field=>$label)if($phoneError=phoneFormatError($data[$field],$label))$errors[]=$phoneError;
     if ($data['email'] !== '' && ! filter_var($data['email'], FILTER_VALIDATE_EMAIL)) {
         $errors[] = 'El correo electrónico no es válido.';
     }

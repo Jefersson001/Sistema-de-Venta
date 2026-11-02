@@ -25,6 +25,7 @@ function validateBusinessTax(array $input): array
     if ($name === '' || mb_strlen($name, 'UTF-8') > 120) {
         $errors[] = 'Escribe un nombre de impuesto de entre 1 y 120 caracteres.';
     }
+    if(isset($input['rate'])&&!is_string($input['rate']))$errors[]='Indica un porcentaje numérico válido.';
     $rate = is_string($input['rate']??null) ? str_replace(',', '.', trim($input['rate'])) : '0';
     if (!preg_match('/^[0-9]{1,3}(\.[0-9]{1,2})?$/',$rate) || bccomp($rate,'100',2)>0) { $errors[]='El porcentaje debe estar entre 0 y 100, con hasta dos decimales.'; $rate='0'; }
     return [['name' => $name, 'rate' => bcadd($rate,'0',2)], $errors];

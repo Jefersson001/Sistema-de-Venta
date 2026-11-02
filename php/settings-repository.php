@@ -1,5 +1,6 @@
 <?php
 declare(strict_types=1);
+require_once __DIR__.'/input-validation.php';
 
 function loadBusinessCompany(PDO $db, ?int $companyId = null): array
 {
@@ -20,6 +21,8 @@ function validateBusinessCompany(array $input): array
         if (mb_strlen($data[$key],'UTF-8')>$length) throw new InvalidArgumentException('Uno de los campos supera el tamaño permitido.');
     }
     if ($data['name']==='') throw new InvalidArgumentException('Escribe el nombre comercial de la empresa.');
+    if($error=phoneFormatError($data['phone']))throw new InvalidArgumentException($error);
+    if($error=companyDocumentFormatError($data['tax_id']))throw new InvalidArgumentException($error);
     if ($data['email']!=='' && !filter_var($data['email'],FILTER_VALIDATE_EMAIL)) throw new InvalidArgumentException('Escribe un correo electrónico válido.');
     if ($data['website']!=='' && (!filter_var($data['website'],FILTER_VALIDATE_URL)
         || !in_array(strtolower((string)parse_url($data['website'],PHP_URL_SCHEME)),['https','http'],true))) {

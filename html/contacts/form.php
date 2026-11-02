@@ -33,7 +33,7 @@ $isExternalPartner = in_array($selectedType['system_key'] ?? '', ['client', 'sup
                         <select id="document-type" name="document_type_id" title="Tipo de documento">
                             <option value="">—</option>
                             <?php foreach ($page['catalogs']['document_types'] as $documentType): ?>
-                                <option value="<?= (int) $documentType['id'] ?>" aria-label="<?= contactEscape($documentType['code'] . ' · ' . $documentType['name']) ?>" title="<?= contactEscape($documentType['name']) ?>" <?= (int) ($record['document_type_id'] ?? 0) === (int) $documentType['id'] ? 'selected' : '' ?>><?= contactEscape($documentType['code']) ?></option>
+                                <option value="<?= (int) $documentType['id'] ?>" data-document-code="<?= contactEscape($documentType['code']) ?>" data-document-format="<?= documentInputFormat($documentType['code']) ?>" aria-label="<?= contactEscape($documentType['code'] . ' · ' . $documentType['name']) ?>" title="<?= contactEscape($documentType['name']) ?>" <?= (int) ($record['document_type_id'] ?? 0) === (int) $documentType['id'] ? 'selected' : '' ?>><?= contactEscape($documentType['code']) ?></option>
                             <?php endforeach; ?>
                         </select>
                         <input id="document-number" name="tax_id" maxlength="40" value="<?= contactEscape($record['tax_id'] ?? '') ?>" placeholder="Número de documento">

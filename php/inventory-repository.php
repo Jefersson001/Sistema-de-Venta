@@ -137,6 +137,7 @@ function validateInventoryProduct(array $input, array $categories = [], array $p
     $data['product_type']=$input['product_type']??'goods'; $data['invoice_policy']=$input['invoice_policy']??'delivered';
     if(!in_array($data['product_type'],['goods','service'],true))$errors[]='Selecciona Mercancía o Servicio.';
     if(!in_array($data['invoice_policy'],['ordered','delivered'],true))$errors[]='Selecciona una política de facturación válida.';
+    if(isset($input['cost_price'])&&!is_string($input['cost_price']))$errors[]='Indica un costo numérico válido.';
     $cost=is_string($input['cost_price']??null)?str_replace(',','.',trim($input['cost_price'])):'0';
     if(!preg_match('/^[0-9]{1,10}(\.[0-9]{1,2})?$/',$cost)) { $errors[]='Indica un costo válido con hasta dos decimales.'; $cost='0'; }
     $data['cost_price']=$cost;
