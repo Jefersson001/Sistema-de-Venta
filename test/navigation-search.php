@@ -19,6 +19,10 @@ try{
     foreach($entries as $entry){
         navigationCheck(str_starts_with($entry['url'],'/project/modules/')&&!str_contains($entry['url'],'new=')&&!str_contains($entry['url'],'action='),'Search contains a write action or external URL.');
         [$code,$body]=authTestRequest($s,substr($entry['url'],strlen('/project')),$cookie);navigationCheck($code===200,'Destination unavailable: '.$entry['path'].' ('.$code.')');
+        $document=new DOMDocument();$previous=libxml_use_internal_errors(true);$document->loadHTML($body);libxml_clear_errors();libxml_use_internal_errors($previous);
+        $xpath=new DOMXPath($document);$crumbs=$xpath->query('//nav[contains(concat(" ",normalize-space(@class)," ")," module-breadcrumb ")]//li');
+        $labels=[];foreach($crumbs as $crumb)$labels[]=trim($crumb->textContent);
+        navigationCheck(implode(' / ',array_slice($labels,1))===$entry['path'],'Module breadcrumb disagrees with search: '.$entry['path']);
     }
     echo 'PASS: '.count($entries)." real destinations and hierarchical breadcrumbs.\n";
     foreach(['supplier'=>['contabilidad.supplier_payments.read'],'contacts'=>['contactos.contacts.read'],'none'=>[]] as $role=>$permissions){

@@ -268,3 +268,61 @@ a:focus-visible, button:focus-visible, .top-navigation.top-navigation--refined :
     .vent-as-home .module-card { transition: none; }
     .vent-as-home .module-card:hover { transform: none; }
 }
+
+/* Interior modules share the launcher's identity without increasing page scale. */
+.module-workspace { background: radial-gradient(ellipse at 15% 0, #EEE7FB 0, transparent 48%), var(--vent-background); }
+.module-context { display: flex; align-items: center; gap: 11px; min-width: 0; margin-bottom: 14px; }
+.module-context-art { flex: 0 0 46px; width: 46px; height: 46px; border-radius: 13px; background: url('../img/Iconos%20de%20gesti%C3%B3n%20empresarial%203D.png') no-repeat; background-size: 433.532934% 325.149701%; background-position: var(--module-art-x) 19.414894%; box-shadow: 0 3px 9px #3020540B; }
+.module-context-art:is(.module-art-ventas, .module-art-contabilidad, .module-art-restaurante, .module-art-ajustes) { background-position-y: 76.063830%; }
+.module-context-copy { min-width: 0; }
+.module-context-copy > strong { color: var(--vent-night); font-size: 16px; letter-spacing: -.3px; }
+.module-breadcrumb ol { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 7px; margin: 4px 0 0; padding: 0; list-style: none; font-size: 11px; color: var(--vent-muted); }
+.module-breadcrumb li { min-width: 0; overflow-wrap: anywhere; }
+.module-breadcrumb li + li::before { margin-right: 7px; color: #ADA3BE; content: '/'; }
+.module-breadcrumb a { color: #5420B8; text-decoration: none; }
+.module-breadcrumb a:hover { text-decoration: underline; }
+.module-breadcrumb [aria-current="page"] { color: var(--vent-text); font-weight: 600; }
+.module-workspace .module-navigation { border: 1px solid var(--vent-line); border-radius: 15px; background: #FFFFFFE8; box-shadow: 0 4px 14px #30205406; }
+.module-workspace .module-navigation .module-navigation-link { color: var(--vent-muted); border-radius: 10px; }
+.module-workspace .module-navigation .module-navigation-link:hover { color: var(--module-ink); background: var(--module-tint); }
+.module-workspace .module-navigation .module-navigation-active { color: var(--module-ink); background: var(--module-tint); box-shadow: inset 0 -2px var(--module-accent); font-weight: 700; }
+.module-workspace :is(.module-menu-options, .transfer-menu-options) { border-color: var(--vent-line); box-shadow: 0 10px 28px #30205418; }
+.module-workspace .module-menu-options a[aria-current="page"] { color: var(--module-ink); background: var(--module-tint); font-weight: 700; }
+.module-workspace :is(.contact-sheet, .overview-card, .restaurant-panel) { border-radius: 18px; box-shadow: 0 5px 20px #30205406; }
+.module-workspace .contact-toolbar { padding: 3px 0 2px; }
+.module-workspace :is(.workspace-section-title, .contact-sheet legend) { display: flex; align-items: center; gap: 9px; color: var(--vent-text); font-size: 14px; }
+.module-workspace :is(.workspace-section-title, .contact-sheet legend)::before { flex: 0 0 4px; align-self: stretch; min-height: 16px; border-radius: 4px; background: var(--module-accent); content: ''; }
+.module-workspace .workspace-details { border-color: var(--vent-line); border-radius: 12px; background: #FAF8FE; }
+.module-workspace .contact-filters { border-radius: 14px; background: linear-gradient(110deg, #FFF, #FAF8FE); box-shadow: 0 3px 12px #30205404; }
+.module-workspace .contact-table-wrap { border-color: var(--vent-line); border-radius: 14px; background: white; }
+.module-workspace .contact-table td { border-top-color: #EEEAF5; color: var(--vent-text); }
+.module-workspace .contact-table tbody tr:nth-child(even) { background: #FCFBFE; }
+.module-workspace .contact-table tbody tr:hover { background: #F5F0FD; }
+.module-workspace .contact-table .contact-name { color: #5420B8; }
+.module-workspace .contact-table .record-edit-link { min-height: 30px; padding: 5px 10px; border: 1px solid #E6DCF6; border-radius: 9px; color: #5420B8; background: #F7F2FE; }
+.module-workspace .contact-table .record-edit-link:hover { border-color: #C9AFE9; background: #EDE2FC; }
+.module-workspace :is(.contact-button, .restaurant-workspace .button) { border-radius: 10px; }
+.module-workspace .contact-form-actions { border-color: var(--vent-line); border-radius: 13px; background: #FFFFFFF5; box-shadow: 0 5px 20px #3020540D; }
+.module-workspace .contact-config-nav a[aria-current] { color: var(--module-ink); background: var(--module-tint); box-shadow: inset 3px 0 var(--module-accent); }
+.module-workspace :is(.configuration-icon, .access-tab-count) { color: #5420B8; background: var(--vent-soft); }
+.module-workspace :is(.quotation-totals, .invoice-outstanding, .workspace-balance-summary > div) { border-color: var(--vent-line); background: #FAF8FE; }
+.module-workspace .quotation-totals > div { border-bottom-color: var(--vent-line); }
+.module-workspace .quotation-totals > div:last-child { color: #5420B8; }
+.module-workspace :is(.workspace-status, .contact-tag) { border-radius: 20px; }
+.module-workspace .workspace-status[data-tone="neutral"], .module-workspace .quotation-status li:is([aria-current], .is-active)[data-tone="neutral"] { border-color: #DCD1EB; color: #625176; background: #F2ECFA; }
+.module-workspace .quotation-status li:not([aria-current]):not(.is-active) { color: var(--vent-muted); background: #EEEBF5; }
+.module-workspace :is(.invoice-wizard, .sales-customer-dialog, .restaurant-pos-dialog) { border: 1px solid var(--vent-line); border-radius: 20px; color: var(--vent-text); background: white; box-shadow: 0 24px 80px #17152F30; }
+.module-workspace :is(.invoice-wizard, .sales-customer-dialog, .restaurant-pos-dialog)::backdrop { background: #17152F80; }
+.module-workspace :is(.invoice-wizard-header, .sales-customer-dialog-header, .restaurant-pos-catalog-head) { border-bottom: 1px solid var(--vent-line); color: var(--vent-night); background: linear-gradient(110deg, #FAF7FF, #FFF); }
+.module-workspace :is(.invoice-wizard-header, .sales-customer-dialog-header) h2 { font-size: 18px; letter-spacing: -.4px; }
+.module-workspace .invoice-wizard-footer { border-top-color: var(--vent-line); background: #FAF8FE; }
+.module-workspace .workspace-scroll-table { scrollbar-color: #C8B7E1 #F5F1FA; }
+.module-workspace .restaurant-workspace { --restaurant-accent: var(--vent-primary); }
+.module-workspace .restaurant-heading h1 { font-size: clamp(23px, 2.2vw, 28px); }
+@media (max-width: 720px) {
+    .module-context { gap: 9px; margin-bottom: 12px; }
+    .module-context-art { flex-basis: 38px; width: 38px; height: 38px; border-radius: 11px; }
+    .module-breadcrumb ol { font-size: 11px; line-height: 1.7; }
+    .module-breadcrumb a { display: inline-block; padding-block: 4px; }
+    .module-workspace .contact-table .record-edit-link { min-height: 44px; }
+}

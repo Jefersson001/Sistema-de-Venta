@@ -26,7 +26,7 @@
         <?php $homeHref = '../../index.php'; $isHomePage = false; require __DIR__ . '/partials/top-navigation.php'; ?>
         <main class="main-area">
             <div class="page-content module-page">
-                <a class="back-link" href="../../index.php">← Volver al inicio</a>
+                <?php if (empty($modulePageData['salesWizard'])) require __DIR__.'/partials/module-context.php'; ?>
                 <?php if ($moduleKey !== 'dashboard'): ?><nav class="module-navigation" aria-label="Secciones de <?= htmlspecialchars($module['name'], ENT_QUOTES, 'UTF-8') ?>">
                     <?php if ($moduleKey === 'restaurante'): ?>
                         <a class="module-navigation-link <?= ($modulePageData['area']??'')==='map'?'module-navigation-active':'' ?>" href="index.php">Mapa de mesas</a>

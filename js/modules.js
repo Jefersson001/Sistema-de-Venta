@@ -2,6 +2,19 @@
     'use strict';
     if (!document.body.classList.contains('module-workspace')) return;
 
+    const sectionRoute = document.querySelector('[data-current-section]')?.dataset.currentSection;
+    if (sectionRoute) {
+        const sectionUrl = new URL(sectionRoute, location.href);
+        const matchesSection = link => {
+            const url = new URL(link.href, location.href);
+            return url.pathname === sectionUrl.pathname && ['type', 'kind', 'section', 'view', 'status'].every(key => url.searchParams.get(key) === sectionUrl.searchParams.get(key));
+        };
+        for (const link of document.querySelectorAll('.module-navigation a[href]')) {
+            if (matchesSection(link)) link.setAttribute('aria-current', 'page');
+            else link.removeAttribute('aria-current');
+        }
+    }
+
     const normalize = text => text.normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/\s+/g, ' ').trim().toLowerCase();
     const statusTone = text => {
         const state = normalize(text).replace(/\s*\(activo\)$/, '');
