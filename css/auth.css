@@ -1,0 +1,110 @@
+.vent-auth { background: radial-gradient(ellipse at 8% 5%, #e4d7fc 0, transparent 45%), radial-gradient(ellipse at 95% 95%, #e7e1fc 0, transparent 42%), #f5f6fc; }
+.vent-auth .auth-page { padding: 36px 24px 20px; align-content: center; gap: 20px; }
+.auth-layout { display: grid; grid-template-columns: 1.05fr 1fr; width: min(100%, 1080px); overflow: hidden; border: 1px solid #fff; border-radius: 30px; background: #fff; box-shadow: 0 24px 80px #2d17501a; }
+.auth-story { position: relative; isolation: isolate; display: flex; flex-direction: column; overflow: hidden; padding: 38px 44px 28px; background: linear-gradient(145deg, #f5f0ff, #eee5ff 55%, #ddccfa); }
+.auth-story::before, .auth-story::after { content: ''; position: absolute; z-index: -1; width: 420px; height: 420px; border: 1px solid #9f73e52b; border-radius: 50%; pointer-events: none; }
+.auth-story::before { top: -280px; right: -190px; box-shadow: 0 0 0 40px #ffffff2b, 0 0 0 80px #ffffff20; }
+.auth-story::after { bottom: -355px; left: -90px; box-shadow: 0 0 0 45px #ffffff24, 0 0 0 90px #ffffff1c; }
+.vent-auth .auth-brand { gap: 12px; margin-bottom: 38px; }
+.vent-auth .auth-brand .brand-mark { width: 68px; height: 54px; mix-blend-mode: multiply; }
+.vent-auth .auth-brand strong { font-size: 32px; letter-spacing: -1.3px; line-height: 1.1; }
+.auth-brand small { display: block; margin-top: 5px; color: #62527e; font-size: 9px; font-weight: 600; letter-spacing: 1.7px; }
+.auth-eyebrow, .auth-form-eyebrow { color: #6b42a6; font-size: 10px; font-weight: 700; letter-spacing: 1.5px; }
+.auth-story h2 { margin: 14px 0 18px; color: #21143c; font-family: Manrope, 'Segoe UI', sans-serif; font-size: clamp(34px, 3.3vw, 46px); font-weight: 800; letter-spacing: -1.8px; line-height: 1.18; }
+.auth-story h2 em { color: #6425d9; font-style: normal; }
+.auth-story-copy > p { max-width: 340px; margin: 0; color: #655478; font-size: 14px; line-height: 1.8; }
+.auth-visual { margin-top: 32px; padding: 18px 20px; border: 1px solid #fff; border-radius: 19px; background: #ffffffb8; box-shadow: 0 12px 28px #4d258814; transform: rotate(-2deg); }
+.auth-visual-top { display: flex; align-items: center; gap: 11px; }
+.auth-visual-symbol { display: grid; place-items: center; position: relative; width: 37px; height: 37px; border-radius: 11px; color: white; background: linear-gradient(135deg, #9333ea, #6425d9); font-size: 22px; font-weight: 800; }
+.auth-visual-symbol > span { position: absolute; top: -6px; right: -5px; color: #b9f4de; font-size: 23px; }
+.auth-visual-top strong { display: block; color: #35204e; font-size: 12px; }
+.auth-visual-top small { display: block; color: #7c6e8d; font-size: 10px; }
+.auth-visual-dot { width: 7px; height: 7px; margin-left: auto; border-radius: 50%; background: #159b83; box-shadow: 0 0 0 4px #159b8314; }
+.auth-chart { display: flex; align-items: flex-end; gap: 12px; height: 76px; margin: 16px 0; padding: 0 8px 0; border-bottom: 1px solid #e8ddf4; }
+.auth-chart > span { flex: 1; height: 25%; border-radius: 5px 5px 0 0; background: linear-gradient(#b48aee, #e5d7fa); }
+.auth-chart > span:nth-child(2) { height: 40%; }.auth-chart > span:nth-child(3) { height: 34%; }.auth-chart > span:nth-child(4) { height: 58%; }.auth-chart > span:nth-child(5) { height: 68%; }.auth-chart > span:nth-child(6) { height: 59%; }.auth-chart > span:nth-child(7) { height: 92%; background: linear-gradient(#9333ea, #6425d9); }
+.auth-visual-modules { display: flex; flex-wrap: wrap; gap: 6px; }
+.auth-visual-modules span { padding: 4px 9px; border-radius: 7px; color: #725193; background: #f0e8fc; font-size: 9px; }
+.auth-story-footer { margin: 26px 0 0; color: #7b6596; font-size: 11px; }
+.vent-auth .auth-card { display: flex; flex-direction: column; justify-content: center; width: 100%; min-width: 0; padding: 48px 56px; border: 0; border-radius: 0; box-shadow: none; }
+.auth-access-icon { display: grid; place-items: center; width: 48px; height: 48px; margin-bottom: 24px; border: 1px solid #e9ddfb; border-radius: 15px; color: #6425d9; background: #f7f2ff; }
+.auth-access-icon svg { width: 25px; height: 25px; }
+.auth-form-eyebrow { margin: 0 0 9px; }
+.vent-auth .auth-card h1 { font-size: 31px; letter-spacing: -1px; }
+.vent-auth .auth-card > .section-subtitle { margin: 0; color: #787187; font-size: 13px; }
+.vent-auth .auth-card form { margin-top: 30px; }
+.vent-auth .auth-card .contact-form-grid { gap: 20px; }
+.vent-auth .auth-card label { display: grid; gap: 8px; color: #494057; font-size: 13px; font-weight: 600; }
+.vent-auth .auth-card input:not([type=hidden]) { width: 100%; min-height: 48px; padding: 12px 14px; border: 1px solid #dfdbe8; border-radius: 10px; outline: none; color: #25243a; background: #fcfbfe; font-size: 14px; transition: border-color .15s, box-shadow .15s; }
+.vent-auth .auth-card input:focus { border-color: #9361e1; background: #fff; box-shadow: 0 0 0 3px #6425d912; }
+.auth-password-field { min-width: 0; }
+.auth-password-control { position: relative; margin-top: 8px; }
+.vent-auth .auth-password-control input { padding-right: 82px !important; }
+.auth-password-toggle { position: absolute; top: 0; right: 3px; height: 100%; min-width: 72px; padding: 0 10px; border: 0; border-radius: 8px; color: #6425d9; background: transparent; font: inherit; font-size: 11px; font-weight: 600; cursor: pointer; }
+.auth-password-toggle[hidden] { display: none; }
+.vent-auth .auth-card .contact-form-actions { margin-top: 26px; padding-top: 0; border: 0; }
+.vent-auth .auth-card .auth-submit { display: flex; align-items: center; justify-content: center; gap: 20px; min-height: 49px; border: 0; border-radius: 11px; background: linear-gradient(110deg, #6425d9, #8934df); box-shadow: 0 7px 17px #6425d924; font-size: 14px; font-weight: 600; }
+.vent-auth .auth-submit:hover { background: linear-gradient(110deg, #541cbe, #7625ca); box-shadow: 0 8px 20px #6425d936; }
+.auth-submit > span { font-size: 20px; }
+.vent-auth .auth-card .auth-help { margin-top: 26px; padding-top: 22px; border-top: 1px solid #efebf4; font-size: 11px; line-height: 1.8; }
+.vent-auth .auth-card .notice { margin: 20px 0 0; font-size: 13px; }
+.auth-page-footer { color: #948a9f; font-size: 11px; text-align: center; }
+.auth-page-footer > span { margin: 0 8px; color: #b59cd4; }
+.vent-auth button:focus-visible { outline: 3px solid #b68be9; outline-offset: 3px; }
+@media (max-width: 900px) { .auth-story { padding: 32px; }.vent-auth .auth-card { padding: 36px; }.auth-story h2 { font-size: 35px; } }
+@media (max-width: 680px) { .vent-auth .auth-page { padding: 18px 16px; gap: 16px; }.auth-layout { max-width: 460px; grid-template-columns: minmax(0, 1fr); border-radius: 23px; }.auth-story { padding: 22px 26px; }.vent-auth .auth-brand { margin: 0; }.vent-auth .auth-brand .brand-mark { width: 54px; height: 43px; }.vent-auth .auth-brand strong { font-size: 27px; }.auth-story-copy, .auth-visual, .auth-story-footer { display: none; }.vent-auth .auth-card { padding: 28px 26px 30px; }.auth-access-icon { margin-bottom: 20px; }.vent-auth .auth-card h1 { font-size: 28px; }.vent-auth .auth-card form { margin-top: 25px; }.vent-auth .auth-card input:not([type=hidden]) { font-size: 16px; } }
+
+/* Keep the sign-in screen compact without clipping fields or validation messages. */
+.vent-auth-login .auth-page { padding: 16px 20px; gap: 12px; }
+.vent-auth-login .auth-layout { width: min(100%, 940px); border-radius: 25px; }
+.vent-auth-login .auth-story { padding: 26px 34px; }
+.vent-auth-login .auth-brand { margin-bottom: 22px; }
+.vent-auth-login .auth-brand .brand-mark { width: 56px; height: 45px; }
+.vent-auth-login .auth-brand strong { font-size: 28px; }
+.vent-auth-login .auth-story h2 { margin: 10px 0 12px; font-size: 36px; line-height: 1.14; }
+.vent-auth-login .auth-story-copy > p { font-size: 13px; line-height: 1.65; }
+.vent-auth-login .auth-visual { margin-top: 22px; padding: 14px 16px; }
+.vent-auth-login .auth-chart { height: 48px; margin: 12px 0; }
+.vent-auth-login .auth-story-footer { margin-top: 18px; }
+.vent-auth-login .auth-card { padding: 28px 38px; }
+.vent-auth-login .auth-access-icon { width: 36px; height: 36px; margin-bottom: 14px; border-radius: 11px; }
+.vent-auth-login .auth-access-icon svg { width: 21px; height: 21px; }
+.vent-auth-login .auth-form-eyebrow { margin-bottom: 6px; }
+.vent-auth-login .auth-card h1 { font-size: 28px; }
+.vent-auth-login .auth-card form { margin-top: 20px; }
+.vent-auth-login .auth-card .contact-form-grid { gap: 15px; }
+.vent-auth-login .auth-card label { gap: 6px; }
+.vent-auth-login .auth-password-control { margin-top: 6px; }
+.vent-auth-login .auth-card input:not([type=hidden]) { min-height: 44px; padding-top: 10px; padding-bottom: 10px; }
+.vent-auth-login .auth-card .contact-form-actions { margin-top: 18px; }
+.vent-auth-login .auth-card .auth-submit { min-height: 44px; }
+.vent-auth-login .auth-card .auth-help { margin-top: 18px; padding-top: 16px; line-height: 1.6; }
+@media (min-width: 681px) and (max-height: 700px) {
+    .vent-auth-login .auth-story { padding-top: 22px; padding-bottom: 22px; }
+    .vent-auth-login .auth-story-footer { display: none; }
+    .vent-auth-login .auth-card { padding-top: 22px; padding-bottom: 22px; }
+    .vent-auth-login .auth-access-icon { display: none; }
+    .vent-auth-login .auth-visual { margin-top: 16px; }
+    .vent-auth-login .auth-chart { height: 32px; margin: 8px 0; }
+}
+@media (min-width: 681px) and (max-height: 560px) {
+    .vent-auth-login .auth-visual { display: none; }
+    .vent-auth-login .auth-card { padding-top: 18px; padding-bottom: 18px; }
+    .vent-auth-login .auth-card form { margin-top: 14px; }
+    .vent-auth-login .auth-card .auth-help { margin-top: 12px; padding-top: 10px; }
+}
+@media (max-width: 680px) {
+    .vent-auth-login .auth-page { padding: 12px; gap: 10px; }
+    .vent-auth-login .auth-layout { max-width: 400px; }
+    .vent-auth-login .auth-story { padding: 16px 24px; }
+    .vent-auth-login .auth-brand { margin-bottom: 0; }
+    .vent-auth-login .auth-card { padding: 22px 24px; }
+    .vent-auth-login .auth-access-icon { display: none; }
+}
+@media (max-width: 680px) and (max-height: 600px) {
+    .vent-auth-login .auth-story { padding-top: 10px; padding-bottom: 10px; }
+    .vent-auth-login .auth-card { padding-top: 16px; padding-bottom: 16px; }
+    .vent-auth-login .auth-form-eyebrow, .vent-auth-login .auth-page-footer { display: none; }
+    .vent-auth-login .auth-card form { margin-top: 14px; }
+    .vent-auth-login .auth-card .auth-help { margin-top: 12px; padding-top: 10px; }
+}
