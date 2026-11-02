@@ -9,7 +9,8 @@
     <?php if(!empty($geoSourceName)): ?><input type="hidden" name="<?= authEscape($geoSourceName) ?>" value="<?= authEscape($geoSourceValue??'manual') ?>" data-geo-source><?php endif; ?>
     <div class="geolocation-actions">
         <?php if(!$geoReadonly): ?><button type="button" class="contact-button" data-geo-capture>Capturar ubicación actual</button><button type="button" class="contact-button contact-button-link" data-geo-clear>Borrar ubicación</button><?php endif; ?>
-        <a class="contact-button" href="<?= authEscape($mapUrl??'#') ?>" target="_blank" rel="noopener noreferrer" referrerpolicy="no-referrer" data-geo-map <?= $mapUrl?'':'hidden' ?>>Ver en mapa</a>
+        <a class="contact-button" href="<?= authEscape($mapUrl??'#') ?>" target="_blank" rel="noopener noreferrer" referrerpolicy="no-referrer" data-geo-map <?= $mapUrl?'':'hidden' ?>>Abrir mapa en otra pestaña</a>
     </div>
     <p class="section-subtitle" role="status" data-geo-status></p>
+    <?php $mapLatitude=$geoLatitude??null;$mapLongitude=$geoLongitude??null;$mapTitle=$geoTitle??'Ubicación';require __DIR__.'/geolocation-map.php';unset($mapLatitude,$mapLongitude,$mapTitle); ?>
 </section>

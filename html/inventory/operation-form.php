@@ -38,7 +38,7 @@
                 <p class="section-subtitle">Demanda: cantidad prevista. Cantidad: unidades que se moverán al validar. Guardar el borrador no modifica existencias.</p>
             </section>
             <?php if ($showOperationOther): ?><section class="notebook-page" id="operation-other" data-notebook-page aria-labelledby="operation-tab-other"><?php if($page['type']==='delivery'): ?><div class="contact-form-grid"><label>Vendedor relacionado<input readonly value="<?= inventoryEscape($page['sourceOrder']['seller_name'] ?? '') ?>"></label></div><?php endif; ?>
-                <?php if($operationMap): ?><a class="contact-button" href="<?= inventoryEscape($operationMap) ?>" target="_blank" rel="noopener noreferrer"><?= $page['type']==='receipt'?'Ver ubicación del proveedor en mapa':'Ver ubicación del cliente en mapa' ?></a><?php endif; ?>
+                <?php if($operationMap): ?><a class="contact-button" href="<?= inventoryEscape($operationMap) ?>" target="_blank" rel="noopener noreferrer"><?= $page['type']==='receipt'?'Abrir mapa del proveedor en otra pestaña':'Abrir mapa del cliente en otra pestaña' ?></a><?php $mapLatitude=$record['partner_latitude'];$mapLongitude=$record['partner_longitude'];$mapTitle=$page['type']==='receipt'?'Ubicación del proveedor':'Ubicación del cliente';require dirname(__DIR__).'/partials/geolocation-map.php';unset($mapLatitude,$mapLongitude,$mapTitle); ?><?php endif; ?>
             </section><?php endif; ?>
             <section class="notebook-page" id="operation-notes" data-notebook-page aria-labelledby="operation-tab-notes"><label>Notas internas<textarea name="notes" rows="4" maxlength="5000"><?= inventoryEscape($record['notes'] ?? '') ?></textarea></label></section>
         </div>

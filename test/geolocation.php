@@ -43,6 +43,8 @@ try{
     foreach([['/modules/inventario/operaciones.php?type=delivery&id='.$operation,'operation-other'],['/modules/contabilidad/index.php?type=customer&id='.$invoice,'invoice-other']] as [$path,$panel]){
         [$code,$html]=authTestRequest($s,$path,$cookies['admin']);$dom=new DOMDocument();$old=libxml_use_internal_errors(true);$dom->loadHTML($html);libxml_clear_errors();libxml_use_internal_errors($old);$xpath=new DOMXPath($dom);
         geoExpect($code===200&&$xpath->query('//*[@id="'.$panel.'"]//a[contains(@href,"openstreetmap.org")]')->length===1,'Document map is not inside Other information: '.$path);
+        $preview=$xpath->query('//*[@id="'.$panel.'"]//*[@data-geo-map-preview]')->item(0);
+        geoExpect($preview&&$preview->getAttribute('data-latitude')==='9.123456'&&$preview->getAttribute('data-longitude')==='-65.654321'&&!$preview->hasAttribute('hidden'),'Read-only document preview has incorrect coordinates.');
     }
     $blank=$order;foreach(['sale_latitude','sale_longitude','sale_location_source','sale_location_recorded_at','sale_location_recorded_by']as$f)unset($blank[$f]);$blank['customer_location_source']='manual';$blank['customer_latitude']='';$blank['customer_longitude']='';$optional=geoCreated(authTestRequest($s,'/modules/ventas/index.php?new=1',$cookies['sales'],$blank));$empty=loadSalesQuotation($db,$optional);geoExpect($empty['customer_latitude']===null&&$empty['sale_latitude']===null,'Positions became required.');
     $field=['type'=>'coordinate','label'=>'Longitud'];geoExpect(transferNormalize($db,'longitude','-66,903607',$field)==='-66.903607'&&transferCsvCell('-66.903607',$field)==='-66.903607','CSV rounded geographic precision.');

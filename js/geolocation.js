@@ -15,6 +15,11 @@
         map.hidden=!ready;
         if(ready){const url=new URL('https://www.openstreetmap.org/');url.search=new URLSearchParams({mlat:a,mlon:b});url.hash='map=17/'+a+'/'+b;map.href=url.href;}
         else map.removeAttribute('href');
+        const preview=panel.querySelector('[data-geo-map-preview]');
+        if(preview){
+            preview.dataset.latitude=ready?a:'';preview.dataset.longitude=ready?b:'';preview.hidden=!ready;
+            preview.dispatchEvent(new CustomEvent('geolocation:map-update',{bubbles:true}));
+        }
     }
     function mark(panel,source){const field=panel.querySelector('[data-geo-source]');if(field)field.value=source;}
     function notify(panel){const [lat]=pair(panel);lat.dispatchEvent(new Event('change',{bubbles:true}));}

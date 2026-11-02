@@ -1,0 +1,8 @@
+.geolocation-map-preview { min-width:0; margin:12px 0 0; overflow:hidden; border:1px solid var(--vent-line,#E5E0F1); border-radius:12px; background:#fff; }
+.geolocation-map-preview[hidden] { display:none; }
+.geolocation-map-preview > summary { padding:11px 13px; color:var(--vent-primary,#6425D9); background:#FAF8FE; font-size:13px; font-weight:600; cursor:pointer; }
+.geolocation-map-preview > summary:focus-visible { outline:2px solid var(--vent-primary,#6425D9); outline-offset:-3px; }
+.geolocation-map-canvas { height:240px; min-width:0; border-top:1px solid var(--vent-line,#E5E0F1); }
+.geolocation-map-canvas > p { margin:0; padding:18px; }
+.geolocation-map-canvas > iframe { display:block; width:100%; height:100%; border:0; }
+@media(max-width:720px){.geolocation-map-canvas{height:220px;}.geolocation-map-preview > summary{min-height:44px;box-sizing:border-box;}}
