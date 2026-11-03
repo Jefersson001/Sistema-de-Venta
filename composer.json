@@ -1,0 +1,16 @@
+{
+    "name": "vent-as/application",
+    "description": "Sistema de gestión comercial Vent-As",
+    "type": "project",
+    "require": {
+        "php": "^8.3",
+        "ext-pdo": "*",
+        "ext-pdo_mysql": "*",
+        "ext-bcmath": "*",
+        "ext-mbstring": "*",
+        "ext-dom": "*",
+        "ext-curl": "*",
+        "ext-fileinfo": "*",
+        "ext-zip": "*"
+    }
+}

@@ -4,3 +4,5 @@
 /php/runtime/*.json
 /php/runtime/*.lock
 /php/runtime/*.pem
+/vendor/
+/vent-as.sql

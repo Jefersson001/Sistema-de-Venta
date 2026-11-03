@@ -87,7 +87,8 @@ function installMultiCompany(PDO $db): void
         if(!$q->fetchColumn())throw new RuntimeException('Instala los módulos antes de migrar. Falta '.$table);
     }
     $constraints=$db->query("SELECT CONSTRAINT_NAME FROM information_schema.TABLE_CONSTRAINTS WHERE TABLE_SCHEMA=DATABASE() AND TABLE_NAME='business_company' AND CONSTRAINT_TYPE='CHECK'")->fetchAll(PDO::FETCH_COLUMN);
-    foreach($constraints as $constraint)$db->exec('ALTER TABLE business_company DROP CONSTRAINT '.companyQuoteIdentifier($constraint));
+    $dropCheck=str_contains(strtolower((string)$db->getAttribute(PDO::ATTR_SERVER_VERSION)),'mariadb')?'DROP CONSTRAINT':'DROP CHECK';
+    foreach($constraints as $constraint)$db->exec('ALTER TABLE business_company '.$dropCheck.' '.companyQuoteIdentifier($constraint));
     $db->exec('ALTER TABLE business_company MODIFY id INT UNSIGNED NOT NULL AUTO_INCREMENT');
     foreach(['created_by'=>'INT UNSIGNED NULL','created_at'=>'DATETIME NULL DEFAULT NULL','updated_by'=>'INT UNSIGNED NULL'] as $col=>$def) {
         if(!$db->query("SHOW COLUMNS FROM business_company LIKE '$col'")->fetch())$db->exec("ALTER TABLE business_company ADD `$col` $def");
