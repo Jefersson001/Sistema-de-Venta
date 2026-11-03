@@ -79,7 +79,7 @@
                 </section>
                     </section>
                     <section class="notebook-page" id="dashboard-page-balances" data-notebook-page aria-labelledby="dashboard-tab-balances">
-                        <p class="section-subtitle">Saldos actuales acumulados de las empresas seleccionadas. Se actualizan cada 30 segundos; el período de ingresos y egresos no limita las deudas pendientes.</p>
+                        <!-- <p class="section-subtitle">Saldos actuales acumulados de las empresas seleccionadas. Se actualizan cada 30 segundos; el período de ingresos y egresos no limita las deudas pendientes.</p> -->
                         <div class="dashboard-balances-grid">
                         <?php $balanceSections=$dashboard['balances']??[];$balanceLive=true;$balancePrefix='../contabilidad/';require __DIR__.'/partials/outstanding.php'; ?>
                         </div>
