@@ -4,6 +4,17 @@ require_once __DIR__.'/decimal.php';
 
 const BCV_SOURCE_URL='https://www.bcv.org.ve/';
 
+/** This public CA bundle is versioned; deployment must not depend on a Windows runtime export. */
+function bcvCertificateFile(): string
+{
+    $override=getenv('NEXO_BCV_CA_FILE');
+    $file=$override!==false && trim($override)!==''?$override:__DIR__.'/certificates/bcv-sectigo.pem';
+    if (!is_file($file) || !is_readable($file)) {
+        throw new RuntimeException('No se puede leer el archivo de certificados del BCV. Revisa NEXO_BCV_CA_FILE o despliega php/certificates/bcv-sectigo.pem.');
+    }
+    return $file;
+}
+
 function bcvParsePublication(string $html): array
 {
     if(strlen($html)>2*1024*1024)throw new RuntimeException('La respuesta del BCV supera el tamaño permitido.');
@@ -29,14 +40,14 @@ function bcvFetchPublication(): array
     // Windows' TLS stack resolves the official certificate chain through its
     // trusted store, including intermediate certificates. Never disable TLS.
     if(PHP_OS_FAMILY==='Windows' && !getenv('NEXO_BCV_CA_FILE') && is_file('C:/Windows/System32/curl.exe'))return bcvFetchWindowsPublication();
+    $ca=bcvCertificateFile();
     $curl=curl_init(BCV_SOURCE_URL);$html='';
     curl_setopt_array($curl,[CURLOPT_FOLLOWLOCATION=>false,CURLOPT_CONNECTTIMEOUT=>8,CURLOPT_TIMEOUT=>20,
-        CURLOPT_SSL_VERIFYPEER=>true,CURLOPT_SSL_VERIFYHOST=>2,CURLOPT_PROTOCOLS=>CURLPROTO_HTTPS,
+        CURLOPT_SSL_VERIFYPEER=>true,CURLOPT_SSL_VERIFYHOST=>2,CURLOPT_PROTOCOLS=>CURLPROTO_HTTPS,CURLOPT_CAINFO=>$ca,
         CURLOPT_USERAGENT=>'Nexo/1.0 (consulta de tipo de cambio BCV)',CURLOPT_HTTPHEADER=>['Accept: text/html'],
         CURLOPT_WRITEFUNCTION=>static function($curl,string $chunk)use(&$html):int{if(strlen($html)+strlen($chunk)>2*1024*1024)return 0;$html.=$chunk;return strlen($chunk);}]);
-    $ca=getenv('NEXO_BCV_CA_FILE')?:__DIR__.'/runtime/bcv-ca.pem';if(is_file($ca))curl_setopt($curl,CURLOPT_CAINFO,$ca);
-    $ok=curl_exec($curl);$status=curl_getinfo($curl,CURLINFO_RESPONSE_CODE);$error=curl_error($curl);curl_close($curl);
-    if($ok===false||$status!==200)throw new RuntimeException('No se pudo consultar el BCV (HTTP '.$status.'). '.$error);
+    $ok=curl_exec($curl);$status=curl_getinfo($curl,CURLINFO_RESPONSE_CODE);$error=curl_error($curl);$code=curl_errno($curl);curl_close($curl);
+    if($ok===false||$status!==200)throw new RuntimeException('No se pudo consultar el BCV (HTTP '.$status.', cURL '.$code.'). '.$error);
     return bcvParsePublication($html);
 }
 

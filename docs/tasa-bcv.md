@@ -24,7 +24,19 @@ La referencia en bolívares del documento no fija por sí misma la tasa de un pa
 
 La tarea `Nexo-BCV-project` usa `php-win.exe`, no abre ventanas y repite cada 15 minutos. La instalación normal usa el usuario actual: requiere sesión de Windows iniciada y MariaDB disponible, aunque el navegador esté cerrado. Para ejecutar también sin sesión, un administrador puede instalarla con `-AsSystem`. Los archivos del sistema deben quedar protegidos contra modificaciones de usuarios sin confianza si se ejecuta como servicio.
 
-En Windows, la consulta usa `C:/Windows/System32/curl.exe` con Schannel y el almacén de certificados del sistema, que resuelve también la cadena intermedia del BCV. La validación HTTPS permanece activa, sin redirecciones y con límites de tiempo y tamaño. El instalador conserva un archivo de certificados para PHP/OpenSSL; si se configura explícitamente `NEXO_BCV_CA_FILE`, se utiliza PHP/cURL con ese archivo. En otros sistemas se utiliza PHP/cURL y su configuración de confianza. No cambia la configuración TLS global.
+En Windows, la consulta usa `C:/Windows/System32/curl.exe` con Schannel y el almacén de certificados del sistema, que resuelve también la cadena intermedia del BCV. La validación HTTPS permanece activa, sin redirecciones y con límites de tiempo y tamaño. En Linux, PHP/cURL utiliza `php/certificates/bcv-sectigo.pem`, un bundle versionado con las autoridades públicas Sectigo DV R36 y Root R46 de la cadena verificada del BCV. Esto evita depender de la descarga automática de intermedios de Windows o del contenido de `php/runtime/`, que no se copia mediante Git. Si se configura explícitamente `NEXO_BCV_CA_FILE`, se utiliza ese archivo y se comprueba que exista y sea legible. No cambia la configuración TLS global. Procedencia y vigencias en [certificados del BCV](../php/certificates/README.md).
+
+## Dokploy / Linux
+
+Tras desplegar, ejecutar en **Ventas-app → Open Terminal**:
+
+```sh
+php /app/php/update-bcv.php --force
+```
+
+No requiere reinstalar la base ni ejecutar migraciones. Si existe una variable `NEXO_BCV_CA_FILE` antigua que apunte al bundle genérico del sistema, retirarla o dirigirla a `/app/php/certificates/bcv-sectigo.pem` para utilizar la cadena incluida.
+
+Una vez confirmada la consulta, crear una tarea de aplicación en **Ventas-app → Schedules** con comando `php /app/php/update-bcv.php` y expresión cron `*/15 * * * *`. La tarea debe ejecutarse dentro de la aplicación, que tiene acceso a `DATABASE_URL`. Una migración de estructura no sustituye esta tarea periódica.
 
 El estado de sincronización y el bloqueo están en `php/runtime/`, protegido por `.htaccess`, excluidos de Git y separados por base de datos. El trabajo evita ejecuciones simultáneas y limita los reintentos a 15 minutos. En otro servidor hay que configurar su tarea/cron y su confianza HTTPS. No se dispone de descarga retroactiva de históricos: las fechas anteriores necesitan tasas registradas en el catálogo.
 
@@ -34,5 +46,6 @@ El estado de sincronización y el bloqueo están en `php/runtime/`, protegido po
 - `test/role-workflows.php`: factura independiente de la orden, fecha histórica, referencia, falta de tasa, permisos y congelación tras registrar, además del circuito habitual de ventas/compras/pagos.
 - `test/run-authenticated.php currency-catalog dashboard`: catálogo, historial y vistas existentes.
 - `test/bcv-live-check.php`: comprobación opcional de conexión real al BCV, sin escribir tasas.
+- `test/bcv-certificates.php`: integridad del bundle, certificados CA, vigencias, firmas y selección de archivo.
 
 La referencia consultada de Odoo 19 es su implementación oficial: `addons/account/models/account_move.py`, métodos `_get_invoice_currency_rate_date` y `_compute_invoice_currency_rate`. La fecha de factura es la referencia para el cálculo; la moneda de empresa y la del documento son conceptos distintos.
