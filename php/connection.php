@@ -21,13 +21,15 @@ function createDatabaseConnection(bool $unscoped = false): PDO
         PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC,
         PDO::ATTR_EMULATE_PREPARES => false,
     ];
-    $serverConnection = new PDO($serverDsn, $configuration['username'], $configuration['password'], $options);
-    $serverConnection->exec(sprintf(
-        'CREATE DATABASE IF NOT EXISTS `%s` CHARACTER SET %s COLLATE %s',
-        $configuration['database'],
-        $configuration['charset'],
-        $configuration['charset'] . '_general_ci',
-    ));
+    if ($configuration['create_database'] ?? true) {
+        $serverConnection = new PDO($serverDsn, $configuration['username'], $configuration['password'], $options);
+        $serverConnection->exec(sprintf(
+            'CREATE DATABASE IF NOT EXISTS `%s` CHARACTER SET %s COLLATE %s',
+            $configuration['database'],
+            $configuration['charset'],
+            $configuration['charset'] . '_general_ci',
+        ));
+    }
 
     $databaseDsn = sprintf(
         'mysql:host=%s;port=%d;dbname=%s;charset=%s',
