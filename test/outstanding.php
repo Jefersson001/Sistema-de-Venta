@@ -38,6 +38,21 @@ try{
     balanceCheck($status===200&&str_starts_with($csv,"\xEF\xBB\xBF")&&str_contains($csv,$prefix.'A;50.00;10.00;USD')&&!str_contains($csv,$prefix.'PAID'),'La exportación no usa los saldos reales o los filtros.');
     [, $snapshotBody]=authTestRequest($s,'/modules/dashboard/resumen.php',$cookie);$snapshot=json_decode($snapshotBody,true);balanceCheck($snapshot['dashboard']['balances']['customer']!==null&&$snapshot['dashboard']['balances']['supplier']!==null,'El dashboard no expone ambos resúmenes.');
     balanceCheck(!isset($snapshot['dashboard']['balances']['customer']['groups']),'El dashboard recibe detalles en lugar de solo cantidades.');
+    $baselinePayables=$snapshot['dashboard']['payables'];
+    $db->exec('SET @nexo_company_id=1');$db->prepare('INSERT INTO inventory_products(name) VALUES(?)')->execute([$prefix.' commission product']);$commissionProduct=(int)$db->lastInsertId();
+    $commissionFixture=static function(int $invoice,string $amount)use($db,$commissionProduct,$prefix):void{
+        $db->prepare('INSERT INTO accounting_invoice_lines(invoice_id,position,product_id,product_name,quantity,unit_price,base_amount,total_amount,commission_reference_price,commission_unit_amount) VALUES(?,1,?,?,1,100,100,100,0,?)')->execute([$invoice,$commissionProduct,$prefix,$amount]);
+    };
+    $commissionFixture($a,'20.00');
+    $otherSeller=$insert('customer','COMOTHER','100.00','USD',null,'posted',null,$people['salesperson2']);$commissionFixture($otherSeller,'10.00');
+    $vesCommission=$insert('customer','COMVES','1000.00','VES',null,'posted',null,$people['salesperson']);$commissionFixture($vesCommission,'100.00');
+    foreach([[$otherSeller,'100.00'],[$vesCommission,'500.00']] as [$id,$amount])$db->prepare("INSERT INTO accounting_invoice_payments(invoice_id,amount,payment_date,reference,status) VALUES(?,?,?,?,'settled')")->execute([$id,$amount,$today,$prefix]);
+    // An old invoice must still contribute to today's accumulated debt.
+    $db->prepare('UPDATE accounting_invoices SET invoice_date=? WHERE id=?')->execute([$yesterday,$a]);
+    [, $body]=authTestRequest($s,'/modules/dashboard/resumen.php?period=today',$cookie);$withCommissions=json_decode($body,true)['dashboard'];
+    balanceCheck($withCommissions['payables']['USD']===bcadd($baselinePayables['USD']??'0.00','17.50',2)&&$withCommissions['payables']['VES']===bcadd($baselinePayables['VES']??'0.00','50.00',2),'Las comisiones pendientes no se suman por moneda o se limitan por fecha.');
+    $totals=array_column($withCommissions['balances']['supplier']['currencies'],null,'code');
+    balanceCheck($totals['USD']['balance']===bcadd($totals['USD']['supplier_balance'],$totals['USD']['commission_pending'],2),'El total no coincide con proveedores más comisiones.');
     [, $dashboardHtml]=authTestRequest($s,'/modules/dashboard/index.php',$cookie);
     balanceCheck(str_contains($dashboardHtml,'data-outstanding-totals="customer"')&&!str_contains($dashboardHtml,'data-outstanding-partner=')&&!str_contains($dashboardHtml,'data-outstanding-invoice='),'El dashboard muestra el detalle de las cuentas.');
     $db->exec('SET @nexo_company_id=1');$group=saveAccessGroup($db,['name'=>$prefix.' own','active'=>'1','permissions'=>['contabilidad.customer_invoices.read','dashboard.business.read'],'scopes'=>['contabilidad.customer_invoices'=>'own','dashboard.business'=>'own']],null,null,bin2hex(random_bytes(32)));
@@ -45,6 +60,13 @@ try{
     $limited=tempnam(sys_get_temp_dir(),'balance-own-');$cookies[]=$limited;[, $html]=authTestRequest($s,'/login.php',$limited);authTestRequest($s,'/login.php',$limited,['csrf'=>authTestToken($html),'login'=>$userLogin,'password'=>$password]);
     [$status,$html]=authTestRequest($s,$path.'?q='.$prefix,$limited);balanceCheck($status===200&&str_contains($html,'data-outstanding-invoice="'.$a.'"')&&!str_contains($html,'data-outstanding-invoice="'.$supplier.'"')&&!str_contains($html,'id="accounts-supplier"'),'Los permisos propios o de proveedores no se respetan.');
     [, $body]=authTestRequest($s,'/modules/dashboard/resumen.php',$limited);$own=json_decode($body,true)['dashboard']['balances'];balanceCheck($own['customer']['currencies'][0]['balance']==='50.00'&&$own['supplier']===null,'El dashboard expone saldos ajenos.');
+    $commissionGroup=saveAccessGroup($db,['name'=>$prefix.' commission only','active'=>'1','permissions'=>['dashboard.business.read','dashboard.commissions.read','ventas.commissions.read'],'scopes'=>['dashboard.business'=>'own','dashboard.commissions'=>'own','ventas.commissions'=>'own']],null,null,bin2hex(random_bytes(32)));
+    $commissionLogin=$userLogin;$db->prepare('UPDATE auth_user_groups SET group_id=? WHERE user_id=?')->execute([$commissionGroup,$user]);
+    $commissionCookie=tempnam(sys_get_temp_dir(),'balance-commission-');$cookies[]=$commissionCookie;[, $html]=authTestRequest($s,'/login.php',$commissionCookie);authTestRequest($s,'/login.php',$commissionCookie,['csrf'=>authTestToken($html),'login'=>$commissionLogin,'password'=>$password]);
+    [, $body]=authTestRequest($s,'/modules/dashboard/resumen.php',$commissionCookie);$commissionOwn=json_decode($body,true)['dashboard'];
+    balanceCheck($commissionOwn['payables']===['USD'=>'7.50','VES'=>'50.00']&&$commissionOwn['balances']['customer']===null&&!$commissionOwn['balances']['supplier']['includes_suppliers'],'Las comisiones propias incluyen otros vendedores o deuda de proveedores.');
+    [, $html]=authTestRequest($s,'/modules/dashboard/index.php',$commissionCookie);
+    balanceCheck(str_contains($html,'id="dashboard-tab-balances"')&&str_contains($html,'Comisiones pendientes')&&!str_contains($html,'>Proveedores</dt>'),'El usuario de comisiones no puede ver su resumen o ve deudas de proveedores.');
     [$status]=authTestRequest($s,$path.'?due=invalid',$cookie);balanceCheck($status===422,'Se aceptaron filtros inválidos.');
     echo "PASS: cuentas por cobrar arriba/pagar abajo, pagos parciales y en proceso, notas de crédito, vencidos, monedas, empresas, permisos propios, dashboard y exportación.\n";
 }finally{foreach($cookies as $cookie)if(is_file($cookie))unlink($cookie);stopAuthTestServer($s);}

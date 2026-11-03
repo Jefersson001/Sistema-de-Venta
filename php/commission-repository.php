@@ -38,11 +38,13 @@ function invoiceCommissionSummary(PDO $db, array $invoice): array
     return ['lines' => $lines, 'total' => $total];
 }
 
-function loadSalesCommissions(PDO $db, ?array $range = null, ?int $sellerId = null, ?int $invoiceId = null): array
+function loadSalesCommissions(PDO $db, ?array $range = null, ?int $sellerId = null, ?int $invoiceId = null, string $permissionCondition = '1=1'): array
 {
     $where = " WHERE ".permissionWhere('ventas.commissions','i')." AND i.invoice_type='customer' AND i.document_type='invoice' AND i.salesperson_id IS NOT NULL
         AND (EXISTS(SELECT 1 FROM accounting_invoice_lines x WHERE x.invoice_id=i.id AND (x.commission_unit_amount>0 OR (x.commission_unit_amount IS NULL AND x.commission_reference_price IS NOT NULL AND x.unit_price>x.commission_reference_price)))
         OR EXISTS(SELECT 1 FROM sales_commission_payments x WHERE x.invoice_id=i.id))";
+    // Additional permission conditions come from the server's permission helpers.
+    $where .= ' AND ('.$permissionCondition.')';
     $params = [];
     if ($range) { $where .= ' AND i.invoice_date BETWEEN ? AND ?'; $params[] = $range['date_from']; $params[] = $range['date_to']; }
     if ($sellerId) { $where .= ' AND i.salesperson_id=?'; $params[] = $sellerId; }

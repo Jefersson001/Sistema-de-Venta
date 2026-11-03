@@ -1,6 +1,10 @@
 for (const dashboard of document.querySelectorAll('[data-dashboard]')) {
     const updated = dashboard.querySelector('[data-dashboard-updated]');
     const error = dashboard.querySelector('[data-dashboard-error]');
+    dashboard.querySelector('[data-dashboard-balances-link]')?.addEventListener('click', event => {
+        event.preventDefault();
+        const tab=dashboard.querySelector('#dashboard-tab-balances');tab?.click();tab?.focus();
+    });
     function element(tag, className, text) {
         const node = document.createElement(tag);
         if (className) node.className = className;
@@ -41,9 +45,10 @@ for (const dashboard of document.querySelectorAll('[data-dashboard]')) {
             if(!section){totals.replaceChildren();continue;}
             const cards=section.currencies.map(amount=>{
                 const card=element('article','overview-card');card.append(element('span','overview-label',amount.code));const list=element('dl','cash-flow-account-totals');
-                for(const [key,label] of Object.entries({balance:'Saldo pendiente',overdue:'Vencido',pending:'Pagos en proceso'})){const row=element('div');row.append(element('dt','',label),element('dd','',amount[key]));list.append(row);}card.append(list,element('small','',amount.count+' facturas con saldo'));return card;
+                const labels=section.includes_commissions?{...(section.includes_suppliers?{supplier_balance:'Proveedores'}:{}),commission_pending:'Comisiones pendientes',balance:'Total por pagar',...(section.includes_suppliers?{overdue:'Proveedores vencidos',pending:'Pagos a proveedores en proceso'}:{})}:{balance:'Saldo pendiente',overdue:'Vencido',pending:'Pagos en proceso'};
+                for(const [key,label] of Object.entries(labels)){const row=element('div');row.append(element('dt','',label),element('dd','',amount[key]));list.append(row);}const count=section.includes_commissions?(section.includes_suppliers?amount.count+' facturas de proveedores · ':'')+amount.commission_count+' comisiones con saldo':amount.count+' facturas con saldo';card.append(list,element('small','',count));return card;
             });
-            if(!cards.length){const card=element('article','overview-card');card.append(element('span','overview-label','Saldo pendiente'),element('strong','','0.00'));cards.push(card);}
+            if(!cards.length){const card=element('article','overview-card');card.append(element('span','overview-label',section.includes_commissions?'Total por pagar':'Saldo pendiente'),element('strong','','0.00'));cards.push(card);}
             totals.replaceChildren(...cards);
         }
         if(commissions){

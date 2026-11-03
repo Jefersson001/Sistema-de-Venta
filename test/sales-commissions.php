@@ -24,6 +24,12 @@ function commissionRequest(string $path,string $cookie,?array $post=null): array
     if($post!==null)curl_setopt($curl,CURLOPT_POSTFIELDS,http_build_query($post));$body=curl_exec($curl);$status=curl_getinfo($curl,CURLINFO_RESPONSE_CODE);$location=curl_getinfo($curl,CURLINFO_REDIRECT_URL);curl_close($curl);
     commissionCheck(is_string($body)&&!preg_match('/Fatal error|Warning:|Notice:/',$body),'Error PHP en '.$path);return[$status,$body,$location];
 }
+function commissionDashboard(string $cookie,string $period='today'): array {
+    [$status,$body]=commissionRequest('dashboard/resumen.php?period='.$period,$cookie);
+    $snapshot=json_decode($body,true,512,JSON_THROW_ON_ERROR);
+    commissionCheck($status===200&&!empty($snapshot['dashboard']['available']),'No se pudo actualizar el dashboard.');
+    return $snapshot['dashboard'];
+}
 $db=createDatabaseConnection();$prefix='Test comisiones '.bin2hex(random_bytes(8));$f=[];$orders=[];$cookie=tempnam(sys_get_temp_dir(),'commissions-');
 try {
     commissionCheck((bool)preg_match('/^nexo_auth_test_[a-f0-9]{16}$/D',(string)$db->query('SELECT DATABASE()')->fetchColumn()),'Se requiere una base de pruebas aislada.');
@@ -102,7 +108,14 @@ try {
         $q=$db->prepare("SELECT p.id,p.version FROM accounting_payments p JOIN accounting_invoice_payments l ON l.payment_id=p.id WHERE l.invoice_id=? AND p.status='pending' ORDER BY p.id DESC LIMIT 1");$q->execute([$invoice]);$p=$q->fetch();
         transitionAccountingPayment($db,(int)$p['id'],(int)$p['version'],'settle_payment');
     };
+    $beforeCommission=commissionDashboard($cookie);$basePayable=$beforeCommission['payables'][$code]??'0.00';
     $collect('7.70');commissionCheck($commission()['commission_earned']==='2.00'&&$commission()['commission_waiting']==='2.00','Cobro parcial no habilitó la proporción correcta.');
+    $payableDashboard=commissionDashboard($cookie);$payableAmounts=array_column($payableDashboard['balances']['supplier']['currencies'],null,'code');
+    commissionCheck($payableDashboard['payables'][$code]===bcadd($basePayable,'2.00',2),'Las cuentas por pagar no incluyen la comisión habilitada por el cobro parcial.');
+    commissionCheck($payableAmounts[$code]['balance']===bcadd($payableAmounts[$code]['supplier_balance'],$payableAmounts[$code]['commission_pending'],2),'El desglose de proveedores y comisiones no coincide con el total.');
+    commissionCheck(commissionDashboard($cookie,'month')['payables']===$payableDashboard['payables'],'El período del dashboard limita las comisiones pendientes acumuladas.');
+    [, $payableHtml]=commissionRequest('dashboard/index.php',$cookie);
+    commissionCheck(str_contains($payableHtml,'Comisiones pendientes')&&str_contains($payableHtml,'Total por pagar'),'Falta el desglose inicial de las cuentas por pagar.');
     [, $invoiceHtml]=commissionRequest('contabilidad/index.php?type=customer&id='.$invoice,$cookie);
     commissionInvoiceView($invoiceHtml,'4.00',$code,'15.40');
     foreach([['amount'=>'3.00'],['amount'=>'0'],['amount'=>[]],['account_id'=>''],['method_id'=>''],['account_id'=>(string)$f['empty_account']],['currency_code'=>[]]] as $bad)commissionReject(fn()=>paySalesCommission($db,$invoice,array_replace($paymentInput,$bad),bin2hex(random_bytes(32))));
@@ -111,6 +124,7 @@ try {
     $key=bin2hex(random_bytes(32));$first=paySalesCommission($db,$invoice,$paymentInput,$key);
     commissionCheck(paySalesCommission($db,$invoice,$paymentInput,$key)===$first,'Un reenvío duplicó el egreso.');
     commissionCheck($commission()['commission_paid']==='1.00'&&$commission()['commission_pending']==='1.00','El pago parcial no se aplicó.');
+    commissionCheck(commissionDashboard($cookie)['payables'][$code]===bcadd($basePayable,'1.00',2),'Pagar parcialmente la comisión no reduce las cuentas por pagar.');
     $q=$db->prepare('SELECT COUNT(*),SUM(amount) FROM accounting_treasury_entries WHERE document_id=?');$q->execute([$first]);$entry=$q->fetch(PDO::FETCH_NUM);
     commissionCheck((int)$entry[0]===1&&$entry[1]==='-1.00','El pago no produjo exactamente un egreso.');
     [, $html]=commissionRequest('ventas/comisiones.php?id='.$invoice,$cookie);
@@ -135,6 +149,7 @@ try {
     commissionCheck($status===303&&str_contains($location,'pagos-comisiones.php?id='),'No se registró el egreso desde la nueva vista de pagos.');
     [$status,,$replayed]=commissionRequest($paymentPath,$cookie,$paymentInput+['csrf'=>$paymentCsrf[1],'creation_key'=>$paymentCreation[1],'action'=>'pay_commission']);
     commissionCheck($status===303&&$replayed===$location&&$commission()['commission_paid']==='2.00','Reenviar el nuevo formulario duplicó el pago.');
+    commissionCheck((commissionDashboard($cookie)['payables'][$code]??'0.00')===$basePayable,'Una comisión pagada sigue sumando a las cuentas por pagar.');
     $history=salesCommissionPaymentHistory($db,cashFlowRange([]),$f['salesperson']);
     commissionCheck($history['total']===2&&$history['rows'][0]['invoice_id']==$invoice,'El historial de pagos no muestra los mismos egresos aplicados a la comisión.');
     [, $paymentView]=commissionRequest('ventas/pagos-comisiones.php?id='.$history['rows'][0]['id'],$cookie);

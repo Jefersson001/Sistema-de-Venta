@@ -3,6 +3,7 @@ declare(strict_types=1);
 require_once __DIR__.'/payments-repository.php';
 require_once __DIR__.'/operation-status-repository.php';
 require_once __DIR__.'/outstanding-repository.php';
+require_once __DIR__.'/commission-repository.php';
 function dashboardPendingOrderCondition(string $kind,string $alias='o'): string
 {
     $sale=$kind==='sale';$table=$sale?'sales_quotation_lines':'purchase_order_lines';$fk=$sale?'quotation_id':'order_id';$column=$sale?'sale_line_id':'purchase_line_id';
@@ -31,6 +32,30 @@ function loadDashboard(PDO $db): array
         }
     }
     if(in_array('receivables',$d['allowed_metrics'],true)||in_array('payables',$d['allowed_metrics'],true))$d['allowed_metrics'][]='overdue';
+    $commissionBusiness=permissionDashboardWhere('dashboard.business','ventas.commissions','i');
+    $commissionAccess=permissionDashboardWhere('dashboard.commissions','ventas.commissions','i');
+    if($commissionBusiness!=='1=0'&&$commissionAccess!=='1=0') {
+        $section=$d['balances']['supplier']??['currencies'=>[],'count'=>0,'group_count'=>0];
+        $section['includes_suppliers']=$d['balances']['supplier']!==null;
+        $section['includes_commissions']=true;
+        $amounts=[];
+        foreach($section['currencies'] as $amount) {
+            $amount['supplier_balance']=$amount['balance'];$amount['commission_pending']='0.00';$amount['commission_count']=0;
+            $amounts[$amount['code']]=$amount;
+        }
+        // Debts are accumulated balances, independent of the dashboard's period filter.
+        foreach(loadSalesCommissions($db,null,null,null,"($commissionBusiness) AND ($commissionAccess)") as $commission) {
+            if(bccomp($commission['commission_pending'],'0',2)<=0)continue;
+            $code=$commission['currency_code'];
+            $amounts[$code]??=['code'=>$code,'balance'=>'0.00','supplier_balance'=>'0.00','commission_pending'=>'0.00','commission_count'=>0,'overdue'=>'0.00','pending'=>'0.00','count'=>0];
+            $amounts[$code]['commission_pending']=bcadd($amounts[$code]['commission_pending'],$commission['commission_pending'],2);
+            $amounts[$code]['balance']=bcadd($amounts[$code]['balance'],$commission['commission_pending'],2);
+            $amounts[$code]['commission_count']++;
+            $d['payables'][$code]=bcadd($d['payables'][$code]??'0.00',$commission['commission_pending'],2);
+        }
+        ksort($amounts);$section['currencies']=array_values($amounts);$d['balances']['supplier']=$section;
+        $d['allowed_metrics'][]='payables';
+    }
     foreach(['customer','supplier'] as $type) {
         if(!permissionHas('dashboard.business')||permissionScope('dashboard.business')==='own'||!permissionHas(permissionPaymentResource($type)))continue;
         $d['allowed_metrics'][]='unallocated';
