@@ -3,11 +3,11 @@ const fs = require('node:fs');
 const vm = require('node:vm');
 const source = fs.readFileSync(require('node:path').join(__dirname, '../js/multi-company.js'), 'utf8');
 
-function browser(responseScope = 'current', status = 200) {
+function browser(responseScope = 'current', status = 200, basePath = '/project') {
     const events = {}, requests = [];
     let reloads = 0;
     const context = {
-        nexoCompanyScope: 'current', URL, Headers, Request,
+        nexoCompanyScope: 'current', nexoBasePath: basePath, URL, Headers, Request,
         location: { href: 'http://localhost/project/modules/contactos/index.php', origin: 'http://localhost', pathname: '/project/modules/contactos/index.php', reload() { reloads++; } },
         document: { addEventListener(name, handler) { events['document:' + name] = handler; } },
         setTimeout(handler) { context.pendingApply = handler; return 1; }, clearTimeout() { context.pendingApply = null; },
@@ -27,6 +27,9 @@ function browser(responseScope = 'current', status = 200) {
     await valid.context.fetch('/project/modules/dashboard/resumen.php');
     assert.equal(valid.requests[0].options.headers.get('X-Nexo-Company-Scope'), 'current');
     assert.equal(valid.reloads(), 0);
+    const root = browser('current', 200, '');
+    await root.context.fetch('/modules/dashboard/resumen.php');
+    assert.equal(root.requests[0].options.headers.get('X-Nexo-Company-Scope'), 'current');
     await valid.context.fetch('https://example.com/', { headers: { Example: 'value' } });
     assert.equal(valid.requests[1].options.headers.Example, 'value');
     assert.equal(valid.requests[1].options.headers['X-Nexo-Company-Scope'], undefined);

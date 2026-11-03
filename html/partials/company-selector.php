@@ -14,6 +14,6 @@
 <input type="checkbox" name="companies[]" value="<?= (int)$choice['id'] ?>" aria-label="Consultar <?= authEscape($choice['name']?:'Empresa '.$choice['id']) ?>" <?= in_array((int)$choice['id'],$companyContext['selected'],true)?'checked':'' ?>>
 <button type="submit" name="primary_company" value="<?= (int)$choice['id'] ?>" class="company-choice-name" <?= $principal?'aria-current="true"':'' ?> title="Usar como empresa principal"><?= authEscape($choice['name']?:'Empresa '.$choice['id']) ?><?php if($principal): ?><small>Principal</small><?php endif; ?></button></div><?php endforeach; ?>
 <noscript><button class="contact-button" type="submit">Aplicar selección</button></noscript></form></details>
-<script>window.nexoCompanyScope=<?= json_encode(companyScopeToken(),JSON_HEX_TAG|JSON_HEX_AMP|JSON_HEX_APOS|JSON_HEX_QUOT) ?>;</script>
+<script>window.nexoCompanyScope=<?= json_encode(companyScopeToken(),JSON_HEX_TAG|JSON_HEX_AMP|JSON_HEX_APOS|JSON_HEX_QUOT) ?>;window.nexoBasePath=<?= json_encode(authBasePath(),JSON_HEX_TAG|JSON_HEX_AMP|JSON_HEX_APOS|JSON_HEX_QUOT) ?>;</script>
 <script src="<?= authBasePath() ?>/js/multi-company.js?v=<?= filemtime(dirname(__DIR__,2).'/js/multi-company.js') ?>"></script>
 <?php endif; ?>

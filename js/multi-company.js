@@ -1,6 +1,7 @@
 (() => {
     'use strict';
     const scope = window.nexoCompanyScope;
+    const basePath = window.nexoBasePath ?? '/project';
     if (!scope || window.nexoCompanyLoaded) return;
     window.nexoCompanyLoaded = true;
     const key = 'nexo-company-scope';
@@ -14,7 +15,7 @@
     window.fetch = async (input, options = {}) => {
         if (outdated) throw new Error('La selección de empresas cambió.');
         const url = new URL(input instanceof Request ? input.url : input, location.href);
-        if (url.origin !== location.origin || !url.pathname.startsWith('/project/')) return fetchOriginal(input, options);
+        if (url.origin !== location.origin || !url.pathname.startsWith(basePath + '/')) return fetchOriginal(input, options);
         const headers = new Headers(options.headers || (input instanceof Request ? input.headers : undefined));
         headers.set('X-Nexo-Company-Scope', scope);
         const response = await fetchOriginal(input, { ...options, headers });

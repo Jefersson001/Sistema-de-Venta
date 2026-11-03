@@ -3,7 +3,17 @@ declare(strict_types=1);
 require_once __DIR__.'/connection.php';
 require_once __DIR__.'/auth-repository.php';
 
-function authBasePath(): string { return '/project'; }
+function authBasePath(): string
+{
+    $configured = getenv('NEXO_BASE_PATH');
+    if ($configured === false) return '/project';
+    $path = rtrim(trim($configured), '/');
+    if ($path === '') return '';
+    if (!preg_match('~^/(?:[a-zA-Z0-9_-]+/)*[a-zA-Z0-9_-]+$~D', $path)) {
+        throw new RuntimeException('NEXO_BASE_PATH debe ser / o una ruta como /project.');
+    }
+    return $path;
+}
 function authEscape(mixed $value): string {return htmlspecialchars((string)($value??''),ENT_QUOTES|ENT_SUBSTITUTE,'UTF-8');}
 
 function authStartSession(): void
