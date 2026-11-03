@@ -38,7 +38,7 @@ Al terminar, abrir el enlace de activación impreso en la terminal y elegir nomb
 
 La instalación registra las etapas completadas y utiliza un bloqueo para evitar ejecuciones simultáneas. Si falla una etapa, corregir la causa y ejecutar el mismo comando para reanudar. Las operaciones DDL de MySQL/MariaDB no se revierten como una transacción; no debe interpretarse un fallo como una base intacta. Evitar escrituras de la aplicación mientras se completa la instalación.
 
-Repetir el comando tras finalizar conserva datos, configuración y cuentas. Si aún no se creó el administrador, genera un enlace nuevo que invalida el anterior. Si ya hay usuarios, muestra el acceso al login. Este comando no es un actualizador general para bases anteriores ni ejecuta migraciones nuevas sobre una instalación terminada.
+Repetir el comando tras finalizar conserva datos, configuración y cuentas, omite las etapas iniciales y aplica las migraciones versionadas pendientes. Si aún no se creó el administrador, genera un enlace nuevo que invalida el anterior. Si ya hay usuarios, muestra el acceso al login. Para los despliegues ordinarios utilizar el mecanismo descrito en [Actualizaciones de código y base de datos](actualizaciones-dokploy.md).
 
 Si `root` no admite conexión TCP desde el contenedor de la aplicación, usar una cuenta de instalación con los privilegios necesarios sobre la base y los requeridos por MySQL para crear triggers. No cambiar la contraseña de `data_user` para resolver un error de permisos administrativos.
 
@@ -48,4 +48,4 @@ Si `root` no admite conexión TCP desde el contenedor de la aplicación, usar un
 php test/fresh-installation.php
 ```
 
-La prueba utiliza una base temporal y verifica la conservación de tablas ajenas, copia de la importación parcial, reanudación, creación de los módulos, ausencia de operaciones ficticias, activación del administrador, login y ejecución repetida sin sobrescribir datos.
+La prueba utiliza una base temporal y verifica la conservación de tablas ajenas, copia de la importación parcial, reanudación, creación de los módulos, registro de migraciones, ausencia de operaciones ficticias, activación del administrador, login y ejecución repetida sin sobrescribir datos.

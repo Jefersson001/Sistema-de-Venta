@@ -1,0 +1,3 @@
+# Nixpacks merges this with its PHP provider, retaining PHP extensions and /assets.
+[start]
+cmd = "sh /app/scripts/start-dokploy.sh"

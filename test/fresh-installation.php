@@ -2,6 +2,7 @@
 declare(strict_types=1);
 if (PHP_SAPI!=='cli') { http_response_code(404);exit; }
 require_once dirname(__DIR__).'/php/fresh-installation.php';
+require_once dirname(__DIR__).'/php/migration-runner.php';
 require_once __DIR__.'/auth-server.php';
 function freshExpect(bool $condition,string $message): void {
     if (!$condition) throw new RuntimeException($message);
@@ -42,6 +43,9 @@ try {
     $snapshot=json_decode(file_get_contents($backups[0]),true,512,JSON_THROW_ON_ERROR);
     freshExpect($snapshot['rows'][0]['name']==='Importación parcial QA','El respaldo parcial perdió datos.');
     installFreshApplication($db,$progress);
+    migrationAssertApplicationReady($db);
+    freshExpect(runVersionedMigrations($db,$progress)===1,'No se registró la migración inicial.');
+    freshExpect(runVersionedMigrations($db,$progress)===0,'Se repitió la migración inicial.');
     $tables=$db->query('SHOW TABLES')->fetchAll(PDO::FETCH_COLUMN);
     foreach (['auth_state','company_schema_state','contact_addresses','payment_proofs','inventory_lots','restaurant_accounts','business_record_actions'] as $table) {
         freshExpect(in_array($table,$tables,true),'Falta la tabla '.$table);

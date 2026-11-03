@@ -2,6 +2,7 @@
 declare(strict_types=1);
 if (PHP_SAPI!=='cli') { http_response_code(404);exit; }
 require_once __DIR__.'/fresh-installation.php';
+require_once __DIR__.'/migration-runner.php';
 
 /** Keep the administrative password out of arguments, logs and the application's configuration. */
 function freshReadPassword(): string
@@ -47,6 +48,8 @@ try {
     $db->exec("SET time_zone='-04:00'");
     echo 'Destino: '.$config['database'].' en '.$config['host'].PHP_EOL;
     installFreshApplication($db,static fn(string $message)=>print($message.PHP_EOL),isset($options['discard-partial-import']));
+    migrationAssertApplicationReady($db);
+    runVersionedMigrations($db,static fn(string $message)=>print($message.PHP_EOL));
     if ($db->query('SELECT 1 FROM auth_users LIMIT 1')->fetchColumn()) {
         echo 'Ya existen usuarios. Accede en '.$url.'/login.php'.PHP_EOL;
     } else {
