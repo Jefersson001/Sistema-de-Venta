@@ -18,6 +18,8 @@ El instalador crea `contact_attachments`, registra su aislamiento por empresa y 
 
 Los contenidos están en `php/uploads/contacts/` con claves aleatorias; los nombres originales solo son metadatos. Apache bloquea el acceso directo. `modules/contactos/archivo.php` verifica sesión, permiso de lectura, contacto, empresa y relación del archivo. Las descargas envían cabeceras para impedir caché y detección automática del tipo de contenido. Los tipos que no son imágenes o PDF se descargan.
 
+`NEXO_CONTACT_UPLOAD_DIR` permite utilizar una carpeta privada fuera de la raíz web. En Dokploy, el arranque prepara sus permisos para el usuario de PHP-FPM; configurar un volumen para conservarla al desplegar. Ver [Archivos adjuntos y persistencia](actualizaciones-dokploy.md#archivos-adjuntos-y-persistencia). Un fallo de creación o escritura devuelve un error controlado y revierte el guardado.
+
 Los cambios del contacto y los metadatos de sus archivos se confirman en una transacción. Si falla el guardado se revierten los datos y se eliminan los archivos nuevos; los archivos retirados se eliminan del almacenamiento después de confirmar. Respaldar tanto la base de datos como `php/uploads/contacts/`. No incluir contenidos de esa carpeta en Git. El borrado completo de contactos o empresas puede dejar contenidos privados sin referencia; la limpieza de estos contenidos no se ejecuta automáticamente.
 
 ## Pruebas

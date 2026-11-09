@@ -2,6 +2,29 @@
 
 Dokploy compila el código y, al arrancar cada contenedor, `scripts/start-dokploy.sh` ejecuta `php php/migrate.php` antes de iniciar PHP-FPM y Nginx. `nixpacks.toml` configura ese comando de arranque conservando el proveedor PHP de Nixpacks. Las migraciones no se ejecutan al construir la imagen ni en cada petición web.
 
+El arranque también ejecuta `php/prepare-upload-storage.php` antes del servidor. Detecta el usuario del pool `[www]` en `/assets/php-fpm.conf` y prepara las carpetas privadas de adjuntos y comprobantes con ese propietario y permisos `0700`. No modifica los archivos existentes ni abre permisos de escritura sobre todo `/app`. El contenedor Nixpacks debe arrancar con permisos para preparar el volumen; después PHP-FPM utiliza su usuario de trabajo. Si la preparación falla, el contenedor nuevo no inicia el servidor. Esto se aplica también con `AUTO_MIGRATE=0`.
+
+## Archivos adjuntos y persistencia
+
+La base guarda los metadatos; las fotos y documentos se guardan en disco. Un push no incorpora esos archivos ni un respaldo SQL los contiene. Configurar un volumen persistente en **Ventas-app → Volume Bindings**, por ejemplo con nombre `ventas-adjuntos` y ruta de montaje `/var/lib/vent-as/uploads`. En Environment de la aplicación agregar:
+
+```dotenv
+NEXO_CONTACT_UPLOAD_DIR=/var/lib/vent-as/uploads/contacts
+NEXO_PAYMENT_PROOF_DIR=/var/lib/vent-as/uploads/payment-proofs
+```
+
+Guardar y desplegar. Esta ruta está fuera de la raíz web. Respaldar el volumen junto con la base de datos. En un servidor con varias réplicas/nodos, todas las réplicas necesitan acceso a los mismos archivos; un volumen local no se comparte automáticamente entre nodos.
+
+Si ya hay archivos en `php/uploads/contacts` o `php/uploads/payment-proofs` dentro del contenedor anterior, respaldarlos y copiarlos al volumen manteniendo sus nombres antes de cambiar las variables o reemplazar ese contenedor. Cambiar la ruta no mueve contenidos automáticamente. No borrar las carpetas originales hasta comprobar la apertura de los adjuntos existentes. Sin variables se mantienen las rutas anteriores para conservar compatibilidad, pero necesitan igualmente almacenamiento persistente para sobrevivir a la sustitución del contenedor.
+
+Para revisar o reparar los permisos después de desplegar el código, ejecutar desde **Ventas-app → Open Terminal**, como root del contenedor:
+
+```sh
+php /app/php/prepare-upload-storage.php /assets/php-fpm.conf
+```
+
+Este comando no necesita credenciales MySQL y no cambia tablas ni registros. Si vuelve a aparecer un error de permisos, revisar que el volumen sea de lectura/escritura y que el comando de arranque sea `sh /app/scripts/start-dokploy.sh`. No usar `chmod -R 777 /app`.
+
 ## Configuración inicial
 
 La base debe estar instalada. En Environment de **Ventas-app**, conservar `DATABASE_URL`, `NEXO_BASE_PATH=/` y `PORT=3000`, y agregar:
@@ -77,6 +100,7 @@ Pruebas del mecanismo:
 ```sh
 php test/migrations.php
 node test/deploy-startup.js
+php test/upload-storage.php
 php test/fresh-installation.php
 ```
 

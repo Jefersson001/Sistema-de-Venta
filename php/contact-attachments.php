@@ -1,10 +1,11 @@
 <?php
 declare(strict_types=1);
 require_once __DIR__.'/contacts-repository.php';
+require_once __DIR__.'/upload-storage.php';
 
 function contactAttachmentDirectory(): string
 {
-    return getenv('NEXO_CONTACT_UPLOAD_DIR') ?: __DIR__.'/uploads/contacts';
+    return privateUploadDirectory('contacts');
 }
 
 function contactAttachmentPath(string $key): string
@@ -97,7 +98,7 @@ function saveContactWithAttachments(PDO $db, array $data, ?int $id, array $uploa
         saveContactAddressLines($db,$saved,$addressChanges);
         if ($uploads) {
             $directory = contactAttachmentDirectory();
-            if (!is_dir($directory) && !mkdir($directory,0700,true) && !is_dir($directory)) throw new RuntimeException('No se pudo preparar el almacenamiento de archivos.');
+            ensurePrivateUploadDirectory($directory);
             $q = $db->prepare('INSERT INTO contact_attachments(contact_id, storage_key, filename, description, mime_type, byte_size) VALUES(?,?,?,?,?,?)');
             foreach ($uploads as $upload) {
                 $key = bin2hex(random_bytes(32)); $path = contactAttachmentPath($key);

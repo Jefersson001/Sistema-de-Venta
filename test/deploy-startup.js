@@ -13,6 +13,7 @@ const source = path.join(__dirname, '../scripts/start-dokploy.sh');
 const base = { ...process.env, START_LOG: slash(log), NIXPACKS_ASSETS_DIR: slash(path.join(root, 'assets')), NIXPACKS_NGINX_CONFIG: slash(path.join(root, 'nginx-generated.conf')) };
 delete base.AUTO_MIGRATE;
 delete base.FAIL_MIGRATION;
+delete base.FAIL_STORAGE;
 const pathKey = Object.keys(base).find(key => key.toLowerCase() === 'path') || 'PATH';
 base[pathKey] = path.join(root, 'bin') + path.delimiter + (base[pathKey] || '');
 
@@ -20,8 +21,9 @@ try {
     for (const dir of ['scripts', 'php', 'bin', 'assets/scripts']) fs.mkdirSync(path.join(root, dir), { recursive: true });
     fs.copyFileSync(source, script);
     fs.writeFileSync(path.join(root, 'php/migrate.php'), '<?php');
+    fs.writeFileSync(path.join(root, 'php/prepare-upload-storage.php'), '<?php');
     const commands = {
-        php: '#!/bin/sh\nprintf "migrate\\n" >> "$START_LOG"\nexit "${FAIL_MIGRATION:-0}"\n',
+        php: '#!/bin/sh\ncase "$1" in\n*/migrate.php) printf "migrate\\n" >> "$START_LOG"; exit "${FAIL_MIGRATION:-0}" ;;\n*/prepare-upload-storage.php) printf "storage %s\\n" "$2" >> "$START_LOG"; exit "${FAIL_STORAGE:-0}" ;;\n*) exit 99 ;;\nesac\n',
         node: '#!/bin/sh\nprintf "render %s\\n" "$2" >> "$START_LOG"\n: > "$3"\n',
         'php-fpm': '#!/bin/sh\nprintf "fpm\\n" >> "$START_LOG"\n',
         nginx: '#!/bin/sh\nprintf "nginx\\n" >> "$START_LOG"\n',
@@ -36,14 +38,20 @@ try {
     const normal = run({});
     assert.equal(normal.status, 0, normal.stderr);
     assert.equal(normal.events[0], 'migrate');
+    assert.ok(normal.events[1].startsWith('storage ') && normal.events[1].endsWith('/assets/php-fpm.conf'));
     assert.ok(normal.events.some(event => event.startsWith('render ')));
     assert.ok(normal.events.includes('nginx'));
     const failed = run({ FAIL_MIGRATION: '23' });
     assert.equal(failed.status, 23);
     assert.deepEqual(failed.events, ['migrate'], 'Un fallo de migración debe impedir iniciar el servidor.');
+    const noStorage = run({ FAIL_STORAGE: '24' });
+    assert.equal(noStorage.status, 24);
+    assert.equal(noStorage.events.length, 2);
+    assert.ok(!noStorage.events.includes('nginx') && !noStorage.events.includes('fpm'), 'No iniciar el servidor con almacenamiento sin permisos.');
     const skipped = run({ AUTO_MIGRATE: '0' });
     assert.equal(skipped.status, 0, skipped.stderr);
     assert.ok(!skipped.events.includes('migrate') && skipped.events.includes('nginx'));
+    assert.ok(skipped.events[0].startsWith('storage '), 'Preparar archivos también cuando las migraciones están desactivadas.');
     const invalid = run({ AUTO_MIGRATE: 'incorrecto' });
     assert.equal(invalid.status, 1);
     assert.deepEqual(invalid.events, []);
@@ -51,7 +59,7 @@ try {
     const custom = run({});
     assert.equal(custom.status, 0, custom.stderr);
     assert.ok(custom.events.some(event => event.includes('nginx.template.conf') && !event.includes('/assets/')));
-    console.log('PASS: arranque con migraciones primero, fallo impide servidor, desactivación explícita, configuración inválida y plantilla Nginx personalizada.');
+    console.log('PASS: migraciones y almacenamiento antes del servidor, fallos detienen arranque, desactivación explícita y plantilla Nginx personalizada.');
 } finally {
     assert.equal(path.dirname(path.resolve(root)), path.resolve(os.tmpdir()));
     assert.ok(path.basename(root).startsWith('vent-as-startup-'));

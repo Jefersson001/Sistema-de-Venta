@@ -2,7 +2,7 @@
 declare(strict_types=1);
 require_once __DIR__.'/contact-attachments.php';
 
-function paymentProofDirectory(): string {return getenv('NEXO_PAYMENT_PROOF_DIR') ?: __DIR__.'/uploads/payment-proofs';}
+function paymentProofDirectory(): string {return privateUploadDirectory('payment-proofs');}
 function paymentProofPath(string $key): string
 {
     if(!preg_match('/^[a-f0-9]{64}$/D',$key))throw new RuntimeException('Referencia de comprobante inválida.');
@@ -46,7 +46,8 @@ final class PaymentProofUpload
         if(empty($this->groups[$group]))return;
         if(!$db->inTransaction())throw new LogicException('Los comprobantes requieren una transacción.');
         [, $field]=paymentProofTarget($kind);$directory=paymentProofDirectory();
-        if(!is_dir($directory)&&!mkdir($directory,0700,true)&&!is_dir($directory))throw new InvalidArgumentException('No se pudo preparar el almacenamiento del comprobante.');
+        try { ensurePrivateUploadDirectory($directory); }
+        catch (RuntimeException $error) { throw new InvalidArgumentException($error->getMessage(), 0, $error); }
         foreach($this->groups[$group] as $upload){
             $hash=hash_file('sha256',$upload['tmp']);
             $q=$db->prepare('SELECT id FROM payment_proofs WHERE '.$field.'=? AND content_hash=?');$q->execute([$id,$hash]);if($q->fetchColumn())continue;
