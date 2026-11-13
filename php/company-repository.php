@@ -3,6 +3,7 @@ declare(strict_types=1);
 require_once __DIR__.'/company.php';
 require_once __DIR__.'/company-schema.php';
 require_once __DIR__.'/settings-repository.php';
+require_once __DIR__.'/bcv-company-rates.php';
 
 function companyRequireAdministrator(PDO $db,int $actor): void
 {
@@ -39,6 +40,7 @@ function companySeedDefaults(PDO $db,int $company): void
     foreach(['customer_payment'=>['Cobro de cliente','inbound'],'supplier_payment'=>['Pago a proveedor','outbound'],
         'customer_refund'=>['Devolución a cliente','outbound'],'supplier_refund'=>['Devolución de proveedor','inbound'],
         'sales_commission'=>['Pago de comisiones','outbound']] as $key=>[$name,$direction])$q->execute([$name,$direction,$key]);
+    bcvSeedCompanyRates($db,$company);
 }
 
 function createBusinessCompany(PDO $db,array $input,int $actor): int

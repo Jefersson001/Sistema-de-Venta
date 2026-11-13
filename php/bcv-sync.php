@@ -5,6 +5,7 @@ require_once __DIR__.'/connection.php';
 require_once __DIR__.'/company-connection.php';
 require_once __DIR__.'/currency-repository.php';
 require_once __DIR__.'/workflow-repository.php';
+require_once __DIR__.'/bcv-company-rates.php';
 
 function bcvStatePath(): string
 {
@@ -27,12 +28,14 @@ function bcvApplyPublication(PDO $raw,array $publication): int
     $date=$publication['effective_date'];$parsed=DateTimeImmutable::createFromFormat('!Y-m-d',$date);
     $rate=accountingExchangeRate(decimalRound($publication['rate']));
     if(!$parsed||$parsed->format('Y-m-d')!==$date||!$rate||($publication['source']??'')!=='bcv')throw new InvalidArgumentException('Publicación BCV inválida.');
-    $count=0;
+    $count=0;$storedPublications=bcvStoredPublications($raw);
     foreach($raw->query('SELECT id FROM business_company ORDER BY id')->fetchAll(PDO::FETCH_COLUMN) as $company){
         // System jobs have no human author; use NULL so the audit FK stays valid.
         $raw->exec('SET @nexo_company_id='.(int)$company.', @nexo_actor_id=NULL');
         $raw->beginTransaction();
         try{
+            // A future publication must not leave a new company without today's saved rate.
+            bcvSeedCompanyRates($raw,(int)$company,$storedPublications);
             $q=$raw->prepare("SELECT code,id FROM accounting_currencies WHERE company_id=? AND code IN('USD','VES') FOR UPDATE");$q->execute([$company]);$ids=$q->fetchAll(PDO::FETCH_KEY_PAIR);
             if(count($ids)!==2){$raw->rollBack();continue;}
             $q=$raw->prepare("INSERT INTO accounting_currency_rates(company_id,currency_id,base_currency_id,rate_date,rate,source,fetched_at) VALUES(?,?,?,?,?,'bcv',CURRENT_TIMESTAMP) ON DUPLICATE KEY UPDATE rate=VALUES(rate),source='bcv',fetched_at=CURRENT_TIMESTAMP");

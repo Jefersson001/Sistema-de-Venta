@@ -8,6 +8,14 @@ El encabezado muestra la tasa vigente de la empresa principal, su fuente y su fe
 
 Si falla la consulta o cambia el formato del sitio, conserva la última publicación válida y registra el error. No utiliza un proveedor alternativo silenciosamente ni deshabilita TLS. La primera instalación agrega únicamente columnas de procedencia a las tasas y de fecha/fuente a las facturas. Los documentos anteriores mantienen sus importes y tasa; donde no existía procedencia se muestra «Tasa guardada».
 
+## Empresas nuevas
+
+Al crear una empresa, se inicializa su catálogo con la última publicación BCV vigente guardada en la base y las publicaciones futuras disponibles. Solo se reutilizan cotizaciones públicas marcadas como BCV del par USD/VES: no se copian tasas manuales, saldos ni documentos de otras empresas. Se conserva la Fecha Valor y la fecha de consulta original, sin presentar la copia como una nueva descarga. La creación no depende de una petición externa al BCV ni del archivo temporal de sincronización.
+
+Las tasas futuras se almacenan pero no se utilizan antes de su Fecha Valor. Si el sistema no dispone de ninguna publicación BCV vigente, no se inventa una tasa ni se copia una manual de otra empresa: se puede registrar una tasa propia o esperar a una consulta oficial válida. El trabajo periódico también recupera la última cotización vigente para empresas sin tasa antes de aplicar una publicación futura.
+
+La migración `20261113123604_inicializar_tasa_bcv_empresas` completa empresas anteriores que carezcan de tasa vigente, si hay una publicación oficial guardada. Es repetible y conserva tasas manuales existentes y todos los documentos históricos. La inicialización usa explícitamente la empresa destino y restaura el contexto y la autoría de la conexión.
+
 ## Fecha de factura
 
 Una factura nueva consulta la tasa histórica de su fecha, por su propia empresa, independientemente de la tasa de la orden. Las fechas sin publicación propia utilizan la última tasa anterior disponible, como ocurre en fines de semana. Nunca usan una tasa futura.
@@ -18,7 +26,7 @@ La referencia en bolívares del documento no fija por sí misma la tasa de un pa
 
 ## Instalación y tarea
 
-1. Respaldar la base y ejecutar `C:\xampp\php\php.exe php/install-bcv.php` (migración repetible).
+1. Para actualizar una instalación existente, ejecutar `php php/migrate.php` con el mecanismo de migraciones versionadas. En Dokploy se ejecuta al arrancar el contenedor. No es necesario volver a ejecutar los instaladores antiguos.
 2. Ejecutar `C:\xampp\php\php.exe php/update-bcv.php --force` para la primera consulta.
 3. Ejecutar `powershell.exe -NoProfile -ExecutionPolicy Bypass -File scripts/install-bcv-task.ps1`.
 

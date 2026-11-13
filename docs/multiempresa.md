@@ -22,7 +22,7 @@ php php/install-multi-company.php
 
 El instalador genera primero un respaldo SQL completo con `mysqldump`, incluidos datos, estructura y triggers, en `php/backups/`, directorio bloqueado para HTTP y excluido de Git. Si el respaldo falla, la migración no empieza. MariaDB no permite revertir DDL mediante una transacción: la migración es repetible para retomar un fallo, y el respaldo sirve para restaurar el estado anterior.
 
-Los registros y permisos existentes se asignan a la empresa 1. No se inventan creadores ni fechas históricas: los campos nuevos quedan NULL para los registros anteriores. Se mantienen las fechas que ya estaban guardadas. Las empresas nuevas reciben monedas USD/VES, una caja, medios y conceptos de pago, plazo Contado y ubicaciones externas; no copian contactos, productos, saldos ni operaciones. La tasa de cambio debe configurarse en cada empresa.
+Los registros y permisos existentes se asignan a la empresa 1. No se inventan creadores ni fechas históricas: los campos nuevos quedan NULL para los registros anteriores. Se mantienen las fechas que ya estaban guardadas. Las empresas nuevas reciben monedas USD/VES, una caja, medios y conceptos de pago, plazo Contado y ubicaciones externas; no copian contactos, productos, saldos ni operaciones. Si existe una publicación BCV guardada, reciben la última tasa vigente y las publicaciones futuras, respetando su Fecha Valor. No se copian tasas manuales de otras empresas ni se inventan cotizaciones cuando no hay una oficial disponible.
 
 ## Base para tablas futuras
 
