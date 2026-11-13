@@ -144,6 +144,12 @@ try{
     dsExpect($post('seller',$path,$noRate)[0]===422,'Se factura sin una tasa vigente.');bcvApplyPublication($db,['rate'=>'100.00','effective_date'=>commerceToday(),'source'=>'bcv']);
     $rowsBefore=$db->query('SELECT * FROM direct_stock_requests ORDER BY id')->fetchAll();$migration($db);dsExpect($rowsBefore===$db->query('SELECT * FROM direct_stock_requests ORDER BY id')->fetchAll(),'La migración repetida cambia solicitudes existentes.');
     if(in_array('--browser',$argv,true)){
+        // Real stock fixtures exercise a large catalog without changing the checkout amounts.
+        $db->exec('SET @nexo_company_id=1, @nexo_actor_id='.$admin);
+        for($n=1;$n<=100;$n++){
+            $db->prepare("INSERT INTO inventory_products(name,sale_enabled,product_type,sale_price,currency_code) VALUES(?,1,'goods',1,'USD')")->execute(['ZZ '.$prefix.' catalog '.str_pad((string)$n,3,'0',STR_PAD_LEFT)]);$catalogProduct=(int)$db->lastInsertId();
+            $db->prepare('INSERT INTO inventory_stock(product_id,location_id,quantity) VALUES(?,?,2)')->execute([$catalogProduct,$locations['seller']]);
+        }
         $env=getenv();$env['NEXO_TEST_BASE_URL']=$server['url'];$env['NEXO_TEST_LOGIN']=$logins['seller'];$env['NEXO_TEST_PASSWORD']=$password;$env['NEXO_DIRECT_CUSTOMER']=(string)$customer;$env['NEXO_DIRECT_PRODUCT']=(string)$product;$env['NEXO_DIRECT_SERIAL_PRODUCT']=(string)$serialProduct;
         $process=proc_open(['node',__DIR__.'/direct-sales-ui.js'],[0=>['pipe','r'],1=>STDOUT,2=>STDERR],$pipes,dirname(__DIR__),$env,['bypass_shell'=>true,'create_new_console'=>false]);fclose($pipes[0]);if(proc_close($process)!==0)throw new RuntimeException('Falló la revisión del navegador.');
     }

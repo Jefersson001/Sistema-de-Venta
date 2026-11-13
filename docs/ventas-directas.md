@@ -16,6 +16,8 @@ Las migraciones no asignan grupos automáticamente. Revisar también grupos pers
 
 El vendedor elige cliente y **plazo de pago**. Contado vence hoy; los plazos de días vencen después. La clasificación interna contado/crédito se deriva del plazo y no significa que se recibió dinero.
 
+Cliente y plazo se eligen antes del catálogo, en celular y computadora. El catálogo muestra 12 productos por página y la búsqueda revisa todos los productos disponibles. Cambiar de página no cambia el carrito. El acceso móvil al carrito evita recorrer el catálogo; desde allí Elegir/Cambiar cliente vuelve directamente al selector. La lista del carrito tiene desplazamiento propio para ventas con muchas líneas.
+
 Confirmar crea atómicamente orden confirmada, entrega realizada y factura registrada. No crea un pago. El precio usa catálogo más comisión configurada e impuestos, sin descuentos ni edición de precios. Se respetan variantes concretas, reservas y disponibilidad. Series, lotes y vencimientos conservan su comportamiento automático; no se agregó captura manual ni escaneo.
 
 El carrito se guarda por usuario, empresa y vendedor. No reserva stock. Sin conexión se conserva, pero no puede confirmarse. Al reconectar se vuelve a validar. No hay ventas ni pagos en cola sin conexión.

@@ -13,6 +13,8 @@
     const data=JSON.parse(dataNode.textContent),products=new Map(data.products.map(p=>[String(p.id),p]));
     const grid=root.querySelector('[data-direct-products]'),search=root.querySelector('[data-direct-search]'),form=root.querySelector('[data-direct-form]');
     const request=form?.dataset.requestMode==='1',cart=new Map();let gpsPending=false,gpsGeneration=0,cartTotal=0n,credit=null,creditGeneration=0;
+    const cartPanel=form?.querySelector('[data-direct-cart]')||form;
+    const pageSize=12;let catalogPage=0;
     const storageKey=form?'vent-direct-'+scope+'-'+form.elements.seller_id.value:null;
     const hundredths=value=>{const s=String(value??'').replace(',','.');if(!/^\d{1,12}(?:\.\d{1,2})?$/.test(s))return null;const [a,b='']=s.split('.');return BigInt(a)*100n+BigInt(b.padEnd(2,'0'));};
     const decimal=value=>(value/100n).toString()+'.'+(value%100n).toString().padStart(2,'0');
@@ -40,10 +42,18 @@
         if(qty<=0n)cart.delete(id);else cart.set(id,qty);
         if(message)message.textContent='';renderCart();renderProducts();persist();
     }
+    const pager=node('nav','direct-pagination');pager.setAttribute('aria-label','Páginas de productos');
+    const previous=node('button','','← Anterior'),next=node('button','','Siguiente →'),pageStatus=node('span');
+    previous.type=next.type='button';previous.setAttribute('data-direct-previous','');next.setAttribute('data-direct-next','');pageStatus.setAttribute('aria-live','polite');
+    pager.append(previous,pageStatus,next);grid.after(pager);
+    function changePage(delta){catalogPage+=delta;renderProducts();grid.closest('.direct-catalog').scrollIntoView({behavior:'smooth',block:'start'});}
+    previous.addEventListener('click',()=>changePage(-1));next.addEventListener('click',()=>changePage(1));
     function renderProducts(){
         const term=(search?.value||'').toLocaleLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'');
         const selected=[...products].filter(([,p])=>p.name.toLocaleLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'').includes(term));
-        const cards=selected.map(([id,p])=>{
+        const pages=Math.max(1,Math.ceil(selected.length/pageSize));catalogPage=Math.max(0,Math.min(catalogPage,pages-1));
+        const first=catalogPage*pageSize,last=Math.min(first+pageSize,selected.length);
+        const cards=selected.slice(first,last).map(([id,p])=>{
             const card=node('article','direct-product');card.dataset.productId=id;
             card.append(node('span','direct-product-mark',p.name.slice(0,2).toUpperCase()),node('h3','',p.name),node('small','',p.tracking_mode==='none'?'Artículo':p.tracking_mode==='serial'?'Número de serie':'Lotes'));
             if(!request)card.append(node('strong','',p.unit_total+' '+data.currency));
@@ -51,10 +61,12 @@
             if(form){const add=node('button','direct-add','+');add.type='button';add.setAttribute('aria-label','Agregar '+p.name);add.addEventListener('click',()=>setQuantity(id,(cart.get(id)||0n)+100n));bottom.append(add);}
             card.append(bottom);return card;
         });grid.replaceChildren(...cards);const empty=root.querySelector('[data-direct-empty]');if(empty)empty.hidden=cards.length>0;
+        pager.hidden=pages<=1;previous.disabled=catalogPage===0;next.disabled=catalogPage===pages-1;
+        const label=(selected.length?first+1:0)+'–'+last+' de '+selected.length;if(pageStatus.textContent!==label)pageStatus.textContent=label;
     }
     let jump,cartVisible=false;
-    if(form){jump=node('button','direct-cart-jump','Ver carrito');jump.type='button';jump.addEventListener('click',()=>form.scrollIntoView({behavior:'smooth',block:'start'}));root.append(jump);}
-    if(form&&'IntersectionObserver' in window)new IntersectionObserver(entries=>{cartVisible=entries[0].isIntersecting;if(jump)jump.hidden=!cart.size||cartVisible;}).observe(form);
+    if(form){jump=node('button','direct-cart-jump','Ver carrito');jump.type='button';jump.addEventListener('click',()=>cartPanel.scrollIntoView({behavior:'smooth',block:'start'}));root.append(jump);}
+    if(cartPanel&&'IntersectionObserver' in window)new IntersectionObserver(entries=>{cartVisible=entries[0].isIntersecting;if(jump)jump.hidden=!cart.size||cartVisible;}).observe(cartPanel);
     function renderCart(){
         if(!form)return;let total=0n,count=0n;
         const list=[...cart].map(([id,quantity])=>{
@@ -78,6 +90,9 @@
     }
     function paymentMode(){
         if(!form||request)return;
+        const summary=form.querySelector('[data-direct-cart-customer]'),edit=form.querySelector('[data-direct-edit-customer]');
+        if(summary)summary.textContent=form.elements.customer_id.value?form.elements.customer_id.selectedOptions[0].textContent:'Sin cliente seleccionado';
+        if(edit)edit.textContent=form.elements.customer_id.value?'Cambiar cliente':'Elegir cliente';
         const option=form.elements.payment_term_id.selectedOptions[0],due=form.querySelector('[data-direct-due]');due.textContent='';
         if(option?.dataset.days){const date=new Date(data.today+'T12:00:00Z');date.setUTCDate(date.getUTCDate()+Number(option.dataset.days));due.textContent='Vencimiento: '+date.toLocaleDateString('es-VE',{timeZone:'UTC'});}
         showCredit();
@@ -94,8 +109,13 @@
         const url=new URL(location.href);url.searchParams.set('credit_customer_id',id);
         try{const response=await fetch(url,{headers:{Accept:'application/json'}});if(!response.ok)throw Error();const result=await response.json();if(generation!==creditGeneration)return;credit=result;showCredit();}catch{if(generation===creditGeneration){const panel=form.querySelector('[data-direct-credit]');panel.hidden=false;panel.textContent='No se pudo consultar el crédito. El sistema lo comprobará al confirmar.';}}
     }
-    search?.addEventListener('input',renderProducts);
+    search?.addEventListener('input',()=>{catalogPage=0;renderProducts();});
+    search?.addEventListener('keydown',event=>{if(event.key==='Enter')event.preventDefault();});
     if(form){
+        form.querySelector('[data-direct-edit-customer]')?.addEventListener('click',()=>{
+            const customer=form.elements.customer_id;form.querySelector('.direct-sale-details').scrollIntoView({behavior:'smooth',block:'start'});
+            (customer.closest('label').querySelector('.searchable-select-input')||customer).focus({preventScroll:true});
+        });
         form.addEventListener('change',()=>{paymentMode();persist();});
         form.elements.customer_id?.addEventListener('change',loadCredit);
         form.addEventListener('input',persist);
