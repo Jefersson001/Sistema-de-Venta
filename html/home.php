@@ -37,7 +37,11 @@
                         <?php if(!$modules): ?><div class="notice contact-full">No tienes módulos autorizados. Solicita al administrador que revise tus grupos de acceso. Puedes consultar <a class="inline-link" href="perfil.php">tu perfil</a> y gestionar tu contraseña.</div><?php endif; ?>
                         <?php foreach ($modules as $key => $module): ?>
                             <a class="module-card" href="<?= htmlspecialchars($module['url'], ENT_QUOTES, 'UTF-8') ?>" data-module="<?= htmlspecialchars($key,ENT_QUOTES,'UTF-8') ?>" data-module-card data-module-name="<?= htmlspecialchars(mb_strtolower($module['name']), ENT_QUOTES, 'UTF-8') ?>">
+                                <?php if($key==='venta_directa' && is_file(dirname(__DIR__).'/img/ventas-directas.png')): ?>
+                                <img class="module-icon module-art module-art-custom" src="img/ventas-directas.png?v=<?= filemtime(dirname(__DIR__).'/img/ventas-directas.png') ?>" alt="" aria-hidden="true">
+                                <?php else: ?>
                                 <span class="module-icon module-art module-art-<?= htmlspecialchars($key, ENT_QUOTES, 'UTF-8') ?>" aria-hidden="true"></span>
+                                <?php endif; ?>
                                 <div class="module-card-content">
                                 <div class="module-card-copy">
                                     <div class="module-title-row">

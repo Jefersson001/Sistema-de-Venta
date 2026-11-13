@@ -33,9 +33,12 @@ function accessResources(): array
         ['ventas','commissions','Comisiones','read,pay,reverse',true],
         ['ventas','commission_payments','Pagos de comisiones','read',true],
         ['ventas','configuration','Impuestos de venta','read,configure',false],
-        ['venta_directa','sales','Ventas directas','read,create',true],
+        ['venta_directa','sales','Ventas directas','read,create,register_payment',true],
         ['venta_directa','stock','Inventario para abastecer vendedores','read',false],
-        ['venta_directa','requests','Solicitudes de mercancía','read,create,confirm,cancel',true],
+        ['venta_directa','requests','Solicitudes y retornos de mercancía','read,create,confirm,validate,cancel',true],
+        ['venta_directa','returns','Devoluciones de clientes','read,create,confirm,cancel',true],
+        ['venta_directa','closing','Cierre del vendedor','read,create,confirm',true],
+        ['venta_directa','configuration','Control de crédito de clientes','read,configure',false],
         ['restaurante','tables','Mapa y estado de mesas','read,edit',false],
         ['restaurante','accounts','Cuentas del restaurante','read,create,edit,cancel,confirm,pay',true],
         ['restaurante','configuration','Áreas y mesas del restaurante','read,configure',false],
@@ -76,7 +79,7 @@ function accessResources(): array
 
 function accessActionLabel(string $resource,string $action): string
 {
-    if($resource==='venta_directa.requests')return match($action){'confirm'=>'Aprobar y transferir','cancel'=>'Rechazar o cancelar',default=>accessActions()[$action]};
+    if($resource==='venta_directa.requests')return match($action){'confirm'=>'Aprobar solicitud','validate'=>'Entregar o recibir mercancía','cancel'=>'Rechazar o cancelar',default=>accessActions()[$action]};
     if($resource==='restaurante.accounts')return match($action){'confirm'=>'Facturar','pay'=>'Cobrar','cancel'=>'Cerrar sin consumo',default=>accessActions()[$action]};
     return accessActions()[$action];
 }
@@ -85,7 +88,10 @@ function accessResourceHelp(string $resource): string
     return match($resource){
         'venta_directa.sales'=>'Consultar permite revisar ventas realizadas. Crear es exclusivo para operar desde el contacto vendedor propio y genera orden, entrega y factura, sin confirmar cobros. Administrador no incluye Crear; puede agregarse expresamente mediante un grupo vendedor.',
         'venta_directa.stock'=>'Consulta independiente del inventario para abastecimiento, sin ser vendedor. Incluye solo almacenes de la empresa activa no asignados a contactos vendedores, con reservas y disponibilidad. Se requiere también para aprobar solicitudes.',
-        'venta_directa.requests'=>'Crear solicita mercancía desde el contacto vendedor propio, sin mover existencias. Aprobar requiere alcance Todos y consultar Inventario para abastecer vendedores; genera la transferencia realizada desde un almacén no asignado a vendedores. Cancelar con Propios cancela solicitudes propias; con Todos permite rechazarlas con motivo.',
+        'venta_directa.requests'=>'Crear solicita mercancía o retorno de sobrantes sin mover stock. Aprobar con Todos autoriza cantidades y almacén central sin transferir ni reservar; Validar con Todos confirma la entrega o recepción física y genera la transferencia. Ambas requieren consultar inventario para abastecimiento. Cancelar con Propios cancela solicitudes propias; con Todos permite rechazarlas con motivo.',
+        'venta_directa.returns'=>'Crear solicita devolución de una venta propia sin modificar documentos. Confirmar con Todos recibe las cantidades y registra devolución de inventario y nota de crédito vinculadas, sin reembolso automático. Cancelar con Todos rechaza la solicitud.',
+        'venta_directa.closing'=>'Consultar muestra jornada y cierres autorizados. Crear envía un cierre propio con efectivo declarado y snapshot; Confirmar con Todos valida su revisión, sin confirmar cobros ni mover dinero.',
+        'venta_directa.configuration'=>'Define por cliente un límite en moneda principal y política Advertir y permitir o Bloquear. El control considera deuda sin cobro confirmado y vencimientos; solo se aplica al crédito nuevo en Ventas Directas.',
         'inventario.products'=>'Productos principales y variantes comparten estos permisos. Costos y comisiones conservan sus permisos específicos.',
         'inventario.configuration'=>'Incluye categorías y la casilla Es para restaurante, además de almacenes y ubicaciones.',
         'restaurante.tables'=>'Consultar muestra el mapa. Editar permite marcar mesas libres, reservadas o por limpiar.',
@@ -140,13 +146,15 @@ function accessInitialGroups(): array
     $specs = [
         'administrator'=>['Administrador','Administración del sistema y supervisión; vender y solicitar mercancía en Ventas Directas requiere un rol vendedor adicional.',[]],
         'direct_sales'=>['Vendedor de venta directa','Venta móvil y de escritorio desde su ubicación; solicita mercancía y registra cobros pendientes.',[
-            'venta_directa.sales'=>['own','read,create'],'venta_directa.requests'=>['own','read,create,cancel'],
+            'venta_directa.sales'=>['own','read,create,register_payment'],'venta_directa.requests'=>['own','read,create,cancel'],
+            'venta_directa.returns'=>['own','read,create'],'venta_directa.closing'=>['own','read,create'],
             'contactos.contacts'=>['own','read'],'inventario.products'=>['all','read'],
             'ventas.orders'=>['own','read'],'inventario.deliveries'=>['own','read'],
             'contabilidad.customer_invoices'=>['own','read,register_payment'],
         ]],
         'direct_sales_manager'=>['Supervisor de venta directa','Consulta ventas y aprueba o rechaza solicitudes con transferencia interna.',[
-            'venta_directa.sales'=>['all','read'],'venta_directa.requests'=>['all','read,confirm,cancel'],
+            'venta_directa.sales'=>['all','read'],'venta_directa.requests'=>['all','read,confirm,validate,cancel'],
+            'venta_directa.returns'=>['all','read,confirm,cancel'],'venta_directa.closing'=>['all','read,confirm'],
             'venta_directa.stock'=>['all','read'],
             'inventario.internal'=>['all','read'],
         ]],
@@ -196,6 +204,7 @@ function accessInitialGroups(): array
         if ($key==='administrator') {
             $permissions=array_fill_keys(array_keys(accessPermissionCatalog()),'all');
             unset($permissions['venta_directa.sales.create'],$permissions['venta_directa.requests.create']);
+            unset($permissions['venta_directa.sales.register_payment'],$permissions['venta_directa.returns.create'],$permissions['venta_directa.closing.create']);
         }
         else foreach ($rows as $resource=>[$scope,$actions]) {
             foreach ($actions==='*'?$resources[$resource]['actions']:explode(',',$actions) as $action) $permissions[$resource.'.'.$action]=$scope;

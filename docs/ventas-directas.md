@@ -1,49 +1,67 @@
 # Ventas Directas
 
-Acceso desde la tarjeta **Ventas Directas** del inicio y desde la búsqueda de secciones. La aplicación funciona con navegador en teléfonos y computadoras; requiere conexión para confirmar operaciones. Rutas: `modules/venta_directa/index.php` y `modules/venta_directa/solicitudes.php`. No es una aplicación independiente ni crea un inventario paralelo.
+Módulo integrado de Vent-As para celular y computadora. Usa los documentos nativos: órdenes, entregas, facturas, cobros, notas de crédito y transferencias.
 
-## Configuración y permisos
+## Instalación y permisos
 
-La migración adicional `20261113161546_separar_supervision_ventas_directas` separa supervisión y venta. El grupo Administrador conserva consulta y aprobación, y recibe `venta_directa.stock.read`, pero deja de incluir `venta_directa.sales.create` y `venta_directa.requests.create`. El Supervisor recibe consulta del inventario de abastecimiento. Se conservan los demás permisos personalizados y las asignaciones de usuarios. Para que un administrador también venda debe asignarse expresamente un grupo vendedor y vincularse con su propio contacto vendedor: no se permite operar con un vendedor ajeno, aunque Crear tenga alcance Todos.
+Las migraciones 20261113131544, 20261113161546 y 20261113171011 agregan tablas empresariales mediante registerCompanyTable(), catálogos y permisos. Aplicar con php php/migrate.php o el arranque de Dokploy. No importar respaldos ni reinstalar una base existente.
 
-Los administradores y supervisores entran al inventario para abastecimiento sin seleccionar vendedor. Pueden consultar productos, cantidades a la mano, reservas y disponibilidad por almacén/ubicación. Solo aparecen almacenes de la empresa activa que no estén asignados a ningún contacto vendedor, incluyendo vendedores inactivos. No se muestran costos ni se conceden permisos generales de inventario al supervisor. El vendedor mantiene Mi inventario y no tiene acceso a esta consulta central.
+- **Vendedor de venta directa:** opera con su contacto vendedor propio, vende, solicita mercancía y retornos de sobrantes, registra abonos pendientes, solicita devoluciones del cliente y envía su cierre.
+- **Supervisor de venta directa:** consulta inventario de abastecimiento y ventas, aprueba solicitudes, confirma su entrega física, revisa devoluciones y valida cierres. No recibe permisos generales para editar inventario o confirmar dinero.
+- **Administrador:** supervisa y configura crédito sin actuar como vendedor. Para vender además debe asignarse expresamente un grupo vendedor y vincular su propio contacto. Los permisos de confirmación de cobros siguen siendo contables.
 
-Al abrir una solicitud pendiente, el supervisor elige el origen y pulsa Consultar existencias. Cada línea indica lo solicitado y lo disponible en ese origen. Aprobar y transferir utiliza el origen consultado y vuelve a comprobar stock; la disponibilidad mostrada no constituye una reserva. Para aprobar se requiere `venta_directa.requests.confirm` con alcance Todos y `venta_directa.stock.read`. El servidor también impide usar como origen un almacén asignado a un vendedor.
+Las migraciones no asignan grupos automáticamente. Revisar también grupos personalizados, pues los permisos se combinan. Crear requiere contacto vendedor propio aunque el alcance sea Todos. Aprobar, entregar, recibir devoluciones y validar cierres requiere alcance Todos. El vendedor necesita almacén y ubicación interna; si hay una única ubicación interna en su almacén puede resolverse automáticamente. Con alcance Propios, los clientes deben estar asignados al vendedor.
 
-Desplegar el código con la migración `20261113131544_ventas_directas`. En Dokploy se aplica mediante `scripts/start-dokploy.sh`; localmente ejecutar `php php/migrate.php`. No importar respaldos ni reinstalar el esquema. La migración crea tres tablas empresariales y registra sus relaciones y auditoría mediante `registerCompanyTable()`. Puede reintentarse sin duplicar datos. Se agregan permisos al catálogo y únicamente los permisos del módulo al grupo Administrador existente; no se restablecen permisos de otros módulos ni se asignan nuevos grupos a usuarios automáticamente.
+## Venta, plazo y cobro
 
-En Ajustes → Usuarios, asignar el grupo **Vendedor de venta directa** a los usuarios correspondientes y relacionarlos con su contacto vendedor de cada empresa. El contacto debe tener almacén y ubicación interna válidos. Los clientes deben estar asignados al vendedor para el alcance Propios. Los productos deben ser vendibles y concretos (variantes cuando corresponda), con existencias en la ubicación del vendedor. La empresa necesita moneda, tasa vigente y un término Contado de cero días; para crédito se utilizan términos existentes con días mayores que cero.
+El vendedor elige cliente y **plazo de pago**. Contado vence hoy; los plazos de días vencen después. La clasificación interna contado/crédito se deriva del plazo y no significa que se recibió dinero.
 
-El grupo **Supervisor de venta directa** consulta ventas y solicitudes y permite aprobar/rechazar solicitudes con alcance Todos. Los grupos pueden administrarse desde Ajustes. El permiso Crear en Ventas Directas autoriza el circuito automatizado completo desde el contacto vendedor propio; no concede al vendedor la edición o validación manual de movimientos, la modificación de precios ni la confirmación de pagos. El supervisor puede seleccionar ubicaciones internas de la empresa activa en almacenes no asignados a vendedores. No se permite aprobar con alcance Propios.
+Confirmar crea atómicamente orden confirmada, entrega realizada y factura registrada. No crea un pago. El precio usa catálogo más comisión configurada e impuestos, sin descuentos ni edición de precios. Se respetan variantes concretas, reservas y disponibilidad. Series, lotes y vencimientos conservan su comportamiento automático; no se agregó captura manual ni escaneo.
 
-## Venta
+El carrito se guarda por usuario, empresa y vendedor. No reserva stock. Sin conexión se conserva, pero no puede confirmarse. Al reconectar se vuelve a validar. No hay ventas ni pagos en cola sin conexión.
 
-Si el contacto vendedor tiene almacén y no tiene ubicación explícita, Ventas Directas utiliza la única ubicación interna de ese almacén en la empresa activa. Si no existe o hay varias, se debe configurar en Contactos → ficha del vendedor → Inventario → Ubicación interna del vendedor. Una ubicación explícita inválida nunca se sustituye automáticamente.
+Desde **Mis ventas → abrir venta → Registrar cobro total o parcial** se registra importe, moneda, fecha, cuenta, medio, referencia y fotos/PDF. Funciona con cualquier vencimiento. Se usa la tasa vigente cuando corresponde otra moneda y se impide superar el saldo por cubrir. Cuenta y medio deben pertenecer a la empresa activa.
 
-El vendedor utiliza Vender, Mi inventario, Solicitudes y Mis ventas. Desde una computadora, el catálogo y el carrito aparecen en columnas; en teléfonos se apilan y hay navegación inferior y acceso al carrito. Los productos se buscan por nombre. El cliente utiliza el selector de contactos existentes; la creación de contactos continúa disponible en Contactos para quien tenga ese permiso.
+El cobro nativo queda aplicado a la factura y pendiente de validación del jefe. La pantalla distingue saldo sin confirmar, cobros en revisión y saldo por cubrir. Las claves de reintento impiden duplicados y los comprobantes se guardan privadamente dentro de la transacción. El cobro no confirma dinero ni liquida comisiones. La conciliación conserva el flujo y permisos de Contabilidad.
 
-Los precios se calculan en el servidor con las reglas nativas: precio de catálogo, comisión de vendedor e impuesto del producto, en la moneda principal de la empresa. El cliente no envía precios ni descuentos. Los padres con variantes no se venden y los artículos por series requieren unidades enteras. Se muestran existencias disponibles de la ubicación autorizada, descontando reservas y, para artículos con seguimiento, existencias vencidas o retiradas. Lotes y series se asignan automáticamente por el mecanismo nativo al comprobar disponibilidad; su detalle queda en la entrega.
+## Crédito
 
-Al confirmar se ejecutan, dentro de una transacción con puntos de guardado, `saveSalesQuotation`, confirmación de orden, `createLinkedStockOperation`, comprobación y validación de entrega y `workflowCreateInvoice`. La factura se registra con sus snapshots de moneda, tasa, dirección, vendedor, impuestos y comisiones. Contado vence en la fecha de factura. Crédito utiliza el término seleccionado y su vencimiento. El estado de pago se calcula mediante `invoiceRecomputePaymentState`.
+Ventas Directas → Crédito permite definir por cliente un límite y **Advertir y permitir** (predeterminado) o **Bloquear**. Límite vacío significa sin límite; cero advierte ante cualquier nuevo crédito. Guarda la moneda del límite y convierte según configuración vigente.
 
-No se crean pagos ni movimientos de dinero al vender. El comprobante permite abrir la factura para registrar el cobro por el flujo existente. El vendedor del nuevo grupo puede registrar cobros de sus facturas para revisión, pero no confirmarlos. Solo los cobros confirmados habilitan comisiones. Las ventas directas aparecen en Ventas, Inventario, Contabilidad, cuentas por cobrar y comisiones mediante los documentos habituales.
+El saldo incluye facturas de cliente registradas de la empresa activa, menos notas registradas y cobros confirmados. Los cobros pendientes siguen siendo deuda. Se advierte por vencidos o si saldo más nueva venta supera el límite. Se muestra en el carrito y se conserva en el resultado. El servidor revalida, bloquea solo con política explícita Bloquear y serializa la comprobación por cliente.
 
-Si falla una validación (stock, tasa, cliente, seguimiento), se revierten los documentos y existencias de toda la operación. Una clave por confirmación y un hash de su contenido evitan duplicados por doble toque, recarga o reintento; reutilizar una clave con otro carrito devuelve conflicto. El carrito se conserva localmente por usuario, empresa y vendedor y se retira al mostrar el resultado confirmado. Esto no habilita ventas sin conexión ni reserva stock mientras se prepara el carrito. Los precios y cantidades se revalidan al confirmar.
+Aplica a nuevos plazos con vencimiento futuro en Ventas Directas; no modifica reglas de otros módulos ni bloquea ventas con vencimiento hoy. Los términos se administran en Contabilidad.
 
-Puede capturarse opcionalmente la geolocalización del vendedor. La del cliente se toma de sus direcciones mediante el funcionamiento normal de las órdenes. La ubicación del vendedor queda vinculada al usuario que realiza la operación. El historial muestra las últimas 100 ventas autorizadas y conserva accesos a sus documentos; para informes completos se utilizan los módulos habituales.
+## Abastecimiento y retorno de sobrantes
 
-## Solicitudes
+El administrador entra sin seleccionar vendedor. **Inventario para abastecer** consulta cantidades a la mano, reservadas y disponibles en almacenes de la empresa activa no asignados a ningún vendedor, incluidos inactivos.
 
-El vendedor selecciona productos, cantidades y una nota. Enviar no modifica ni reserva inventario. El destino se fija desde su ubicación, sin aceptar un almacén arbitrario enviado por el navegador.
+1. El vendedor envía Solicitar mercancía o Retornar sobrantes, con cantidades y nota. No mueve stock.
+2. El supervisor consulta el almacén central y aprueba cantidades, totales o parciales. Queda Aprobada, sin reserva ni transferencia.
+3. Cuando ocurre la entrega física, pulsa Entregar mercancía o Recibir retorno. Se genera y completa la transferencia interna en el sentido correspondiente.
 
-El supervisor elige origen y cantidades a aprobar entre cero y lo solicitado. **Aprobar y transferir** representa que la mercancía se entrega físicamente al vendedor: crea y valida una transferencia interna, descuenta el origen y aumenta el destino en la misma transacción que resuelve la solicitud. La aprobación parcial conserva lo solicitado y lo aprobado; lo restante no se transfiere ni genera otra solicitud automáticamente. El vendedor puede solicitar nuevamente lo que necesite.
+El servidor revalida almacén central, ubicación del vendedor, cantidades y seguimiento. Si falta stock permanece aprobada, sin movimiento parcial. Reintentar un movimiento completado devuelve el mismo. Antes del movimiento pueden cancelarse/rechazarse solicitudes; rechazar exige motivo. Un cambio de ubicación del vendedor exige cancelar y volver a solicitar. Lo no aprobado no se transfiere ni se vuelve a solicitar automáticamente. No incluye tránsito en dos movimientos entre almacenes.
 
-Si falta stock o cambió el destino del vendedor, se conserva la solicitud pendiente y no se crea un movimiento parcial. Si cambia su destino debe cancelarse la solicitud anterior y enviarse una nueva. Repetir una aprobación ya completada devuelve la transferencia existente. Los rechazos requieren motivo y no mueven existencias; el vendedor puede cancelar solicitudes propias pendientes. No incluye tránsito entre despacho y recepción: se requeriría otro flujo si la autorización y la entrega física ocurren en momentos distintos.
+## Devoluciones del cliente
+
+Desde una venta se solicitan cantidades y motivo. Solo puede existir una solicitud pendiente por venta. Enviar no cambia stock ni factura, ni permite superar cantidades pendientes de devolver.
+
+El supervisor confirma la recepción física. Se generan atómicamente devolución de la entrega original y nota de crédito parcial registrada, conservando precios, impuestos y seguimiento. El saldo y las comisiones se ajustan con las reglas nativas. No hay sobredevoluciones ni duplicación por reintento.
+
+Deben resolverse antes los cobros pendientes de revisión y otros borradores de devolución/nota. La mercancía vuelve a la ubicación de la entrega original, aunque después se haya cambiado la asignación del vendedor. No se reembolsa dinero automáticamente: se gestiona desde la nota en Contabilidad, con sus permisos. El supervisor puede rechazar con motivo.
+
+## Jornada y cierre
+
+**Cierre** reúne ventas directas facturadas en la fecha, vencimientos, saldos, cobros registrados ese día asociados a esas ventas (también abonos de facturas anteriores), confirmados/pendientes, cuenta/medio, reembolsos y comisiones de ventas de la jornada. Incluye movimientos de inventario por fecha real de registro y ubicación actualmente asignada; para investigar cambios de ubicación se usan los reportes nativos.
+
+El efectivo esperado cuenta cobros/reembolsos de caja registrados por el propio vendedor o su registro directo. No atribuye al vendedor cobros hechos por el administrador. No es arqueo de la caja completa: no incluye fondos iniciales ni gastos ajenos a estas ventas. Las existencias se capturan al generar el resumen, con fecha/hora visible.
+
+El vendedor declara efectivo por moneda y envía un cierre por jornada. Se conservan snapshot y diferencias. El supervisor valida su revisión. No confirma pagos, liquida comisiones, mueve caja ni bloquea operaciones posteriores. Los cobros posteriores aparecen en la consulta actual y no reescriben el cierre enviado. Es inmutable; no incluye reapertura, corrección de declaraciones ni conteo por denominaciones.
 
 ## Verificación
 
-- `php test/direct-sales.php --browser`: base aislada; contado/crédito, documentos, precios, comisiones, impuestos, vencimiento, stock, pagos pendientes, permisos, reintentos, reversión ante errores, solicitudes, transferencia parcial, rechazo y migración repetida con datos previos. Chrome revisa celular/escritorio, carrito, vencimiento, recuperación por recarga, confirmación real y comprobante.
-- `php test/migrations.php` y `node test/deploy-startup.js`: mecanismo de actualización y arranque.
-- `php test/fresh-installation.php`: instalación vacía con todas las migraciones versionadas.
+- php test/direct-sales.php --browser: base aislada, documentos nativos, plazos, crédito, permisos y aislamiento empresarial, abonos idempotentes pendientes, comprobantes privados, devoluciones, transferencias y cierres. Chrome verifica celular/escritorio, desconexión, carrito, cobro desde el módulo y jornada.
+- php test/migrations.php y node test/deploy-startup.js: migraciones y arranque.
+- php test/fresh-installation.php: instalación vacía, cinco migraciones y 17 vistas en raíz, sin datos operativos de ejemplo.
 
-La revisión local no despliega el código en el servidor ni valida allí permisos y configuración de producción.
+Los historiales muestran los últimos 100 registros autorizados. La prueba local no despliega ni valida la configuración del servidor de producción.

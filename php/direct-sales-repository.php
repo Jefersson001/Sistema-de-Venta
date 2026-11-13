@@ -112,9 +112,12 @@ function directCompleteOperation(PDO $db,int $operation): void {
 function directCheckout(CompanyConnection $db,array $input): int {
     permissionRequire('venta_directa.sales','create');
     $key=directKey($input['request_key']??null);$lines=directLines($input['lines']??null);
-    $mode=$input['payment_mode']??'';if(!in_array($mode,['cash','credit'],true))throw new InvalidArgumentException('Selecciona contado o crédito.');
+    $mode=$input['payment_mode']??'cash';
+    $selectedTerm=accessId($input['payment_term_id']??null);
+    if($selectedTerm){$q=$db->prepare('SELECT days FROM accounting_payment_terms WHERE id=? AND company_id=?');$q->execute([$selectedTerm,companyActiveId()]);$days=$q->fetchColumn();if($days===false)throw new InvalidArgumentException('Selecciona un plazo de pago válido.');$mode=(int)$days>0?'credit':'cash';}
+    if(!in_array($mode,['cash','credit'],true))throw new InvalidArgumentException('Selecciona un plazo de pago.');
     $seller=directSeller($db,$input['seller_id']??null,'venta_directa.sales','create');
-    $customer=accessId($input['customer_id']??null);$term=$mode==='credit'?accessId($input['payment_term_id']??null):null;
+    $customer=accessId($input['customer_id']??null);$term=$selectedTerm;
     $geo=[];foreach(['sale_latitude','sale_longitude','sale_location_source'] as $field)if(isset($input[$field]))$geo[$field]=$input[$field];
     $hash=hash('sha256',json_encode([$seller['id'],$customer,$mode,$term,$lines,$geo],JSON_THROW_ON_ERROR));
     return $db->atomicTransfer(function()use($db,$input,$key,$lines,$mode,$seller,$customer,$term,$geo,$hash){
@@ -144,7 +147,12 @@ function directCheckout(CompanyConnection $db,array $input): int {
         [$data,$saleLines,$errors]=validateSalesQuotation($post,$catalogs,null);
         if($errors||!$saleLines)throw new InvalidArgumentException(implode(' ',$errors)?:'El carrito está vacío.');
         if((int)$data['location_id']!==(int)$seller['location_id'])throw new InvalidArgumentException('La ubicación del vendedor cambió; recarga.');
-        $db->prepare('INSERT INTO direct_sale_checkouts(seller_id,request_key,payload_hash,payment_mode) VALUES(?,?,?,?)')->execute([$seller['id'],$key,$hash,$mode]);$id=(int)$db->lastInsertId();
+        require_once __DIR__.'/direct-sales-operations.php';
+        // Serialize credit exposure across sellers using the same customer.
+        $q=$db->prepare('SELECT id FROM contacts WHERE id=? AND company_id=? FOR UPDATE');$q->execute([$customer,companyActiveId()]);if(!$q->fetchColumn())throw new InvalidArgumentException('El cliente no pertenece a la empresa activa.');
+        $credit=directCredit($db,(int)$customer);$warnings=$mode==='credit'?directCreditWarnings($credit,$data['total_amount']??array_reduce($saleLines,static fn($sum,$line)=>bcadd($sum,$line['total_amount'],2),'0.00')):[];
+        if($warnings&&$credit['policy']==='block')throw new InvalidArgumentException(implode(' ',$warnings));
+        $db->prepare('INSERT INTO direct_sale_checkouts(seller_id,request_key,payload_hash,payment_mode,credit_warning_json) VALUES(?,?,?,?,?)')->execute([$seller['id'],$key,$hash,$mode,json_encode($warnings,JSON_THROW_ON_ERROR)]);$id=(int)$db->lastInsertId();
         $sale=saveSalesQuotation($db,$data,$saleLines,null,null);transitionSalesQuotation($db,$sale,1,'sale');
         $operation=createLinkedStockOperation($db,'sale',$sale);directCompleteOperation($db,$operation);
         $invoice=workflowCreateInvoice($db,'sale',$sale);
@@ -158,13 +166,14 @@ function directCreateRequest(CompanyConnection $db,array $input): int {
     permissionRequire('venta_directa.requests','create');$key=directKey($input['request_key']??null);$lines=directLines($input['lines']??null);
     $seller=directSeller($db,$input['seller_id']??null,'venta_directa.requests','create');
     $notes=$input['notes']??'';if(!is_string($notes)||mb_strlen($notes)>1000)throw new InvalidArgumentException('La nota admite hasta 1000 caracteres.');
-    $hash=hash('sha256',json_encode([$seller['id'],$lines,trim($notes)],JSON_THROW_ON_ERROR));
-    return $db->atomicTransfer(function()use($db,$seller,$key,$lines,$notes,$hash){
+    $kind=$input['request_kind']??'replenishment';if(!in_array($kind,['replenishment','return'],true))throw new InvalidArgumentException('Selecciona un tipo de solicitud válido.');
+    $hash=hash('sha256',json_encode([$seller['id'],$lines,trim($notes),$kind],JSON_THROW_ON_ERROR));
+    return $db->atomicTransfer(function()use($db,$seller,$key,$lines,$notes,$hash,$kind){
         $seller=directSeller($db,(string)$seller['id'],'venta_directa.requests','create',true);
         $q=$db->prepare('SELECT id,payload_hash FROM direct_stock_requests WHERE request_key=? FOR UPDATE');$q->execute([$key]);
         if($old=$q->fetch()){if(!hash_equals($old['payload_hash'],$hash))throw new InvalidArgumentException('La solicitud ya se envió con otros datos.',409);return (int)$old['id'];}
         foreach($lines as $line){$p=trackingProduct($db,$line['product_id']);if($p['product_type']!=='goods'||!$p['sale_enabled']||inventoryIsTemplate($db,(int)$p['id'])||(int)$p['company_id']!==companyActiveId())throw new InvalidArgumentException('Selecciona artículos vendibles concretos.');}
-        $db->prepare('INSERT INTO direct_stock_requests(seller_id,destination_location_id,request_key,payload_hash,notes) VALUES(?,?,?,?,?)')->execute([$seller['id'],$seller['location_id'],$key,$hash,trim($notes)]);$id=(int)$db->lastInsertId();
+        $db->prepare('INSERT INTO direct_stock_requests(seller_id,destination_location_id,seller_location_id,request_kind,request_key,payload_hash,notes) VALUES(?,?,?,?,?,?,?)')->execute([$seller['id'],$seller['location_id'],$seller['location_id'],$kind,$key,$hash,trim($notes)]);$id=(int)$db->lastInsertId();
         $q=$db->prepare('INSERT INTO direct_stock_request_lines(request_id,product_id,requested_quantity) VALUES(?,?,?)');foreach($lines as $line)$q->execute([$id,$line['product_id'],$line['quantity']]);return $id;
     });
 }
@@ -175,13 +184,13 @@ function directDecideRequest(CompanyConnection $db,int $id,array $input,bool $ap
     return $db->atomicTransfer(function()use($db,$id,$input,$approve){
         $q=$db->prepare('SELECT * FROM direct_stock_requests WHERE id=? AND company_id=? FOR UPDATE');$q->execute([$id,companyActiveId()]);$request=$q->fetch();
         if(!$request)throw new InvalidArgumentException('La solicitud no está disponible.');
-        if($request['status']==='transferred'&&$approve)return (int)$request['operation_id'];
-        if($request['status']!=='pending'||(int)$request['version']!==(int)($input['version']??0))throw new InvalidArgumentException('La solicitud cambió o ya fue resuelta. Recarga.',409);
+        if(in_array($request['status'],['approved','transferred'],true)&&$approve)return (int)$request['operation_id'];
+        if(!in_array($request['status'],['pending','approved'],true)||($approve&&$request['status']!=='pending')||(int)$request['version']!==(int)($input['version']??0))throw new InvalidArgumentException('La solicitud cambió o ya fue resuelta. Recarga.',409);
         $note=$input['decision_note']??'';if(!is_string($note)||mb_strlen($note)>1000)throw new InvalidArgumentException('La observación admite hasta 1000 caracteres.');
         $operation=null;$source=null;
         if($approve){
             $seller=directSeller($db,(string)$request['seller_id'],'venta_directa.requests','confirm',true);
-            if((int)$seller['location_id']!==(int)$request['destination_location_id'])throw new InvalidArgumentException('El almacén del vendedor cambió. Cancela y crea una nueva solicitud.');
+            if((int)$seller['location_id']!==(int)($request['seller_location_id']??$request['destination_location_id']))throw new InvalidArgumentException('El almacén del vendedor cambió. Cancela y crea una nueva solicitud.');
             $storage=loadStorageRelations($db);$source=accessId($input['source_location_id']??null);
             if(!in_array($source,array_map('intval',array_column(directCentralLocations($db),'id')),true))throw new InvalidArgumentException('Selecciona un origen de la empresa activa cuyo almacén no esté asignado a vendedores.');
             $q=$db->prepare('SELECT * FROM direct_stock_request_lines WHERE request_id=? ORDER BY product_id');$q->execute([$id]);$requested=$q->fetchAll();$lines=[];
@@ -193,11 +202,12 @@ function directDecideRequest(CompanyConnection $db,int $id,array $input,bool $ap
                 $db->prepare('UPDATE direct_stock_request_lines SET approved_quantity=? WHERE id=?')->execute([$qty,$row['id']]);
             }
             if(!$lines)throw new InvalidArgumentException('Aprueba al menos una cantidad o rechaza la solicitud.');
-            [$data,$errors]=validateInventoryOperation(['scheduled_date'=>commerceToday(),'source_location_id'=>(string)$source,'destination_location_id'=>(string)$request['destination_location_id'],'notes'=>'Solicitud de vendedor #'.$id],'internal',$storage,[]);
+            $from=$request['request_kind']==='return'?(int)$seller['location_id']:$source;$to=$request['request_kind']==='return'?$source:(int)$seller['location_id'];
+            [$data,$errors]=validateInventoryOperation(['scheduled_date'=>commerceToday(),'source_location_id'=>(string)$from,'destination_location_id'=>(string)$to,'notes'=>'Solicitud de vendedor #'.$id],'internal',$storage,[]);
             if($errors)throw new InvalidArgumentException(implode(' ',$errors));
-            $operation=saveInventoryOperation($db,$data,null,null,$lines);directCompleteOperation($db,$operation);
+            // Approval authorizes quantities; physical handover is a separate action.
         }elseif(trim($note)===''&&permissionScope('venta_directa.requests','cancel')==='all')throw new InvalidArgumentException('Indica el motivo del rechazo.');
-        $status=$approve?'transferred':(permissionScope('venta_directa.requests','cancel')==='all'?'rejected':'cancelled');
+        $status=$approve?'approved':(permissionScope('venta_directa.requests','cancel')==='all'?'rejected':'cancelled');
         $db->prepare('UPDATE direct_stock_requests SET status=?,version=version+1,source_location_id=?,operation_id=?,decision_note=?,decided_by=?,decided_at=CURRENT_TIMESTAMP WHERE id=?')->execute([$status,$source,$operation,trim($note),permissionUser()['id'],$id]);
         return (int)$operation;
     });

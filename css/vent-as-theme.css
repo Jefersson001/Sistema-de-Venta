@@ -141,6 +141,7 @@ body .top-navigation.top-navigation--refined {
 .vent-as-home .module-card::before { position: absolute; top: -1px; left: -1px; width: 54px; height: 48px; border-top: 3px solid var(--module-accent); border-left: 3px solid var(--module-accent); border-radius: 21px 0 0 0; content: ''; pointer-events: none; }
 .vent-as-home .module-card:hover { border-color: var(--module-accent); box-shadow: 0 10px 24px #30205413; }
 .vent-as-home .module-card .module-art { border-radius: 15px; box-shadow: 0 4px 10px #30205409; }
+.vent-as-home .module-card img.module-art-custom { object-fit: contain; background: none; border-radius: 0; box-shadow: none; }
 .vent-as-home .module-card .module-title-row h2 { color: var(--vent-night); }
 .vent-as-home .module-card-copy p { color: #514B6B; }
 .vent-as-home .module-card-content { gap: 9px; }

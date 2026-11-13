@@ -1,6 +1,8 @@
 (() => {
     'use strict';
     const root=document.querySelector('[data-direct-root]');if(!root)return;
+    root.querySelector('[data-direct-payment]')?.addEventListener('submit',event=>{event.target.querySelector('button[type="submit"]').disabled=true;});
+    window.addEventListener('pageshow',()=>{const button=root.querySelector('[data-direct-payment] button[type="submit"]');if(button)button.disabled=false;});
     root.querySelector('[data-direct-print]')?.addEventListener('click',()=>window.print());
     const scope=root.dataset.storageScope;
     const completed=root.querySelector('[data-direct-completed]');
@@ -10,7 +12,7 @@
     const dataNode=root.querySelector('[data-direct-data]');if(!dataNode)return;
     const data=JSON.parse(dataNode.textContent),products=new Map(data.products.map(p=>[String(p.id),p]));
     const grid=root.querySelector('[data-direct-products]'),search=root.querySelector('[data-direct-search]'),form=root.querySelector('[data-direct-form]');
-    const request=form?.dataset.requestMode==='1',cart=new Map();let gpsPending=false,gpsGeneration=0;
+    const request=form?.dataset.requestMode==='1',cart=new Map();let gpsPending=false,gpsGeneration=0,cartTotal=0n,credit=null,creditGeneration=0;
     const storageKey=form?'vent-direct-'+scope+'-'+form.elements.seller_id.value:null;
     const hundredths=value=>{const s=String(value??'').replace(',','.');if(!/^\d{1,12}(?:\.\d{1,2})?$/.test(s))return null;const [a,b='']=s.split('.');return BigInt(a)*100n+BigInt(b.padEnd(2,'0'));};
     const decimal=value=>(value/100n).toString()+'.'+(value%100n).toString().padStart(2,'0');
@@ -19,14 +21,14 @@
     function rows(){return [...cart].map(([id,quantity])=>({product_id:Number(id),quantity:decimal(quantity)}));}
     function persist(){
         if(!form)return;const state={lines:rows()};
-        for(const key of ['request_key','customer_id','payment_mode','payment_term_id','sale_latitude','sale_longitude','sale_location_source','notes'])if(form.elements[key])state[key]=form.elements[key].value;
+        for(const key of ['request_key','customer_id','payment_mode','payment_term_id','sale_latitude','sale_longitude','sale_location_source','notes','request_kind'])if(form.elements[key])state[key]=form.elements[key].value;
         try{localStorage.setItem(storageKey,JSON.stringify(state));}catch{}
     }
     let initial=data.initial||{};
     if(form){
         try{if(!initial.lines){const saved=JSON.parse(localStorage.getItem(storageKey)||'null');if(saved)initial=saved;}}catch{}
         for(const row of Array.isArray(initial.lines)?initial.lines:[]){if(!row||typeof row!=='object')continue;const id=String(row.product_id),qty=hundredths(row.quantity);if(products.has(id)&&qty>0n)cart.set(id,qty);}
-        for(const key of ['request_key','customer_id','payment_mode','payment_term_id','sale_latitude','sale_longitude','notes']){
+        for(const key of ['request_key','customer_id','payment_mode','payment_term_id','sale_latitude','sale_longitude','notes','request_kind']){
             const input=form.elements[key];if(input&&typeof initial[key]==='string'&&(key!=='request_key'||/^[a-f0-9]{64}$/.test(initial[key])))input.value=initial[key];
         }
     }
@@ -69,21 +71,36 @@
         form.querySelector('[data-direct-cart-lines]').replaceChildren(...list);
         form.querySelector('[data-direct-lines]').value=JSON.stringify(rows());
         form.querySelector('[data-direct-total]').textContent=decimal(total)+(request?' uds.':' '+data.currency);
-        form.querySelector('[data-direct-submit]').disabled=!cart.size||gpsPending;
+        form.querySelector('[data-direct-submit]').disabled=!cart.size||gpsPending||!navigator.onLine;
         form.querySelector('.direct-cart-hint').hidden=cart.size>0;
         jump.textContent=(request?'Solicitud':'Carrito')+' · '+cart.size+' artículos · '+decimal(total)+(request?' uds.':' '+data.currency);jump.hidden=!cart.size||cartVisible;
+        cartTotal=total;showCredit();
     }
     function paymentMode(){
-        if(!form||request)return;const credit=form.elements.payment_mode.value==='credit',terms=form.querySelector('[data-direct-terms]');terms.hidden=!credit;form.elements.payment_term_id.required=credit;
+        if(!form||request)return;
         const option=form.elements.payment_term_id.selectedOptions[0],due=form.querySelector('[data-direct-due]');due.textContent='';
-        if(credit&&option?.dataset.days){const date=new Date(data.today+'T12:00:00Z');date.setUTCDate(date.getUTCDate()+Number(option.dataset.days));due.textContent='Vencimiento: '+date.toLocaleDateString('es-VE',{timeZone:'UTC'});}
+        if(option?.dataset.days){const date=new Date(data.today+'T12:00:00Z');date.setUTCDate(date.getUTCDate()+Number(option.dataset.days));due.textContent='Vencimiento: '+date.toLocaleDateString('es-VE',{timeZone:'UTC'});}
+        showCredit();
+    }
+    function showCredit(){
+        const panel=form?.querySelector('[data-direct-credit]');if(!panel)return;
+        panel.hidden=!credit||Number(form.elements.payment_term_id.selectedOptions[0]?.dataset.days||0)===0;if(panel.hidden)return;
+        const warnings=[];if(hundredths(credit.overdue)>0n)warnings.push('Tiene '+credit.overdue+' '+credit.currency+' vencidos.');
+        if(credit.limit!==null&&hundredths(credit.debt)+cartTotal>hundredths(credit.limit))warnings.push('La venta supera el límite de '+credit.limit+' '+credit.currency+'.');
+        panel.textContent='Saldo del cliente: '+credit.debt+' '+credit.currency+'. '+warnings.join(' ')+(warnings.length?(credit.policy==='block'?' El control bloqueará esta venta a crédito.':' Puedes continuar con la venta.'):'');
+    }
+    async function loadCredit(){
+        if(!form||request)return;const generation=++creditGeneration;credit=null;showCredit();const id=form.elements.customer_id.value;if(!id)return;
+        const url=new URL(location.href);url.searchParams.set('credit_customer_id',id);
+        try{const response=await fetch(url,{headers:{Accept:'application/json'}});if(!response.ok)throw Error();const result=await response.json();if(generation!==creditGeneration)return;credit=result;showCredit();}catch{if(generation===creditGeneration){const panel=form.querySelector('[data-direct-credit]');panel.hidden=false;panel.textContent='No se pudo consultar el crédito. El sistema lo comprobará al confirmar.';}}
     }
     search?.addEventListener('input',renderProducts);
     if(form){
         form.addEventListener('change',()=>{paymentMode();persist();});
+        form.elements.customer_id?.addEventListener('change',loadCredit);
         form.addEventListener('input',persist);
         form.addEventListener('submit',event=>{
-            if(!cart.size||gpsPending){event.preventDefault();message.textContent=gpsPending?'Espera a que termine la captura de ubicación.':'Agrega productos antes de continuar.';return;}
+            if(!cart.size||gpsPending||!navigator.onLine){event.preventDefault();message.textContent=!navigator.onLine?'Necesitas conexión para confirmar. Tu carrito se conserva en este navegador.':gpsPending?'Espera a que termine la captura de ubicación.':'Agrega productos antes de continuar.';return;}
             form.querySelector('[data-direct-lines]').value=JSON.stringify(rows());persist();form.querySelector('[data-direct-submit]').disabled=true;message.textContent=request?'Enviando solicitud…':'Confirmando venta…';
         });
         const status=form.querySelector('[data-direct-gps-status]');
@@ -98,5 +115,6 @@
         if(status&&form.elements.sale_latitude.value)status.textContent='Ubicación guardada en el carrito.';
     }
     window.addEventListener('pageshow',event=>{if(event.persisted){renderCart();if(message)message.textContent='';}});
-    renderProducts();paymentMode();renderCart();
+    for(const name of ['online','offline'])window.addEventListener(name,()=>{renderCart();if(message)message.textContent=navigator.onLine?'Conexión recuperada. Revisa y confirma tu carrito.':'Sin conexión. El carrito se conserva, pero no reserva existencias.';});
+    renderProducts();paymentMode();renderCart();loadCredit();
 })();

@@ -1,11 +1,15 @@
 <?php
 declare(strict_types=1);
 require_once __DIR__.'/module-page.php';
-require_once __DIR__.'/direct-sales-repository.php';
+require_once __DIR__.'/direct-sales-operations.php';
 
 function renderDirectSales(bool $requests=false,bool $warehouseStock=false): void {
     authPrivacyHeaders();$db=createDatabaseConnection();
     $resource=$warehouseStock?'venta_directa.stock':($requests?'venta_directa.requests':'venta_directa.sales');
+    if(!$requests&&!$warehouseStock&&isset($_GET['credit_customer_id'])){
+        $customer=accessId($_GET['credit_customer_id']);$q=$db->prepare("SELECT c.id FROM contacts c JOIN contact_types t ON t.id=c.type_id WHERE c.id=? AND c.company_id=? AND t.system_key='client' AND ".permissionWhere('contactos.contacts','c'));$q->execute([$customer,companyActiveId()]);if(!$q->fetchColumn())authStop(403,'Cliente no autorizado.');
+        header('Content-Type: application/json; charset=utf-8');echo json_encode(directCredit($db,(int)$customer),JSON_THROW_ON_ERROR);return;
+    }
     if(!$requests&&!$warehouseStock&&!isset($_GET['id'])&&!isset($_GET['view'])&&$_SERVER['REQUEST_METHOD']==='GET'&&(!permissionHas('venta_directa.sales','create')||!permissionContact())){
         header('Location: '.(permissionHas('venta_directa.stock')?'inventario.php':(permissionHas('venta_directa.requests')?'solicitudes.php':'index.php?view=history')),true,303);return;
     }
@@ -28,6 +32,8 @@ function renderDirectSales(bool $requests=false,bool $warehouseStock=false): voi
             }
             if(($input['action']??'')==='direct_checkout'&&!$requests){$id=directCheckout($db,$input);header('Location: index.php?id='.$id,true,303);return;}
             if(($input['action']??'')==='direct_request'&&$requests){$id=directCreateRequest($db,$input);header('Location: solicitudes.php?id='.$id,true,303);return;}
+            if(($input['action']??'')==='direct_payment'&&!$requests&&$id){directRegisterPayment($db,$id,$input,$_FILES);header('Location: index.php?id='.$id.'&payment_registered=1',true,303);return;}
+            if(($input['action']??'')==='direct_dispatch'&&$requests&&$id){directDispatchRequest($db,$id,$input);header('Location: solicitudes.php?id='.$id,true,303);return;}
             if($requests&&$id&&in_array($input['action']??'',['direct_approve','direct_cancel'],true)){
                 directDecideRequest($db,$id,$input,$input['action']==='direct_approve');header('Location: solicitudes.php?id='.$id,true,303);return;
             }
@@ -48,7 +54,7 @@ function renderDirectSales(bool $requests=false,bool $warehouseStock=false): voi
         if(!$requests&&!$warehouseStock){
             $q=$db->prepare("SELECT c.id,c.name FROM contacts c JOIN contact_types t ON t.id=c.type_id WHERE c.company_id=? AND c.active=1 AND t.system_key='client' AND ".permissionWhere('contactos.contacts','c')." ORDER BY c.name");
             $q->execute([companyActiveId()]);$page['customers']=$q->fetchAll();
-            $q=$db->prepare('SELECT id,name,days FROM accounting_payment_terms WHERE company_id=? AND days>0 ORDER BY days,name');$q->execute([companyActiveId()]);$page['terms']=$q->fetchAll();
+            $q=$db->prepare('SELECT id,name,days FROM accounting_payment_terms WHERE company_id=? ORDER BY days,name');$q->execute([companyActiveId()]);$page['terms']=$q->fetchAll();
             $q=$db->query('SELECT d.id,d.request_key,d.payment_mode,d.seller_id,d.sale_id,d.operation_id,d.invoice_id,d.created_at,i.status AS invoice_status,i.name,i.total_amount,i.currency_code,i.due_date,i.payment_state,c.name AS customer_name,s.name AS seller_name
                 FROM direct_sale_checkouts d JOIN accounting_invoices i ON i.id=d.invoice_id JOIN contacts c ON c.id=i.contact_id JOIN contacts s ON s.id=d.seller_id
                 WHERE '.permissionWhere($resource,'d').' ORDER BY d.id DESC LIMIT 100');$page['rows']=$q->fetchAll();
@@ -56,7 +62,10 @@ function renderDirectSales(bool $requests=false,bool $warehouseStock=false): voi
                 $q=$db->prepare('SELECT d.*,i.status AS invoice_status,i.name,i.invoice_date,i.due_date,i.currency_code,i.total_amount,i.payment_state,c.name AS customer_name,s.name AS seller_name FROM direct_sale_checkouts d JOIN accounting_invoices i ON i.id=d.invoice_id JOIN contacts c ON c.id=i.contact_id JOIN contacts s ON s.id=d.seller_id WHERE d.id=? AND '.permissionWhere($resource,'d'));
                 $q->execute([$id]);$page['detail']=$q->fetch();
                 if(!$page['detail'])authStop(404,'La venta no está disponible.');
-                $q=$db->prepare('SELECT product_name,quantity,unit_price,total_amount FROM accounting_invoice_lines WHERE invoice_id=? ORDER BY position,id');$q->execute([$page['detail']['invoice_id']]);$page['lines']=$q->fetchAll();
+                $q=$db->prepare('SELECT id,product_name,quantity,unit_price,total_amount FROM accounting_invoice_lines WHERE invoice_id=? ORDER BY position,id');$q->execute([$page['detail']['invoice_id']]);$page['lines']=$q->fetchAll();
+                $page['sale_record']=directSaleRecord($db,$id);$page['payment_details']=invoicePaymentDetails($db,(int)$page['detail']['invoice_id']);
+                $page['accounts']=$db->query('SELECT id,name,currency_code FROM accounting_payment_accounts WHERE company_id='.(int)companyActiveId().' ORDER BY name')->fetchAll();
+                $page['methods']=$db->query('SELECT id,name FROM accounting_payment_methods WHERE company_id='.(int)companyActiveId().' ORDER BY name')->fetchAll();
             }
         }elseif($requests){
             $q=$db->query('SELECT r.*,c.name AS seller_name FROM direct_stock_requests r JOIN contacts c ON c.id=r.seller_id WHERE '.permissionWhere($resource,'r').' ORDER BY r.id DESC LIMIT 100');$page['rows']=$q->fetchAll();
@@ -68,13 +77,19 @@ function renderDirectSales(bool $requests=false,bool $warehouseStock=false): voi
         }
         if($warehouseStock||($requests&&permissionScope($resource,'confirm')==='all'&&permissionHas('venta_directa.stock'))){
             $page['locations']=directCentralLocations($db);
-            $selected=accessId($page['input']['source_location_id']??$_GET['source_location_id']??null);
+            $selected=accessId($page['input']['source_location_id']??$_GET['source_location_id']??(($page['detail']['status']??'')==='approved'?$page['detail']['source_location_id']:null));
             if($selected){foreach($page['locations'] as $location)if((int)$location['id']===$selected)$page['source']=$location;
-                if(!$page['source'])authStop(403,'El origen no está disponible para abastecimiento en esta empresa.');
+                if(!$page['source']){
+                    if(($page['detail']['status']??'')==='approved')$page['errors'][]='El almacén aprobado ya no está disponible. Cancela la solicitud y genera otra.';
+                    else authStop(403,'El origen no está disponible para abastecimiento en esta empresa.');
+                }
             }else{$page['source']=$page['locations'][0]??null;}
             if($page['source']){
                 $page['supply_rows']=directSupplyStock($db,(int)$page['source']['id']);
                 foreach($page['supply_rows'] as $row)$page['source_stock'][(int)$row['id']]=$row['available'];
+                if(($page['detail']['request_kind']??'')==='return'){
+                    $page['source_stock']=[];foreach(directSupplyStock($db,(int)$page['detail']['seller_location_id']) as $row)$page['source_stock'][(int)$row['id']]=$row['available'];
+                }
             }
         }
     }catch(Throwable $e){error_log('Catálogo de venta directa: '.$e->getMessage());http_response_code(503);$page['errors'][]='No se pudo cargar el módulo. Comprueba que las migraciones de Ventas Directas estén aplicadas.';$page['settings']??=['primary_code'=>''];}
