@@ -4,6 +4,7 @@ if (PHP_SAPI !== 'cli') { http_response_code(404); exit; }
 require_once __DIR__.'/auth-server.php';
 require_once dirname(__DIR__).'/php/commerce-repository.php';
 require_once dirname(__DIR__).'/php/inventory-stock-repository.php';
+require_once dirname(__DIR__).'/php/inventory-tracking.php';
 require_once dirname(__DIR__).'/php/payments-repository.php';
 require_once dirname(__DIR__).'/php/commission-repository.php';
 require_once dirname(__DIR__).'/php/cash-flow-repository.php';
@@ -117,6 +118,11 @@ try {
     roleExpect($order['total_amount']==='15.40' && $order['commission_estimated']==='4.00' && (int)$order['salesperson_id']===$contacts['salesperson'],'No viajaron impuesto, comisión o vendedor.');
     roleCreated($post('sales',$salePath.'?id='.$sale,['action'=>'confirm_sale','version'=>1]));
     $delivery=roleCreated($post('sales',$salePath.'?id='.$sale,['action'=>'create_delivery'])); $move($delivery,'2.00');
+    $deliveryPath='/modules/inventario/operaciones.php?type=delivery&id='.$delivery;
+    [, $salesDelivery]=authTestRequest($server,$deliveryPath,$cookies['sales']);
+    roleExpect(str_contains($salesDelivery,'data-quotation-invoice')&&str_contains($salesDelivery,'action="../ventas/index.php?id='.$sale.'"'),'El vendedor no puede facturar desde su entrega usando el permiso de la orden.');
+    [, $inventoryDelivery]=authTestRequest($server,$deliveryPath,$cookies['inventory']);
+    roleExpect(!str_contains($inventoryDelivery,'data-quotation-invoice'),'Inventario recibió un botón de facturación sin permiso comercial.');
     $customerInvoice=$invoice('sales','ventas',$sale);
     $rateInvoice=roleRecord($db,'accounting_invoices',$customerInvoice);
     roleExpect($rateInvoice['exchange_rate']==='202.00'&&$rateInvoice['exchange_rate_date']===$today&&$rateInvoice['exchange_rate_source']==='bcv','La factura heredó la tasa de la orden en vez de su fecha.');

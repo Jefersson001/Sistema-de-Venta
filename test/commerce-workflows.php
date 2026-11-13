@@ -61,6 +61,7 @@ try {
         $operationPath = 'inventario/operaciones.php?type=' . $operationType . '&id=' . $operation;
         [$status, $operationForm] = commerceRequest($operationPath, $cookie); $operationToken = commerceToken($operationForm);
         expectCommerce(str_contains($operationForm, '../' . $module . '/index.php?id=' . $id), 'La operación no permite volver a su orden.');
+        if($kind==='sale')expectCommerce(!str_contains($operationForm,'data-quotation-invoice'),'Se ofrece facturar desde una entrega sin validar.');
         $blocked = commerceRequest($operationPath, $cookie, ['csrf' => $operationToken, 'action' => 'create_invoice']); expectCommerce($blocked[0] === 200 && str_contains($blocked[1], 'valida'), 'Se facturó antes de validar el movimiento.');
         $saveOperation = ['csrf' => $operationToken, 'action' => 'save_operation', 'version' => '1', 'contact_id' => $fixtures[$party], 'scheduled_date' => commerceToday(),
             'source_location_id' => $fixtures['location'], 'destination_location_id' => $fixtures['location'], 'notes' => $prefix,
@@ -69,7 +70,18 @@ try {
         commerceCreated(commerceRequest($operationPath, $cookie, ['csrf' => $operationToken, 'action' => 'confirm_operation', 'version' => '2']));
         commerceCreated(commerceRequest($operationPath, $cookie, ['csrf' => $operationToken, 'action' => 'check_ready', 'version' => '3']));
         commerceCreated(commerceRequest($operationPath, $cookie, ['csrf' => $operationToken, 'action' => 'validate_operation', 'version' => '4']));
-        $invoiceId = commerceCreated(commerceRequest($operationPath, $cookie, ['csrf' => $operationToken, 'action' => 'create_invoice']));
+        if($kind==='sale'){
+            [, $deliveryForm]=commerceRequest($operationPath,$cookie);
+            $deliveryDom=new DOMDocument();libxml_use_internal_errors(true);$deliveryDom->loadHTML('<?xml encoding="UTF-8">'.$deliveryForm);$deliveryXpath=new DOMXPath($deliveryDom);
+            $invoiceButton=$deliveryXpath->query('//*[@data-quotation-invoice]')->item(0);
+            expectCommerce($invoiceButton!==null,'La entrega validada no ofrece Crear factura.');
+            $invoiceFormNode=$deliveryXpath->query('ancestor::form[1]',$invoiceButton)->item(0);
+            expectCommerce($invoiceFormNode->getAttribute('action')==='../ventas/index.php?id='.$id,'La entrega no utiliza el mismo proceso de facturación de la venta.');
+            $invoiceId=commerceCreated(commerceRequest('ventas/index.php?id='.$id,$cookie,['csrf'=>commerceToken($deliveryForm),'action'=>'create_invoice']));
+            [, $deliveryWithDraft]=commerceRequest($operationPath,$cookie);
+            expectCommerce(str_contains($deliveryWithDraft,'data-related-invoice')&&!str_contains($deliveryWithDraft,'data-quotation-invoice'),'La entrega no permite abrir su factura o muestra otro botón de creación con un borrador existente.');
+        }else $invoiceId = commerceCreated(commerceRequest($operationPath, $cookie, ['csrf' => $operationToken, 'action' => 'create_invoice']));
+        expectCommerce(commerceCreated(commerceRequest($operationPath,$cookie,['csrf'=>$operationToken,'action'=>'create_invoice']))===$invoiceId,'La entrega duplicó la factura creada mediante el botón de la venta.');
         expectCommerce(commerceCreated(commerceRequest($module . '/index.php?id=' . $id, $cookie, ['csrf' => $token, 'action' => 'create_invoice'])) === $invoiceId, 'Se duplicó la factura desde otro acceso.');
         $invoiceType = $kind === 'purchase' ? 'supplier' : 'customer'; $invoicePath = 'contabilidad/index.php?type=' . $invoiceType . '&id=' . $invoiceId;
         [$status, $invoiceForm] = commerceRequest($invoicePath, $cookie);
@@ -96,10 +108,11 @@ try {
         $blocked = commerceRequest($invoicePath, $cookie, $invoicePost); expectCommerce($blocked[0] === 200 && str_contains($blocked[1], 'no admite cambios'), 'Se editó una factura confirmada.');
         [$status, $operationForm] = commerceRequest($operationPath, $cookie);
         $operationDom = new DOMDocument(); $operationDom->loadHTML('<?xml encoding="UTF-8">' . $operationForm); $operationXpath = new DOMXPath($operationDom);
-        expectCommerce($operationXpath->query('//*[@aria-label="Documentos relacionados"]//a')->length === 1
+        expectCommerce($operationXpath->query('//*[@aria-label="Documentos relacionados"]//a')->length === ($kind==='sale'?2:1)
             && $operationXpath->query('//*[@aria-label="Documentos relacionados"]//*[@data-related-source]')->length === 1
-            && $operationXpath->query('//*[@aria-label="Documentos relacionados"]//*[@data-related-operation or @data-related-invoice or @data-quotation-invoice]')->length === 0,
-            'La entrega/recepción debe mostrar solo el botón a su orden de origen.');
+            && $operationXpath->query('//*[@aria-label="Documentos relacionados"]//*[@data-related-invoice]')->length === ($kind==='sale'?1:0)
+            && $operationXpath->query('//*[@aria-label="Documentos relacionados"]//*[@data-related-operation or @data-quotation-invoice]')->length === 0,
+            'La entrega debe enlazar a su venta y factura; la recepción debe conservar su compra de origen.');
         expectCommerce(str_starts_with(trim($operationXpath->query('//*[@data-related-source]')->item(0)->textContent),$kind==='sale'?'Venta':'Compra'), 'La recepción debe mostrar Compra y la entrega Venta.');
         [$status, $orderForm] = commerceRequest($module . '/index.php?id=' . $id, $cookie);
         expectCommerce(str_contains($orderForm, 'Factura · 1') && str_contains($orderForm, 'data-related-operation') && str_contains($orderForm, 'data-related-invoice'), 'La orden perdió sus botones a la factura y operación.');
