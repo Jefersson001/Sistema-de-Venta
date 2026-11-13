@@ -113,6 +113,13 @@ $isExternalPartner = in_array($selectedType['system_key'] ?? '', ['client', 'sup
                             <?php foreach ($page['storage']['warehouses'] as $warehouse): ?><option value="<?= (int) $warehouse['id'] ?>" <?= (int) ($record['warehouse_id'] ?? 0) === (int) $warehouse['id'] ? 'selected' : '' ?>><?= contactEscape($warehouse['name']) ?></option><?php endforeach; ?>
                         </select>
                     </label>
+                    <label>Ubicación interna del vendedor
+                        <select name="location_id" data-related-location <?= ! $isSeller ? 'disabled' : '' ?>>
+                            <option value="">Automática si el almacén tiene una sola ubicación interna</option>
+                            <?php foreach ($page['storage']['locations'] as $location): ?><?php if ($location['location_type'] === 'internal'): ?><option value="<?= (int) $location['id'] ?>" data-warehouse-id="<?= (int) $location['warehouse_id'] ?>" <?= (int) ($record['location_id'] ?? 0) === (int) $location['id'] ? 'selected' : '' ?>><?= contactEscape($location['name']) ?></option><?php endif; ?><?php endforeach; ?>
+                        </select>
+                        <small>Ventas Directas utiliza esta ubicación para vender y recibir mercancía. Si hay varias en el almacén, selecciona una.</small>
+                    </label>
                 </div>
             </section>
             <section class="notebook-page" id="page-attachments" data-notebook-page aria-labelledby="tab-attachments">

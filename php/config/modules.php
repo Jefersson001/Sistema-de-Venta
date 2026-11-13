@@ -59,6 +59,11 @@ return [
         'color' => 'emerald',
         'features' => ['Mapa de mesas', 'Cuentas y atención', 'Áreas del restaurante'],
     ],
+    'venta_directa' => [
+        'name'=>'Ventas Directas','description'=>'Vende desde tu teléfono o computadora y solicita mercancía.',
+        'category'=>'Operaciones','initials'=>'VD','color'=>'violet',
+        'features'=>['Venta rápida','Mi inventario','Solicitudes de mercancía'],
+    ],
     'ajustes' => [
         'name' => 'Ajustes',
         'description' => 'Configura tu empresa y las opciones de cada módulo.',

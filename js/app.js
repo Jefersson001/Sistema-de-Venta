@@ -124,6 +124,18 @@ for (const contactType of document.querySelectorAll('[data-contact-type]')) {
     const salesperson = field.querySelector('select');
     const sellerStorage = form.querySelector('[data-storage-seller-field]');
     const warehouse = sellerStorage?.querySelector('[data-related-warehouse]');
+    const sellerLocation = sellerStorage?.querySelector('[data-related-location]');
+    const sellerLocationOptions = sellerLocation ? [...sellerLocation.options].map(option => option.cloneNode(true)) : [];
+    function updateSellerLocations() {
+        if (!sellerLocation) return;
+        const selected = sellerLocation.value;
+        const options = sellerLocationOptions.filter(option => !option.value || option.dataset.warehouseId === warehouse?.value);
+        sellerLocation.replaceChildren(...options.map(option => option.cloneNode(true)));
+        sellerLocation.value = options.some(option => option.value === selected) ? selected : '';
+        sellerLocation.disabled = contactType.selectedOptions[0]?.dataset.contactKind !== 'salesperson';
+        sellerLocation.dispatchEvent(new Event('change'));
+    }
+    warehouse?.addEventListener('change', updateSellerLocations);
     const partnerField = form.querySelector('[data-partner-location-field]');
     const partnerSelect = partnerField?.querySelector('select');
     const partnerOptions = partnerSelect ? [...partnerSelect.options].map(option => option.cloneNode(true)) : [];
@@ -145,6 +157,7 @@ for (const contactType of document.querySelectorAll('[data-contact-type]')) {
         if (sellerStorage) {
             sellerStorage.hidden = kind !== 'salesperson';
             if (warehouse) warehouse.disabled = kind !== 'salesperson';
+            updateSellerLocations();
         }
     }
     contactType.addEventListener('change', updateSalespersonVisibility);

@@ -108,7 +108,7 @@ function validateContact(array $input, array $catalogs, array $salespeople = [],
             $warehouse = storageRecord($storage['warehouses'] ?? [], $warehouseId);
             $location = storageRecord($storage['locations'] ?? [], $locationId);
             $invalidWarehouse = ($input['warehouse_id'] ?? '') !== '' && ! $warehouse;
-            $invalidLocation = ($input['location_id'] ?? '') !== '' && (! $location || (int) $location['warehouse_id'] !== $warehouseId);
+            $invalidLocation = ($input['location_id'] ?? '') !== '' && (! $location || (int) $location['warehouse_id'] !== $warehouseId || $location['location_type'] !== 'internal');
             $destination = $invalidWarehouse || $invalidLocation ? null : ['warehouse_id' => $warehouseId, 'location_id' => $locationId];
         } else {
             $destination = resolveStorageDestination($input['storage_destination'] ?? '', $storage);

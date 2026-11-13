@@ -1,5 +1,16 @@
 (() => {
     'use strict';
+    const headerPanel = document.querySelector('[data-module-header]');
+    if (headerPanel) {
+        const preferenceKey = 'vent-as-header-open-' + headerPanel.dataset.headerUser;
+        try { headerPanel.open = localStorage.getItem(preferenceKey) === '1'; } catch {}
+        headerPanel.addEventListener('toggle', () => {
+            if (!headerPanel.open) {
+                for (const menu of headerPanel.querySelectorAll('details[open]')) menu.open = false;
+            }
+            try { localStorage.setItem(preferenceKey, headerPanel.open ? '1' : '0'); } catch {}
+        });
+    }
     const menuSelector = 'details.module-menu, details.company-selector, details.transfer-menu';
     function closeMenus(except = null) {
         for (const menu of document.querySelectorAll(menuSelector)) {

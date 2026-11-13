@@ -61,7 +61,7 @@ try {
     expectRelation((int) $partnerLocation->fetchColumn() === (int) $externalIds['customer'], 'No persistió la ubicación relacionada.');
     expectRelation(! str_contains($form, 'data-related-storage') && ! str_contains($form, 'data-storage-client-field'), 'El cliente sigue mostrando un campo de almacén.');
     [$status, $sellerForm] = relationRequest($base, 'contactos/index.php?id=' . $contacts['seller'], $cookie);
-    expectRelation($status === 200 && ! str_contains($sellerForm, '<optgroup') && str_contains($sellerForm, 'data-related-warehouse') && ! str_contains($sellerForm, 'data-related-location'), 'La ficha del vendedor debe mostrar solo el selector de almacén.');
+    expectRelation($status === 200 && ! str_contains($sellerForm, '<optgroup') && str_contains($sellerForm, 'data-related-warehouse') && str_contains($sellerForm, 'data-related-location'), 'La ficha del vendedor debe permitir seleccionar almacén y ubicación interna.');
     [$status, $stockForm] = relationRequest($base, 'inventario/configuracion.php?section=locations&id=' . $location, $cookie);
     expectRelation($status === 200 && preg_match('/name="csrf" value="([a-f0-9]+)"/', $stockForm, $stockMatches) === 1, 'No se abrió la ubicación.');
     [$status, $body] = relationRequest($base, 'inventario/configuracion.php?section=locations&id=' . $location, $cookie,

@@ -22,6 +22,9 @@ function navigationSearchCatalog(): array
     $add('compras',['Órdenes de compra'],'index.php','solicitudes cotizaciones proveedores');
     $add('compras',['Configuración','Impuestos de compra'],'configuracion.php?section=taxes');
     $add('ventas',['Órdenes de venta'],'index.php','cotizaciones pedidos clientes');
+    $add('venta_directa',['Vender'],'index.php','móvil celular carrito ventas directas contado crédito');
+    $add('venta_directa',['Solicitudes de mercancía'],'solicitudes.php','aprobar reposición almacén vendedor');
+    $add('venta_directa',['Inventario para abastecimiento'],'inventario.php','almacenes disponibles supervisor existencias');
     $add('ventas',['Comisiones','Comisiones'],'comisiones.php','vendedores');
     $add('ventas',['Comisiones','Pagos de comisiones'],'pagos-comisiones.php','pagar vendedores');
     $add('ventas',['Configuración','Impuestos de venta'],'configuracion.php?section=taxes');

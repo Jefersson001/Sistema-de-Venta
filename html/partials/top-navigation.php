@@ -1,3 +1,8 @@
+<?php $collapsibleNavigation = !($isHomePage ?? false); ?>
+<?php if ($collapsibleNavigation): ?>
+<details class="module-header-panel" data-module-header data-header-user="<?= (int)(authCurrentUser()['id'] ?? 0) ?>">
+    <summary class="module-header-toggle"><span class="module-header-show">Mostrar cabecera</span><span class="module-header-hide">Ocultar cabecera</span><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.7" aria-hidden="true"><path d="m4 6 4 4 4-4"/></svg></summary>
+<?php endif; ?>
 <header class="top-navigation top-navigation--refined">
     <div class="top-navigation-inner">
         <nav class="top-navigation-primary" aria-label="Navegación principal">
@@ -16,4 +21,5 @@
         </div>
     </div>
 </header>
+<?php if ($collapsibleNavigation): ?></details><?php endif; ?>
 <script src="<?= authBasePath() ?>/js/navigation.js?v=<?= filemtime(dirname(__DIR__,2).'/js/navigation.js') ?>" defer></script>

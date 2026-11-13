@@ -27,6 +27,7 @@ function companyResourceTable(string $resource): ?string
 {
     return match($resource){
         'restaurante.accounts'=>'restaurant_accounts','restaurante.tables'=>'restaurant_tables',
+        'venta_directa.sales'=>'direct_sale_checkouts','venta_directa.requests'=>'direct_stock_requests',
         'contactos.contacts'=>'contacts','inventario.products'=>'inventory_products',
         'inventario.lots'=>'inventory_lots',
         'ventas.orders'=>'sales_quotations','compras.orders'=>'purchase_orders',

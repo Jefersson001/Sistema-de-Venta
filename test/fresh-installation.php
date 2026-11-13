@@ -44,7 +44,7 @@ try {
     freshExpect($snapshot['rows'][0]['name']==='Importación parcial QA','El respaldo parcial perdió datos.');
     installFreshApplication($db,$progress);
     migrationAssertApplicationReady($db);
-    freshExpect(runVersionedMigrations($db,$progress)===1,'No se registró la migración inicial.');
+    freshExpect(runVersionedMigrations($db,$progress)===count(migrationFiles()),'No se registraron todas las migraciones de la instalación inicial.');
     freshExpect(runVersionedMigrations($db,$progress)===0,'Se repitió la migración inicial.');
     $tables=$db->query('SHOW TABLES')->fetchAll(PDO::FETCH_COLUMN);
     foreach (['auth_state','company_schema_state','contact_addresses','payment_proofs','inventory_lots','restaurant_accounts','business_record_actions'] as $table) {
@@ -85,7 +85,8 @@ try {
     freshExpect(authAttemptLogin($db,'fresh.qa',$password,'127.0.0.1')['user']!==null,'No se puede iniciar sesión.');
     foreach (['/','/index.php','/modules/ajustes/index.php','/modules/ajustes/usuarios.php','/modules/ajustes/grupos.php',
         '/modules/contactos/index.php','/modules/inventario/index.php','/modules/ventas/index.php',
-        '/modules/compras/index.php','/modules/contabilidad/index.php','/modules/dashboard/index.php','/modules/restaurante/index.php'] as $path) {
+        '/modules/compras/index.php','/modules/contabilidad/index.php','/modules/dashboard/index.php','/modules/restaurante/index.php',
+        '/modules/venta_directa/inventario.php','/modules/venta_directa/solicitudes.php'] as $path) {
         [$status,$body]=authTestRequest($server,$path,$cookie);
         freshExpect($status===200 && str_contains($body,'</html>'),'Falló la vista '.$path.' HTTP '.$status.' '.mb_substr(strip_tags($body),-400));
     }
@@ -95,7 +96,7 @@ try {
     installFreshApplication($db,$progress);
     freshExpect((int)$db->query('SELECT COUNT(*) FROM auth_users')->fetchColumn()===1,'Se duplicó el administrador.');
     freshExpect($db->query('SELECT name FROM business_company WHERE id=1')->fetchColumn()==='Empresa personalizada QA','Repetir sobrescribió la configuración.');
-    echo 'PASS: base vacía, rechazo de tablas ajenas, respaldo parcial, reanudación, activación HTTP, login, 12 vistas en raíz y repetición sin sobrescribir. Tablas: '.count($tables).PHP_EOL;
+    echo 'PASS: base vacía, rechazo de tablas ajenas, respaldo parcial, reanudación, activación HTTP, login, 14 vistas en raíz y repetición sin sobrescribir. Tablas: '.count($tables).PHP_EOL;
 } finally {
     if (is_resource($process)) { proc_terminate($process,9);proc_close($process); }
     foreach ([$cookie,$serverLog] as $file) if ($file && is_file($file)) unlink($file);

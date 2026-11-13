@@ -34,6 +34,7 @@ function permissionAssignedWhere(string $resource,string $alias,int $contact): s
     return match($resource) {
         'contactos.contacts'=>"($alias.id IN ($list) OR $alias.salesperson_id IN ($list))",
         'ventas.orders','contabilidad.customer_invoices'=>"$alias.salesperson_id IN ($list)",
+        'venta_directa.sales','venta_directa.requests'=>"$alias.seller_id IN ($list)",
         'inventario.deliveries'=>"EXISTS(SELECT 1 FROM sales_quotations permission_sale WHERE permission_sale.id=$alias.quotation_id AND permission_sale.salesperson_id IN ($list))",
         'ventas.commissions'=>"$alias.salesperson_id IN ($list)",
         'ventas.commission_payments'=>"EXISTS(SELECT 1 FROM accounting_invoices permission_invoice WHERE permission_invoice.id=$alias.invoice_id AND permission_invoice.salesperson_id IN ($list))",
@@ -51,6 +52,7 @@ function permissionRecord(string $resource,int $id,string $action='read'): bool
     if(permissionScope($resource,$action)==='all')return true;
     $table=match($resource){'contactos.contacts'=>'contacts','ventas.orders'=>'sales_quotations',
         'restaurante.accounts'=>'restaurant_accounts','restaurante.tables'=>'restaurant_tables',
+        'venta_directa.sales'=>'direct_sale_checkouts','venta_directa.requests'=>'direct_stock_requests',
         'inventario.deliveries'=>'inventory_operations','contabilidad.customer_invoices','ventas.commissions'=>'accounting_invoices',
         'ventas.commission_payments'=>'sales_commission_payments',default=>null};
     if(!$table)return false;
@@ -94,6 +96,9 @@ function permissionRoute(string $path,array $query): ?string
     }
     if($file==='configuracion.php')return $module==='dashboard'?null:$module.'.configuration';
     return match($module.'/'.$file){
+        'venta_directa/index.php'=>'venta_directa.sales',
+        'venta_directa/inventario.php'=>'venta_directa.stock',
+        'venta_directa/solicitudes.php'=>'venta_directa.requests',
         'restaurante/index.php','restaurante/mesa.php'=>'restaurante.tables',
         'restaurante/cuenta.php','restaurante/cuentas.php','restaurante/comprobante.php'=>'restaurante.accounts',
         'contactos/index.php','contactos/archivo.php','contactos/direcciones.php'=>'contactos.contacts',
@@ -122,6 +127,9 @@ function permissionAction(string $resource,mixed $action,?int $id): ?string
     if($action==='close_empty_account')return 'cancel';
     if(in_array($action,['pos_add','pos_quantity','pos_remove','pos_note'],true))return 'edit';
     if($action==='pos_checkout')return 'confirm';
+    if(in_array($action,['direct_checkout','direct_request'],true))return 'create';
+    if($action==='direct_approve')return 'confirm';
+    if($action==='direct_cancel')return 'cancel';
     if(str_starts_with($action,'save_'))return $resource==='ajustes.company'?'edit':($id?'edit':'create');
     if($action==='add_payment_proof')return 'edit';
     if($action==='initialize_tracking')return 'create';
@@ -138,6 +146,7 @@ function permissionModuleUrl(string $module): ?string
 {
     $routes=match($module){
         'dashboard'=>['index.php'], 'contactos'=>['index.php','configuracion.php'],
+        'venta_directa'=>permissionHas('venta_directa.sales','create')&&permissionContact()?['index.php','inventario.php','solicitudes.php']:['inventario.php','solicitudes.php','index.php'],
         'restaurante'=>['index.php','cuentas.php','configuracion.php'],
         'ventas'=>['index.php','comisiones.php','pagos-comisiones.php','configuracion.php'],
         'compras'=>['index.php','configuracion.php'],
