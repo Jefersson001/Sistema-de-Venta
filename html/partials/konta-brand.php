@@ -1,0 +1,1 @@
+<a class="konta-brand" href="<?= authEscape(authBasePath().'/index.php') ?>" aria-label="Konta, inicio"><span class="konta-mark" aria-hidden="true">K</span><span class="konta-brand-copy"><strong>Konta<span class="konta-brand-dot" aria-hidden="true"></span></strong><small>GESTIÓN &amp; CRM</small></span></a>

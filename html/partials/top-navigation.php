@@ -1,4 +1,4 @@
-<?php $collapsibleNavigation = !($isHomePage ?? false); ?>
+<?php if($isHomePage??false){require __DIR__.'/konta-header.php';return;} $collapsibleNavigation = true; ?>
 <?php if ($collapsibleNavigation): ?>
 <details class="module-header-panel" data-module-header data-header-user="<?= (int)(authCurrentUser()['id'] ?? 0) ?>">
     <summary class="module-header-toggle"><span class="module-header-show">Mostrar cabecera</span><span class="module-header-hide">Ocultar cabecera</span><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.7" aria-hidden="true"><path d="m4 6 4 4 4-4"/></svg></summary>
@@ -7,8 +7,8 @@
     <div class="top-navigation-inner">
         <nav class="top-navigation-primary" aria-label="Navegación principal">
             <div class="brand">
-                <span class="brand-mark brand-mark--vent-as"><span class="connection-indicator <?= $databaseStatus['connected'] ? 'connection-online' : 'connection-offline' ?>" role="img" title="<?= $databaseStatus['connected'] ? 'Base de datos conectada' : 'Base de datos desconectada' ?>" aria-label="<?= $databaseStatus['connected'] ? 'Base de datos conectada' : 'Base de datos desconectada' ?>"><span class="connection-dot" aria-hidden="true"></span></span></span>
-                <span class="brand-name">Vent-<span>As</span><small>GESTIÓN EMPRESARIAL</small></span>
+                <span class="brand-mark brand-mark--konta">K<span class="connection-indicator <?= $databaseStatus['connected'] ? 'connection-online' : 'connection-offline' ?>" role="img" title="<?= $databaseStatus['connected'] ? 'Base de datos conectada' : 'Base de datos desconectada' ?>" aria-label="<?= $databaseStatus['connected'] ? 'Base de datos conectada' : 'Base de datos desconectada' ?>"><span class="connection-dot" aria-hidden="true"></span></span></span>
+                <span class="brand-name">Konta<small>GESTIÓN &amp; CRM</small></span>
             </div>
         </nav>
         <div class="top-navigation-status">

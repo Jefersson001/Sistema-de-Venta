@@ -1,4 +1,8 @@
 /* Vent-As identity. Module accents identify sections; primary actions stay purple. */
+/* The shared header uses Konta while interior screens are redesigned gradually. */
+.top-navigation.top-navigation--refined .brand-mark.brand-mark--konta{position:relative;display:grid;place-items:center;width:44px;height:44px;border:0;border-radius:13px;background:#00ad78;color:#fff;font-size:27px;font-weight:800;box-shadow:0 4px 10px #00ad7825;}
+.brand-mark--konta .connection-indicator{position:absolute;right:-3px;bottom:-3px;display:grid;place-items:center;width:13px;height:13px;padding:0;border:2px solid white;border-radius:50%;background:white;}
+.brand-mark--konta .connection-dot{width:7px;height:7px;border-radius:50%;background:currentColor;}
 :root {
     --vent-night: #17152F;
     --vent-primary: #6425D9;

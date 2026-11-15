@@ -5,9 +5,9 @@
     if (!button || !input) return;
     button.hidden = false;
     button.addEventListener('click', () => {
-        const visible = input.type === 'password';
-        input.type = visible ? 'text' : 'password';
-        button.textContent = visible ? 'Ocultar' : 'Mostrar';
-        button.setAttribute('aria-pressed', String(visible));
+        const show = input.type === 'password';
+        input.type = show ? 'text' : 'password';
+        button.textContent = show ? 'Ocultar' : 'Mostrar';
+        button.setAttribute('aria-pressed', String(show));
     });
 })();
