@@ -59,7 +59,7 @@ try{
         }
     }
     $d=loadDashboard($db);payCheck(bcsub($d['receivables']['USD'],$baseline['receivables']['USD']??'0',2)==='220.00'&&bcsub($d['receivables']['VES'],$baseline['receivables']['VES']??'0',2)==='1000.00','El inicio mezcla monedas o no incluye saldos nuevos.');payCheck($d['overdue']===$baseline['overdue']+5,'Las facturas vencidas no se calculan desde fechas y saldos.');
-    [, $home]=payRequest('index.php',$cookie);payCheck(str_contains($home,'modules/dashboard/index.php')&&str_contains($home,'Mis módulos')&&!str_contains($home,'Pagos sin aplicar')&&!str_contains($home,'Nueva venta'),'El inicio no quedó limitado al panel de módulos.');
+    [, $home]=payRequest('index.php',$cookie);payCheck(str_contains($home,'modules/dashboard/index.php')&&str_contains($home,'konta-module-grid')&&!str_contains($home,'Pagos sin aplicar')&&!str_contains($home,'Nueva venta'),'El inicio no quedó limitado al panel de módulos.');
     [, $dashboardPage]=payRequest('dashboard/index.php',$cookie);payCheck(str_contains($dashboardPage,'../ventas/index.php?status=all')&&str_contains($dashboardPage,htmlspecialchars(dashboardMoney($d['receivables']),ENT_QUOTES,'UTF-8'))&&str_contains($dashboardPage,'Pagos sin aplicar'),'Dashboard no muestra los datos reales o perdió sus acciones.');
     $createPayment=function(string $type,int $contact,string $amount,string $currency='USD')use($db,$cookie,$prefix,$f,&$payments):int{
         [, $form]=payRequest('contabilidad/pagos.php?type='.$type.'&new=1',$cookie);payCheck(preg_match('/name="creation_key" value="([a-f0-9]+)"/',$form,$m)===1,'Falta protección de creación.');

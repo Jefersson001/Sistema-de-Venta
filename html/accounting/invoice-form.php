@@ -6,22 +6,18 @@ $available = bcsub($details['effective_amount'], bcadd($details['settled'], $det
 $canRegisterPayment = $record['status'] === 'posted' && $record['payment_state'] !== 'reversed' && bccomp($available, '0', 2) > 0;
 $canCreateCredit = $record['status'] === 'posted' && !$credit && $record['payment_state'] !== 'reversed';
 $statusLabels = invoiceFilterStates();
-$activeStates = [$record['status']];
-if ($record['status'] === 'posted') {
-    $activeStates[] = $record['payment_state'];
-    if ($record['sent_at']) $activeStates[] = 'sent';
-}
+$paymentTone=match($record['payment_state']){'paid'=>'success','not_paid','in_payment','partial'=>'warning','reversed'=>'danger',default=>'neutral'};
+$invoiceOperations=array_filter($page['links']['operations']??[],static fn(array $operation):bool=>empty($operation['return_of_id'])&&$operation['status']!=='cancel');
+$invoiceCompletedOperations=count(array_filter($invoiceOperations,static fn(array $operation):bool=>$operation['status']==='done'));
 ?>
 <section aria-labelledby="invoice-title">
     <div class="contact-toolbar invoice-toolbar">
         <div><a class="overview-link" href="index.php?type=<?= $page['type'] ?>">← Facturas</a><h1 id="invoice-title"><?= accountingEscape($record['name']) ?></h1></div>
-        <div class="invoice-status-wrap" role="region" aria-label="Estados de la factura" tabindex="0">
-            <ol class="quotation-status invoice-status" aria-label="Estado de la factura">
-                <?php foreach (['draft', 'posted', 'sent', 'not_paid', 'in_payment', 'partial', 'paid', 'reversed', 'cancel'] as $key): ?>
-                    <?php $active = in_array($key, $activeStates, true); ?>
-                    <li class="<?= $active ? 'is-active' : '' ?>" <?= $record['status'] === $key ? 'aria-current="step"' : '' ?>><?= accountingEscape($statusLabels[$key]) ?><?php if ($active): ?><span class="visually-hidden"> (activo)</span><?php endif; ?></li>
-                <?php endforeach; ?>
-            </ol>
+        <div class="document-state-groups" role="region" aria-label="Estados de la factura">
+            <div class="document-state-group"><span class="document-state-label">Documento</span><span class="workspace-status" data-tone="<?= $record['status']==='posted'?'success':($record['status']==='cancel'?'danger':'neutral') ?>"><?= accountingEscape($statusLabels[$record['status']]) ?></span></div>
+            <?php if($record['status']==='posted'): ?><div class="document-state-group"><span class="document-state-label"><?= $credit?'Reembolso':($page['type']==='customer'?'Cobro':'Pago') ?></span><span class="workspace-status" data-tone="<?= $paymentTone ?>"><?= accountingEscape($statusLabels[$record['payment_state']]) ?></span></div><?php endif; ?>
+            <?php if($invoiceOperations): ?><div class="document-state-group"><span class="document-state-label"><?= $page['type']==='customer'?'Entregas':'Recepciones' ?></span><span class="workspace-status" data-tone="<?= $invoiceCompletedOperations===count($invoiceOperations)?'success':'warning' ?>"><?= $invoiceCompletedOperations ?> de <?= count($invoiceOperations) ?> realizadas</span></div><?php endif; ?>
+            <?php if($record['sent_at']): ?><div class="document-state-group"><span class="document-state-label">Envío</span><span class="workspace-status" data-tone="info">Enviada</span></div><?php endif; ?>
         </div>
     </div>
     <?php if($credit): ?><p class="notice">Nota de crédito · <?= accountingEscape($record['credit_reason']) ?> · <a href="index.php?type=<?= $page['type'] ?>&amp;id=<?= (int)$record['reversal_of_id'] ?>">Factura original</a></p><?php endif; ?>
@@ -39,7 +35,7 @@ if ($record['status'] === 'posted') {
     <div class="contact-sheet quotation-sheet"><form id="invoice-details" method="post" action="index.php?type=<?= $page['type'] ?>&amp;id=<?= (int) $record['id'] ?>" data-invoice-rate-form data-rate-endpoint="<?= accountingEscape(authBasePath().'/tasa.php?invoice_id='.(int)$record['id']) ?>">
         <input type="hidden" name="csrf" value="<?= accountingEscape($page['csrf']) ?>"><input type="hidden" name="version" value="<?= (int) $record['version'] ?>">
         <fieldset <?= $posted ? 'disabled' : '' ?> class="quotation-fields">
-<section class="workspace-form-section" aria-labelledby="invoice-section-0"><h2 id="invoice-section-0" class="workspace-section-title">Datos de facturaci?n</h2><div class="contact-form-grid">
+<section class="workspace-form-section" aria-labelledby="invoice-section-0"><h2 id="invoice-section-0" class="workspace-section-title">Datos de facturación</h2><div class="contact-form-grid">
 <label><?= $page['type'] === 'customer' ? 'Cliente' : 'Proveedor' ?><input readonly value="<?= accountingEscape($record['contact_name']) ?>"></label>
 <label>Dirección de factura<textarea readonly rows="3"><?= accountingEscape($record['invoice_address']) ?></textarea></label>
 <label>Términos de pago<input readonly value="<?= accountingEscape($record['term_name'] ?? '') ?>"></label>

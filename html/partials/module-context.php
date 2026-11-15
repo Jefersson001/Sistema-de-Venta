@@ -1,6 +1,7 @@
 <?php
 // Reuse the same destinations as the home search so names and routes agree.
 require_once dirname(__DIR__, 2).'/php/navigation-search.php';
+require_once dirname(__DIR__, 2).'/php/ui-icons.php';
 $contextRoute = basename(parse_url($_SERVER['REQUEST_URI'], PHP_URL_PATH));
 $contextEntry = null;
 $contextScore = -1;
@@ -20,17 +21,18 @@ foreach (navigationSearchCatalog() as $candidate) {
     if ($score > $contextScore) { $contextEntry = $candidate; $contextScore = $score; }
 }
 $contextSegments = $contextEntry['segments'] ?? [$isConfiguration ? 'Configuración' : 'Vista general'];
+if(($contextSegments[0]??null)===$module['name'])array_shift($contextSegments);
 if ($contextRoute === 'tesoreria.php' && !isset($_GET['kind'])) $contextSegments = ['Tesorería', 'Movimientos de dinero'];
 $contextForm = isset($_GET['new']) ? 'Nuevo registro' : (isset($_GET['id']) ? 'Ficha del registro' : null);
 $contextEscape = static fn(string $value): string => htmlspecialchars($value, ENT_QUOTES, 'UTF-8');
 ?>
 <div class="module-context" data-current-section="<?= $contextEscape($contextEntry['route'] ?? $contextRoute) ?>">
-    <span class="module-context-art module-art-<?= $contextEscape($moduleKey) ?>" aria-hidden="true"></span>
+    <span class="konta-context-icon" aria-hidden="true"><?= kontaIcon($moduleKey) ?></span>
     <div class="module-context-copy">
         <strong><?= $contextEscape($module['name']) ?></strong>
         <nav class="module-breadcrumb" aria-label="Ruta de navegación">
             <ol><li><a href="../../index.php">Inicio</a></li>
-                <li><?= $contextEscape($module['name']) ?></li>
+                <li <?= !$contextForm&&!$contextSegments?'aria-current="page"':'' ?>><?= $contextEscape($module['name']) ?></li>
                 <?php foreach ($contextSegments as $contextIndex => $contextSegment): ?>
                 <li <?= !$contextForm && $contextIndex === array_key_last($contextSegments) ? 'aria-current="page"' : '' ?>><?php if ($contextForm && $contextEntry && $contextIndex === array_key_last($contextSegments)): ?><a href="<?= $contextEscape($contextEntry['route']) ?>"><?= $contextEscape($contextSegment) ?></a><?php else: ?><?= $contextEscape($contextSegment) ?><?php endif; ?></li>
                 <?php endforeach; ?>

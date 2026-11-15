@@ -40,12 +40,16 @@ for (const filter of document.querySelectorAll('[data-auto-submit]')) {
 document.addEventListener('keydown', (event) => {
     if (searchInput && (event.ctrlKey || event.metaKey) && event.key.toLowerCase() === 'k') {
         event.preventDefault();
+        const header=searchInput.closest('[data-module-header]');
+        if(header)header.open=true;
         searchInput.focus();
         searchInput.select();
         return;
     }
     if (event.key === '/' && !['INPUT', 'TEXTAREA'].includes(document.activeElement?.tagName)) {
         event.preventDefault();
+        const header=searchInput?.closest('[data-module-header]');
+        if(header)header.open=true;
         searchInput?.focus();
     }
 });

@@ -11,18 +11,18 @@ if(permissionHas('venta_directa.returns'))$directNav[]=['devoluciones.php','Devo
 if(permissionHas('venta_directa.closing'))$directNav[]=['cierre.php','Cierre',false];
 if(permissionHas('venta_directa.configuration'))$directNav[]=['configuracion.php','Crédito',false];
 ?>
-<!doctype html><html lang="es"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><meta name="theme-color" content="#6425D9"><title>Ventas Directas | Vent-As</title>
+<!doctype html><html lang="es"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><meta name="theme-color" content="#00ad78"><title>Ventas Directas | Konta</title>
 <?php require dirname(__DIR__).'/partials/favicon.php'; ?>
 <link rel="stylesheet" href="../../css/app.css?v=<?= filemtime(dirname(__DIR__,2).'/css/app.css') ?>">
 <link rel="stylesheet" href="../../css/modules.css?v=<?= filemtime(dirname(__DIR__,2).'/css/modules.css') ?>">
 <link rel="stylesheet" href="../../css/searchable-select.css"><script src="../../js/app.js" defer></script><script src="../../js/searchable-select.js" defer></script>
-<?php require dirname(__DIR__).'/partials/theme.php'; ?>
 <link rel="stylesheet" href="../../css/direct-sales.css?v=<?= filemtime(dirname(__DIR__,2).'/css/direct-sales.css') ?>">
+<?php require dirname(__DIR__).'/partials/theme.php'; ?>
 <script src="../../js/direct-sales.js?v=<?= filemtime(dirname(__DIR__,2).'/js/direct-sales.js') ?>" defer></script></head>
 <body class="module-workspace direct-workspace" data-module="venta_directa"><div class="app-shell">
 <?php require dirname(__DIR__).'/partials/top-navigation.php'; ?>
 <main class="direct-main" data-direct-root data-storage-scope="<?= companyActiveId().'-'.(int)permissionUser()['id'].'-'.($requests?'request':'sale') ?>">
-<header class="direct-heading"><div><a class="overview-link" href="../../index.php">← Módulos</a><p class="direct-eyebrow">VENT-AS · VENTA EN MOVIMIENTO</p><h1>Ventas Directas</h1><p>Tu negocio a mano, desde el teléfono o la computadora.</p></div><span class="direct-currency"><?= $e($currency) ?> · Sin descuentos</span></header>
+<header class="direct-heading"><div><a class="overview-link" href="../../index.php">← Módulos</a><p class="direct-eyebrow">KONTA · VENTA EN MOVIMIENTO</p><h1>Ventas Directas</h1><p>Tu negocio a mano, desde el teléfono o la computadora.</p></div><span class="direct-currency"><?= $e($currency) ?> · Sin descuentos</span></header>
 <nav class="direct-tabs" aria-label="Ventas Directas">
 <?php foreach($directNav as [$href,$label,$current]): ?><a href="<?= $e($href) ?>" <?= $current?'aria-current="page"':'' ?>><?= $e($label) ?></a><?php endforeach; ?>
 </nav>

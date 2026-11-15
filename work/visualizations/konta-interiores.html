@@ -1,0 +1,144 @@
+<div id="konta-interiores" aria-label="Propuesta de pantallas interiores de Konta">
+  <style>
+    #konta-interiores { --ki-bg:light-dark(#f7f9fc,#111a25); --ki-panel:light-dark(#fff,#192432); --ki-text:light-dark(#101d32,#eef3fa); --ki-muted:light-dark(#62758d,#afc0d4); --ki-line:light-dark(#e2e9f2,#344457); --ki-green:light-dark(#00875f,#5ce0ae); --ki-soft:light-dark(#e7f8f0,#173e33); font:400 14px/1.5 system-ui,sans-serif; color:var(--ki-text); background:var(--ki-bg); border:1px solid var(--ki-line); border-radius:14px; overflow:hidden; }
+    #konta-interiores * { box-sizing:border-box; }
+    #konta-interiores [hidden] { display:none !important; }
+    #konta-interiores button, #konta-interiores input, #konta-interiores select { font:inherit; color:inherit; }
+    #konta-interiores button { cursor:pointer; }
+    #konta-interiores .ki-top { background:var(--ki-panel); padding:12px 20px; border-bottom:1px solid var(--ki-line); display:flex; align-items:center; gap:12px; flex-wrap:wrap; }
+    #konta-interiores .ki-logo { background:#00ad78; color:#fff; padding:4px 10px; border-radius:10px; font-size:20px; font-weight:500; }
+    #konta-interiores .ki-brand { font-size:18px; font-weight:500; }
+    #konta-interiores .ki-meta { color:var(--ki-muted); font-size:12px; }
+    #konta-interiores .ki-spacer { flex:1; }
+    #konta-interiores .ki-content { padding:20px; display:grid; gap:18px; }
+    #konta-interiores .ki-row { display:flex; align-items:center; justify-content:space-between; gap:12px; flex-wrap:wrap; }
+    #konta-interiores .ki-tabs { display:flex; flex-wrap:wrap; gap:6px; border-bottom:1px solid var(--ki-line); padding-bottom:12px; }
+    #konta-interiores .ki-button { border:1px solid var(--ki-line); border-radius:8px; padding:7px 12px; background:var(--ki-panel); min-height:36px; }
+    #konta-interiores .ki-button[aria-selected="true"] { background:var(--ki-soft); color:var(--ki-green); border-color:var(--ki-green); }
+    #konta-interiores .ki-primary { color:white; background:#00875f; border-color:#00875f; }
+    #konta-interiores h2 { margin:0; font-size:22px; font-weight:500; }
+    #konta-interiores h3 { margin:0 0 12px; font-size:14px; font-weight:500; }
+    #konta-interiores .ki-panel { background:var(--ki-panel); border:1px solid var(--ki-line); border-radius:12px; padding:16px; }
+    #konta-interiores .ki-stack { display:grid; gap:16px; }
+    #konta-interiores .ki-filter { display:flex; gap:10px; flex-wrap:wrap; }
+    #konta-interiores input, #konta-interiores select { background:var(--ki-panel); border:1px solid var(--ki-line); border-radius:8px; padding:8px 10px; min-width:0; max-width:100%; }
+    #konta-interiores input[type="search"] { flex:1; min-width:160px; }
+    #konta-interiores .ki-table { width:100%; border-collapse:collapse; text-align:left; }
+    #konta-interiores .ki-table th { color:var(--ki-muted); font-weight:400; }
+    #konta-interiores .ki-table th, #konta-interiores .ki-table td { padding:var(--ki-row-pad,12px) 8px; border-bottom:1px solid var(--ki-line); }
+    #konta-interiores .ki-table th:first-child, #konta-interiores .ki-table td:first-child { padding-left:0; }
+    #konta-interiores .ki-number { text-align:right; font-variant-numeric:tabular-nums; }
+    #konta-interiores .ki-status { background:var(--ki-soft); color:var(--ki-green); border-radius:6px; padding:3px 8px; display:inline-block; font-size:12px; }
+    #konta-interiores .ki-link { padding:0; border:0; background:none; color:var(--ki-green); text-align:left; }
+    #konta-interiores .ki-grid { display:grid; grid-template-columns:minmax(0,1fr) 250px; gap:16px; }
+    #konta-interiores .ki-fields { display:grid; grid-template-columns:1fr 1fr; gap:14px; }
+    #konta-interiores .ki-field { display:grid; gap:4px; }
+    #konta-interiores .ki-field span:first-child { color:var(--ki-muted); font-size:12px; }
+    #konta-interiores .ki-states { display:flex; gap:14px; flex-wrap:wrap; }
+    #konta-interiores .ki-summary { display:grid; gap:12px; }
+    #konta-interiores .ki-total { padding-top:12px; border-top:1px solid var(--ki-line); font-size:18px; }
+    #konta-interiores .ki-footer { font-size:12px; color:var(--ki-muted); }
+    @media(max-width:700px) { #konta-interiores .ki-grid { grid-template-columns:1fr; } #konta-interiores .ki-secondary-col { display:none; } }
+    @media(max-width:420px) { #konta-interiores .ki-content { padding:12px; } #konta-interiores .ki-top { padding:10px 12px; } #konta-interiores .ki-fields { grid-template-columns:1fr; } #konta-interiores .ki-panel { padding:12px; } #konta-interiores .ki-table { font-size:12px; } #konta-interiores input, #konta-interiores select { font-size:16px; } #konta-interiores button { min-height:44px; } }
+  </style>
+  <header class="ki-top">
+    <span class="ki-logo">K</span><span class="ki-brand">Konta</span><span class="ki-meta">Empresa seleccionada</span>
+    <span class="ki-spacer"></span><span class="ki-meta">Propuesta · datos de ejemplo</span>
+  </header>
+  <div class="ki-content">
+    <nav class="ki-tabs" aria-label="Pantallas de referencia">
+      <button type="button" class="ki-button" data-screen="contacts" aria-selected="true">Contactos · listado</button>
+      <button type="button" class="ki-button" data-screen="profile" aria-selected="false">Contacto · ficha</button>
+      <button type="button" class="ki-button" data-screen="invoice" aria-selected="false">Factura · documento</button>
+    </nav>
+    <section data-page="contacts" class="ki-stack" aria-label="Listado de contactos">
+      <div><div class="ki-meta">Inicio / Contactos</div><h2>Contactos</h2></div>
+      <div class="ki-filter">
+        <input type="search" aria-label="Buscar contacto" placeholder="Nombre, documento o teléfono…">
+        <select aria-label="Filtrar tipo de contacto"><option value="all">Todos los tipos</option><option value="Cliente">Clientes</option><option value="Proveedor">Proveedores</option></select>
+      </div>
+      <div class="ki-panel">
+        <table class="ki-table"><thead><tr><th>Contacto</th><th>Tipo</th><th class="ki-secondary-col">Documento</th><th>Estado</th></tr></thead>
+          <tbody>
+            <tr data-kind="Cliente"><td><button type="button" class="ki-link" data-open-profile>Comercial Los Robles</button><div class="ki-meta">Empresa</div></td><td>Cliente</td><td class="ki-secondary-col">J-00000001-0</td><td><span class="ki-status">Activo</span></td></tr>
+            <tr data-kind="Cliente"><td>María Pérez<div class="ki-meta">Persona</div></td><td>Cliente</td><td class="ki-secondary-col">V-00000002</td><td><span class="ki-status">Activo</span></td></tr>
+            <tr data-kind="Proveedor"><td>Distribuidora Central<div class="ki-meta">Empresa</div></td><td>Proveedor</td><td class="ki-secondary-col">J-00000003-0</td><td><span class="ki-status">Activo</span></td></tr>
+          </tbody>
+        </table>
+        <div class="ki-footer" data-results aria-live="polite">3 contactos de ejemplo</div>
+      </div>
+    </section>
+    <section data-page="profile" class="ki-stack" aria-label="Ficha de contacto" hidden>
+      <div><div class="ki-meta">Inicio / Contactos / Comercial Los Robles</div><h2>Comercial Los Robles</h2><span class="ki-status">Cliente activo</span></div>
+      <div class="ki-tabs" aria-label="Secciones de la ficha">
+        <button type="button" class="ki-button" data-profile="main" aria-selected="true">Datos generales</button>
+        <button type="button" class="ki-button" data-profile="address" aria-selected="false">Dirección y localización</button>
+        <button type="button" class="ki-button" data-profile="files" aria-selected="false">Fotos y documentos</button>
+      </div>
+      <div class="ki-panel ki-fields" data-profile-page="main">
+        <div class="ki-field"><span>Tipo de contacto</span><span>Cliente · Empresa</span></div>
+        <div class="ki-field"><span>Documento</span><span>J-00000001-0</span></div>
+        <div class="ki-field"><span>Correo</span><span>compras@example.com</span></div>
+        <div class="ki-field"><span>Términos de pago</span><span>Crédito a 15 días</span></div>
+      </div>
+      <div class="ki-panel ki-stack" data-profile-page="address" hidden><h3>Principal</h3><div>Dirección de ejemplo · Caracas</div><div class="ki-meta">Facturación y entrega predeterminadas</div><hr><h3>Otras direcciones</h3><div class="ki-meta">Sin direcciones adicionales en este ejemplo.</div></div>
+      <div class="ki-panel" data-profile-page="files" hidden><h3>Fotos y documentos</h3><div class="ki-meta">Sin archivos adjuntos en este ejemplo.</div></div>
+    </section>
+    <section data-page="invoice" class="ki-stack" aria-label="Factura de venta" hidden>
+      <div class="ki-row"><div><div class="ki-meta">Inicio / Contabilidad / Facturas de clientes</div><h2>Factura FAC-000125</h2></div><span class="ki-status">Emitida</span></div>
+      <div class="ki-states"><span>Entrega: <strong>Realizada</strong></span><span>Cobro: <strong>Parcial</strong></span></div>
+      <div class="ki-grid">
+        <div class="ki-stack">
+          <div class="ki-panel ki-fields">
+            <div class="ki-field"><span>Cliente</span><span>Comercial Los Robles</span></div>
+            <div class="ki-field"><span>Términos de pago</span><span>Crédito a 15 días</span></div>
+            <div class="ki-field"><span>Moneda</span><span>USD</span></div>
+            <div class="ki-field"><span>Documentos relacionados</span><span>OV-000125 / ENT-000089</span></div>
+          </div>
+          <div class="ki-panel"><h3>Líneas de factura</h3><table class="ki-table"><thead><tr><th>Producto</th><th class="ki-number">Cantidad</th><th class="ki-number">Importe</th></tr></thead><tbody><tr><td>Torta de fresa</td><td class="ki-number">2</td><td class="ki-number">40,00</td></tr><tr><td>Torta de chocolate</td><td class="ki-number">1</td><td class="ki-number">25,00</td></tr></tbody></table></div>
+        </div>
+        <aside class="ki-panel ki-summary" aria-label="Totales y cobros">
+          <h3>Resumen · USD</h3><div class="ki-row"><span>Base</span><span>65,00</span></div><div class="ki-row"><span>Impuestos · ejemplo</span><span>10,40</span></div><div class="ki-row ki-total"><span>Total</span><span>75,40</span></div><div class="ki-row"><span>Cobros confirmados</span><span>25,00</span></div><div class="ki-row"><span>Saldo pendiente</span><strong>50,40</strong></div>
+          <button type="button" class="ki-button ki-primary" data-payment-toggle aria-expanded="false">Ver registro de pago</button>
+        </aside>
+      </div>
+      <div class="ki-panel ki-stack" data-payment hidden><h3>Registrar pago · vista de ejemplo</h3><div class="ki-fields"><label class="ki-field"><span>Importe en USD</span><input type="number" min="0.01" step="0.01" value="50.40"></label><div class="ki-field"><span>Estado al registrar</span><span>Pendiente de validación</span></div></div><div class="ki-meta">Registrar el pago conserva la factura pendiente hasta su validación y conciliación.</div></div>
+    </section>
+  </div>
+  <script>
+    (() => {
+      const root = document.getElementById('konta-interiores');
+      const state = { density: 'Normal', screen: 'contacts', profile: 'main' };
+      const restored = window.openai?.widgetState?.privateContent;
+      function restore(saved) {
+        if (!saved) return;
+        if (['contacts','profile','invoice'].includes(saved.screen)) state.screen = saved.screen;
+        if (['main','address','files'].includes(saved.profile)) state.profile = saved.profile;
+        if (['Normal','Compacta'].includes(saved.density)) state.density = saved.density;
+      }
+      function render() {
+        root.style.setProperty('--ki-row-pad', state.density === 'Compacta' ? '8px' : '12px');
+        root.querySelectorAll('[data-screen]').forEach(button => button.setAttribute('aria-selected', String(button.dataset.screen === state.screen)));
+        root.querySelectorAll('[data-page]').forEach(panel => panel.hidden = panel.dataset.page !== state.screen);
+        root.querySelectorAll('[data-profile]').forEach(button => button.setAttribute('aria-selected', String(button.dataset.profile === state.profile)));
+        root.querySelectorAll('[data-profile-page]').forEach(panel => panel.hidden = panel.dataset.profilePage !== state.profile);
+      }
+      function save() { window.openai?.setWidgetState?.({modelContent:{pantalla:state.screen},privateContent:{...state}})?.catch(() => {}); }
+      root.querySelectorAll('[data-screen]').forEach(button => button.addEventListener('click', () => { state.screen = button.dataset.screen; render(); save(); }));
+      root.querySelectorAll('[data-profile]').forEach(button => button.addEventListener('click', () => { state.profile = button.dataset.profile; render(); save(); }));
+      root.querySelector('[data-open-profile]').addEventListener('click', () => {state.screen = 'profile'; render(); save();});
+      const search = root.querySelector('input[type="search"]');
+      const type = root.querySelector('select');
+      function filter() {
+        let count = 0;
+        root.querySelectorAll('[data-kind]').forEach(row => { row.hidden = !(row.textContent.toLocaleLowerCase('es').includes(search.value.toLocaleLowerCase('es')) && (type.value === 'all' || type.value === row.dataset.kind)); if (!row.hidden) count++; });
+        root.querySelector('[data-results]').textContent = count + (count === 1 ? ' contacto de ejemplo' : ' contactos de ejemplo');
+      }
+      search.addEventListener('input', filter); type.addEventListener('change', filter);
+      root.querySelector('[data-payment-toggle]').addEventListener('click', event => { const panel = root.querySelector('[data-payment]'); panel.hidden = !panel.hidden; event.currentTarget.setAttribute('aria-expanded', String(!panel.hidden)); });
+      restore(restored); render();
+      window.addEventListener('openai:set_globals', event => {restore(event.detail?.globals?.widgetState?.privateContent); render();});
+      if (globalThis.Tweak) { const tweak = new Tweak({container:root,onChange:() => {render(); save();}}); tweak.addSelect(state,'density',{label:'Densidad del listado', options:['Normal','Compacta']}); }
+    })();
+  </script>
+</div>

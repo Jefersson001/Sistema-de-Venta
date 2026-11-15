@@ -3,8 +3,8 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta name="theme-color" content="#F5F6FC">
-    <title><?= $isConfiguration ? 'Configuración | ' : '' ?><?= htmlspecialchars($module['name'], ENT_QUOTES, 'UTF-8') ?> | Vent-As</title><?php require __DIR__.'/partials/favicon.php'; ?>
+    <meta name="theme-color" content="#00ad78">
+    <title><?= $isConfiguration ? 'Configuración | ' : '' ?><?= htmlspecialchars($module['name'], ENT_QUOTES, 'UTF-8') ?> | Konta</title><?php require __DIR__.'/partials/favicon.php'; ?>
     <link rel="stylesheet" href="../../css/app.css?v=<?= filemtime(dirname(__DIR__) . '/css/app.css') ?>">
     <link rel="stylesheet" href="../../css/modules.css?v=<?= filemtime(dirname(__DIR__) . '/css/modules.css') ?>">
     <link rel="stylesheet" href="../../css/searchable-select.css?v=<?= filemtime(dirname(__DIR__) . '/css/searchable-select.css') ?>">

@@ -76,7 +76,8 @@
             for (const row of body.rows) {
                 if (row.cells.length !== headings.length || [...row.cells].some(cell => cell.colSpan !== 1)) continue;
                 [...row.cells].forEach((cell, index) => {
-                    cell.dataset.columnLabel = labels[index];
+                    cell.dataset.columnLabel = labels[index] || (cell.classList.contains('record-selection') ? 'Seleccionar' : '');
+                    cell.classList.toggle('workspace-record-title', !!cell.querySelector('a.contact-name'));
                     cell.classList.toggle('workspace-number', numericColumn(labels[index]));
                     if (!/^estado(\b|$)/.test(normalize(labels[index])) || cell.querySelector('input,select,button,a')) return;
                     const existing = cell.querySelector('.workspace-status, .contact-tag');
@@ -101,7 +102,7 @@
         const empty = enhanceEmptyTable(table, wrap);
         const cards = !table.closest('.contact-sheet, [data-dashboard]')
             && !!table.querySelector('a.contact-name')
-            && !table.querySelector('form, input, select, textarea, [data-report-group], [data-report-group-toggle]')
+            && !table.querySelector('form, input:not([data-record-select]):not([data-record-select-all]), select, textarea, [data-report-group], [data-report-group-toggle]')
             && [...table.tBodies].every(body => [...body.rows].every(row => row.cells.length === headings.length && [...row.cells].every(cell => cell.colSpan === 1)));
         table.classList.toggle('workspace-record-list', cards);
         wrap.classList.toggle('workspace-card-list', cards);

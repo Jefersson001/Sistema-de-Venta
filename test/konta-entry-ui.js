@@ -37,8 +37,41 @@ const {spawn}=require('node:child_process');
   assert.equal(await ev('document.documentElement.dataset.kontaTheme'),'dark');await shot('konta-home-dark.png');
   await call('Page.reload');await until('document.readyState==="complete"&&!!document.querySelector(".konta-module-card")');assert.equal(await ev('document.documentElement.dataset.kontaTheme'),'dark','Theme preference was not preserved.');
   await ev('document.querySelector("[data-konta-theme-toggle]").click();document.querySelector(".company-selector").open=true');assert.equal(await ev('document.querySelector(".company-selector form").getBoundingClientRect().width>100'),true,'Company menu is inaccessible.');
-  await ev('document.querySelector(".company-selector").open=false;document.querySelector(".konta-user").open=true;document.querySelector(".konta-user form").requestSubmit()');await until('location.pathname.endsWith("/login.php")&&document.readyState==="complete"');
-  assert.deepEqual(errors,[]);console.log('PASS: login compacto, contraseña visible/oculta, login/logout real, panel móvil/escritorio, búsqueda, selector de empresa y modo oscuro persistente.');
+  await ev('document.querySelector(".company-selector").open=false');
+  const modulePages=['dashboard/index.php','contactos/index.php','contactos/index.php?new=1','inventario/index.php','inventario/index.php?new=1','inventario/operaciones.php?type=delivery','compras/index.php?new=1','ventas/index.php?new=1','contabilidad/index.php?type=customer','contabilidad/pagos.php?type=customer','restaurante/index.php','venta_directa/index.php','venta_directa/cierre.php','ajustes/index.php','ajustes/grupos.php'];
+  for(const route of modulePages){
+   await size(1366,900);await call('Page.navigate',{url:base+'/modules/'+route});
+   await until('document.readyState==="complete"&&!!document.querySelector(".module-workspace")');
+   assert.equal(await ev('document.title.endsWith("Konta")'),true,'Old title '+route);
+   assert.equal(await ev(`!!document.querySelector('link[href*="konta-workspace.css"]')`),true,'Missing shared design '+route);
+   assert.equal(await ev('document.querySelectorAll("[data-module-header]").length'),1,'Header duplicated '+route);
+   assert.equal(await ev('document.documentElement.scrollWidth<=innerWidth+1'),true,'Desktop overflow '+route);
+   await ev('document.querySelector("[data-module-header]").open=true');
+   assert.equal(await ev('document.querySelector(".konta-header").getBoundingClientRect().height>30'),true,'Header inaccessible '+route);
+   await ev('document.querySelector("[data-module-header]").open=false');
+   if(route==='contactos/index.php')await shot('konta-contacts-desktop.png');
+   if(route==='ventas/index.php?new=1')await shot('konta-sale-desktop.png');
+   await size(390,844);
+   assert.equal(await ev('document.documentElement.scrollWidth<=innerWidth+1'),true,'Mobile overflow '+route);
+   if(route==='contactos/index.php'){
+    assert.equal(await ev('!!document.querySelector(".workspace-record-list")'),true,'Contacts do not become mobile records.');
+    await ev('document.querySelector("[data-record-select-all]").click()');
+    assert.equal(await ev('[...document.querySelectorAll("[data-record-select]")].every(input=>input.checked)'),true,'Mobile bulk selection broke.');
+    await ev('document.querySelector("[data-record-select-all]").click()');await shot('konta-contacts-mobile.png');
+   }
+   if(route==='ventas/index.php?new=1')await shot('konta-sale-mobile.png');
+  }
+  await ev('document.querySelector("[data-module-header]").open=false;document.dispatchEvent(new KeyboardEvent("keydown",{key:"k",ctrlKey:true,bubbles:true}))');
+  await until('document.querySelector(".konta-header").getBoundingClientRect().height>30');
+  assert.equal(await ev('document.activeElement===document.querySelector("[data-module-search]")'),true,'Shortcut cannot open a hidden header.');
+  await ev('document.querySelector("[data-module-search]").value="pagos";document.querySelector("[data-module-search]").dispatchEvent(new Event("input",{bubbles:true}))');
+  await until('document.querySelectorAll(".navigation-search-result").length>0');
+  assert.match(await ev('document.querySelector("[role=listbox]").textContent'),/Contabilidad/,'Interior section search failed.');
+  await ev('document.querySelector("[data-module-search]").dispatchEvent(new KeyboardEvent("keydown",{key:"Escape",bubbles:true}));document.querySelector("[data-konta-theme-toggle]").click()');
+  await call('Page.navigate',{url:base+'/modules/contactos/index.php'});await until('document.readyState==="complete"&&!!document.querySelector(".contact-table")');
+  assert.equal(await ev('document.documentElement.dataset.kontaTheme'),'dark','Interior lost theme.');await shot('konta-contacts-dark.png');
+  await ev('document.querySelector("[data-module-header]").open=true;document.querySelector("[data-konta-theme-toggle]").click();document.querySelector(".konta-user").open=true;document.querySelector(".konta-user form").requestSubmit()');await until('location.pathname.endsWith("/login.php")&&document.readyState==="complete"');
+  assert.deepEqual(errors,[]);console.log('PASS: login y panel Konta; 15 vistas internas en escritorio y móvil, cabecera opcional, búsqueda de secciones, tema persistente y cierre de sesión.');
  }finally{
   if(ws)ws.close();chrome.kill();await new Promise(r=>chrome.once('exit',r));
   const resolved=path.resolve(profile);if(path.dirname(resolved)!==path.resolve(os.tmpdir())||!path.basename(resolved).startsWith('konta-entry-'))throw Error('Invalid profile cleanup path');fs.rmSync(resolved,{recursive:true,force:true,maxRetries:8,retryDelay:200});
