@@ -21,6 +21,16 @@ function kontaIcon(string $name,string $class=''): string {
         'shield'=>'<path d="m12 2 8 4v6c0 5-8 10-8 10S4 17 4 12V6l8-4Z"/><path d="m8 12 3 3 5-6"/>',
         'lock'=>'<rect x="5" y="10" width="14" height="11" rx="2"/><path d="M8 10V7a4 4 0 0 1 8 0v3m-4 4v3"/>',
         'check'=>'<path d="m5 12 4 4L19 6"/>',
+        'plus'=>'<path d="M12 5v14M5 12h14"/>',
+        'save'=>'<path d="M5 3h12l4 4v14H3V3h2Zm2 0v6h10V3M7 21v-8h10v8"/>',
+        'back'=>'<path d="M19 12H5m6-6-6 6 6 6"/>',
+        'close'=>'<path d="m6 6 12 12M6 18 18 6"/>',
+        'edit'=>'<path d="m16 3 5 5-12 12-6 1 1-6L16 3Zm-3 3 5 5"/>',
+        'filter'=>'<path d="M4 5h16l-6 7v7l-4 2v-9L4 5Z"/>',
+        'refresh'=>'<path d="M20 7v5h-5M4 17v-5h5m-4-4a8 8 0 0 1 13-3l2 3M4 16l2 3a8 8 0 0 0 13-3"/>',
+        'download'=>'<path d="M12 3v12m-5-5 5 5 5-5M4 16v5h16v-5"/>',
+        'upload'=>'<path d="M12 16V4m-5 5 5-5 5 5M4 16v5h16v-5"/>',
+        'empty'=>'<path d="M4 5h16v14H4V5Zm0 8h5l2 3h2l2-3h5M8 9h8"/>',
     ];
     $class=htmlspecialchars($class,ENT_QUOTES,'UTF-8');
     return '<svg class="'.$class.'" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.65" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">'.($paths[$name]??$paths['dashboard']).'</svg>';

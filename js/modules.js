@@ -18,9 +18,9 @@
     const normalize = text => text.normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/\s+/g, ' ').trim().toLowerCase();
     const statusTone = text => {
         const state = normalize(text).replace(/\s*\(activo\)$/, '');
-        if (/^(pagado|confirmado|hecho|registrado|orden de venta|orden de compra|listo|vigente)$/.test(state)) return 'success';
-        if (/^(cancelado|revertido|retirado|vencido)$/.test(state)) return 'danger';
-        if (/^(en espera|en proceso de pago|pago parcial|parcialmente pagado|sin pagar|no pagado|pendiente|proximo a vencer)$/.test(state)) return 'warning';
+        if (/^(pagad[oa]|confirmad[oa]|hecho|registrad[oa]|orden de venta|orden de compra|list[oa]|vigente|activ[oa]|transferid[oa]|aprobad[oa])$/.test(state)) return 'success';
+        if (/^(cancelad[oa]|revertid[oa]|retirad[oa]|vencid[oa]|rechazad[oa]|anulad[oa]|error)$/.test(state)) return 'danger';
+        if (/^(en espera|en revision|en proceso de pago|pago parcial|parcialmente pagado|sin pagar|no pagado|pendiente|proxim[oa] a vencer|aprobad[oa], pendiente de entrega)$/.test(state)) return 'warning';
         if (/^(enviado|cotizacion enviada|orden de venta enviada|solicitud enviada)$/.test(state)) return 'info';
         return 'neutral';
     };
@@ -79,6 +79,7 @@
                     cell.dataset.columnLabel = labels[index] || (cell.classList.contains('record-selection') ? 'Seleccionar' : '');
                     cell.classList.toggle('workspace-record-title', !!cell.querySelector('a.contact-name'));
                     cell.classList.toggle('workspace-number', numericColumn(labels[index]));
+                    cell.classList.toggle('konta-secondary-cell', /^(correo|telefono|movil|localizacion|empresa|referencia)$/.test(normalize(labels[index])));
                     if (!/^estado(\b|$)/.test(normalize(labels[index])) || cell.querySelector('input,select,button,a')) return;
                     const existing = cell.querySelector('.workspace-status, .contact-tag');
                     if (existing) {

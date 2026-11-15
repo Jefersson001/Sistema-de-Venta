@@ -59,7 +59,24 @@ const {spawn}=require('node:child_process');
     assert.equal(await ev('[...document.querySelectorAll("[data-record-select]")].every(input=>input.checked)'),true,'Mobile bulk selection broke.');
     await ev('document.querySelector("[data-record-select-all]").click()');await shot('konta-contacts-mobile.png');
    }
-   if(route==='ventas/index.php?new=1')await shot('konta-sale-mobile.png');
+   if(route==='contactos/index.php?new=1'){
+    assert.equal(await ev('!!document.querySelector("[data-konta-iconized=save] .konta-action-icon")'),true,'Save icon missing.');
+    await ev('document.querySelector("[data-notebook-tabs] a:last-child").click()');
+    assert.equal(await ev('document.querySelector("[data-notebook-tabs] a:last-child").getAttribute("aria-selected")'),'true','Compact tabs no longer switch pages.');
+    await shot('konta-contact-form-mobile.png');
+   }
+   if(route==='ventas/index.php?new=1'){
+    await shot('konta-sale-mobile.png');
+    await ev('document.querySelector("[data-unregistered-customer]").click()');
+    await ev('document.querySelector("[data-create-sales-customer]").click()');
+    await until('document.querySelector("[data-sales-customer-dialog]").open');
+    await until('document.querySelector("[data-sales-customer-frame]").contentDocument?.readyState==="complete"&&!!document.querySelector("[data-sales-customer-frame]").contentDocument?.querySelector("input[name=name]")');
+    assert.equal(await ev('(()=>{const r=document.querySelector("[data-sales-customer-dialog]").getBoundingClientRect();return r.left>=0&&r.right<=innerWidth&&r.top>=0&&r.bottom<=innerHeight+1;})()'),true,'Customer dialog exceeds mobile viewport.');
+    assert.equal(await ev('(()=>{const f=document.querySelector("[data-sales-customer-frame]");return f.contentDocument.documentElement.scrollWidth<=f.clientWidth+1;})()'),true,'Embedded customer form overflows.');
+    await shot('konta-customer-dialog-mobile.png');
+    await ev('document.querySelector("[data-close-sales-customer]").click()');
+    assert.equal(await ev('document.querySelector("[data-sales-customer-dialog]").open'),false,'Dialog close action broke.');
+   }
   }
   await ev('document.querySelector("[data-module-header]").open=false;document.dispatchEvent(new KeyboardEvent("keydown",{key:"k",ctrlKey:true,bubbles:true}))');
   await until('document.querySelector(".konta-header").getBoundingClientRect().height>30');
@@ -70,6 +87,19 @@ const {spawn}=require('node:child_process');
   await ev('document.querySelector("[data-module-search]").dispatchEvent(new KeyboardEvent("keydown",{key:"Escape",bubbles:true}));document.querySelector("[data-konta-theme-toggle]").click()');
   await call('Page.navigate',{url:base+'/modules/contactos/index.php'});await until('document.readyState==="complete"&&!!document.querySelector(".contact-table")');
   assert.equal(await ev('document.documentElement.dataset.kontaTheme'),'dark','Interior lost theme.');await shot('konta-contacts-dark.png');
+  for(const route of ['contactos/index.php?q=konta_no_matching_contact_91827','restaurante/index.php','contabilidad/configuracion.php']){
+   await call('Page.navigate',{url:base+'/modules/'+route});await until('document.readyState==="complete"&&!!document.querySelector(".module-workspace")');
+   assert.equal(await ev('document.documentElement.scrollWidth<=innerWidth+1'),true,'Dark page overflows '+route);
+   assert.equal(await ev('document.documentElement.dataset.kontaTheme'),'dark');
+   if(route.includes('q=')){
+    assert.equal(await ev('!!document.querySelector(".workspace-empty")'),true,'Empty list feedback missing.');await shot('konta-empty-dark.png');
+   }
+   if(route==='restaurante/index.php'){
+    assert.equal(await ev('getComputedStyle(document.querySelector(".restaurant-stat")).backgroundColor===getComputedStyle(document.querySelector(".restaurant-panel")).backgroundColor'),true,'Restaurant counters retain a light background.');
+    await shot('konta-restaurant-dark.png');
+   }
+   if(route==='contabilidad/configuracion.php')await shot('konta-configuration-dark.png');
+  }
   await ev('document.querySelector("[data-module-header]").open=true;document.querySelector("[data-konta-theme-toggle]").click();document.querySelector(".konta-user").open=true;document.querySelector(".konta-user form").requestSubmit()');await until('location.pathname.endsWith("/login.php")&&document.readyState==="complete"');
   assert.deepEqual(errors,[]);console.log('PASS: login y panel Konta; 15 vistas internas en escritorio y móvil, cabecera opcional, búsqueda de secciones, tema persistente y cierre de sesión.');
  }finally{

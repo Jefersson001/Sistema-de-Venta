@@ -1,5 +1,12 @@
 /* Konta workspaces. Loaded last; original module layouts and business rules remain in place. */
 .module-workspace {
+    --k-muted:#5f7089;
+    --k-type-body:14px; --k-type-label:13px; --k-type-caption:12px;
+    --k-space-1:4px; --k-space-2:8px; --k-space-3:12px; --k-space-4:16px; --k-space-5:24px;
+    --k-success-text:#146644; --k-success-bg:#edf9f2; --k-success-line:#c4e6d3;
+    --k-warning-text:#805115; --k-warning-bg:#fff7e8; --k-warning-line:#efd9ae;
+    --k-danger-text:#9e3047; --k-danger-bg:#fff1f4; --k-danger-line:#ecc6cf;
+    --k-info-text:#285f92; --k-info-bg:#edf5ff; --k-info-line:#c9ddf2;
     --vent-night:var(--k-text); --vent-primary:var(--k-green-dark); --vent-bright:var(--k-green);
     --vent-background:var(--k-bg); --vent-surface:var(--k-surface); --vent-text:var(--k-text);
     --vent-muted:var(--k-muted); --vent-line:var(--k-line); --vent-soft:var(--k-green-soft);
@@ -211,3 +218,178 @@
     .module-workspace .direct-bottom-nav { padding-bottom:calc(9px + env(safe-area-inset-bottom)); }
 }
 @media print { .module-workspace { color:#111; background:#fff; } .module-workspace .module-header-panel { display:none; } .module-workspace .contact-form-actions { position:static; box-shadow:none; } }
+
+/* Finishing system: shared reading scale, spacing, states and dialog chrome. */
+html[data-konta-theme=dark] .module-workspace {
+    --k-success-text:#91e4b6; --k-success-bg:#183b2d; --k-success-line:#2e5c46;
+    --k-warning-text:#f5cc86; --k-warning-bg:#3d301b; --k-warning-line:#66512e;
+    --k-danger-text:#ffb0c0; --k-danger-bg:#432632; --k-danger-line:#704050;
+    --k-info-text:#a8d3ff; --k-info-bg:#20364d; --k-info-line:#385575;
+}
+.module-workspace :is(input,select,textarea,button) { font-family:inherit; }
+.module-workspace .contact-toolbar h1,.module-workspace .restaurant-heading h1,.module-workspace .direct-heading h1 { font-weight:750; line-height:1.25; }
+.module-workspace :is(.section-subtitle,.contact-pagination,.module-context-copy>strong,.contact-table small) { font-size:var(--k-type-caption); line-height:1.55; }
+.module-workspace :is(.contact-sheet,.contact-filters,.restaurant-form) label { font-size:var(--k-type-label); font-weight:500; line-height:1.45; }
+.module-workspace .contact-sheet small { font-size:var(--k-type-caption); line-height:1.5; }
+.module-workspace .contact-sheet fieldset { margin:20px 0; }
+.module-workspace .quotation-sheet .quotation-fields { margin:0; }
+.module-workspace .contact-form-grid { gap:16px 24px; align-items:start; }
+.module-workspace :is(.workspace-section-title,.contact-sheet legend) { margin-bottom:16px; font-size:15px; font-weight:700; }
+.module-workspace .contact-sheet legend { width:100%; padding-bottom:12px; }
+.module-workspace .contact-sheet .record-name-field>input { font-weight:600; letter-spacing:-.3px; }
+.module-workspace .contact-filters { align-items:end; gap:12px; }
+.module-workspace .contact-filters label { min-width:0; }
+.module-workspace .contact-filters .contact-button { min-height:38px; }
+.module-workspace .contact-button,.module-workspace .restaurant-workspace .button { display:inline-flex; align-items:center; justify-content:center; gap:7px; font-weight:600; line-height:1.35; }
+.module-workspace .contact-button { font-size:var(--k-type-label); }
+.module-workspace .konta-action-icon { width:16px; height:16px; flex:0 0 16px; vertical-align:middle; pointer-events:none; }
+.module-workspace :is(.overview-link,.back-link) { display:inline-flex; align-items:center; gap:6px; font-size:var(--k-type-caption); line-height:1.45; }
+.module-workspace .contact-button[data-konta-iconized=close]:not(.contact-button-primary):not(.workspace-danger) { color:var(--k-muted); }
+.module-workspace .contact-button.contact-button-primary.konta-secondary-action,.module-workspace .restaurant-workspace .button.button-primary.konta-secondary-action { border-color:var(--k-line); color:var(--k-text); background:var(--k-surface); box-shadow:none; }
+.module-workspace .contact-button.contact-button-primary.konta-secondary-action:hover { color:var(--k-green-dark); background:var(--k-green-soft); }
+.module-workspace :is(.contact-form-actions,.document-actions) { gap:8px; }
+.module-workspace .contact-form-actions>.contact-button-primary { padding-inline:16px; }
+.module-workspace .contact-table thead th { padding:12px 14px; font-size:var(--k-type-caption); font-weight:600; white-space:normal; vertical-align:middle; }
+.module-workspace .contact-table td { vertical-align:middle; line-height:1.5; }
+.module-workspace .contact-table .contact-name { font-size:14px; font-weight:650; }
+.module-workspace .contact-table :is(th,td).workspace-number { text-align:right; font-variant-numeric:tabular-nums; }
+.module-workspace .contact-table td.workspace-number { font-weight:600; }
+.module-workspace .contact-table td.konta-secondary-cell { color:var(--k-muted); font-size:var(--k-type-caption); }
+.module-workspace .contact-table .record-edit-link { display:inline-flex; align-items:center; gap:6px; border-color:transparent; background:transparent; }
+.module-workspace .contact-table .record-edit-link:hover { border-color:var(--k-line); background:var(--k-green-soft); }
+.module-workspace :is(.workspace-status,.contact-tag) { display:inline-flex; align-items:center; gap:5px; padding:4px 8px; border-radius:6px; font-size:var(--k-type-caption); font-weight:500; line-height:1.35; white-space:normal; }
+.module-workspace .quotation-status li { font-size:var(--k-type-caption); font-weight:500; }
+.module-workspace .workspace-status[data-tone=success],.module-workspace .quotation-status li:is([aria-current],.is-active)[data-tone=success] { color:var(--k-success-text); border-color:var(--k-success-line); background:var(--k-success-bg); }
+.module-workspace .workspace-status[data-tone=warning],.module-workspace .quotation-status li:is([aria-current],.is-active)[data-tone=warning] { color:var(--k-warning-text); border-color:var(--k-warning-line); background:var(--k-warning-bg); }
+.module-workspace .workspace-status[data-tone=danger],.module-workspace .quotation-status li:is([aria-current],.is-active)[data-tone=danger] { color:var(--k-danger-text); border-color:var(--k-danger-line); background:var(--k-danger-bg); }
+.module-workspace .workspace-status[data-tone=info],.module-workspace .quotation-status li:is([aria-current],.is-active)[data-tone=info] { color:var(--k-info-text); border-color:var(--k-info-line); background:var(--k-info-bg); }
+.module-workspace .contact-button.workspace-danger { color:var(--k-danger-text); border-color:var(--k-danger-line); background:var(--k-danger-bg); }
+.module-workspace :is(.notice-error,.workspace-field-error,.direct-message) { color:var(--k-danger-text); }
+.module-workspace .notice-error { background:var(--k-danger-bg); border-color:var(--k-danger-line); }
+.module-workspace .notice-success { color:var(--k-success-text); background:var(--k-success-bg); border-color:var(--k-success-line); }
+.module-workspace .notebook-tabs a { position:relative; font-size:var(--k-type-label); font-weight:500; }
+.module-workspace .notebook-tabs a[aria-selected=true] { font-weight:650; }
+.module-workspace .notebook-tabs a[aria-selected=true]::after { position:absolute; right:12px; bottom:2px; left:12px; height:2px; border-radius:2px; background:var(--k-green-dark); content:''; }
+.module-workspace dialog { box-sizing:border-box; max-width:calc(100vw - 32px); max-height:calc(100dvh - 32px); border:1px solid var(--k-line); border-radius:16px; color:var(--k-text); background:var(--k-surface); box-shadow:0 24px 80px #101c3138; }
+.module-workspace dialog::backdrop { background:#0e172670; backdrop-filter:blur(3px); }
+.module-workspace dialog.contact-sheet.invoice-wizard { padding:0; }
+.module-workspace :is(.invoice-wizard-header,.sales-customer-dialog-header,.restaurant-pos-catalog-head) { min-height:64px; padding:16px 20px; gap:12px; border-bottom:1px solid var(--k-line); color:var(--k-text); background:var(--k-surface); }
+.module-workspace :is(.invoice-wizard-header,.sales-customer-dialog-header,.restaurant-pos-catalog-head) h2 { min-width:0; margin:0; font-size:18px; font-weight:700; letter-spacing:-.3px; line-height:1.35; }
+.module-workspace :is(.invoice-wizard-header,.sales-customer-dialog-header,.restaurant-pos-catalog-head) button[aria-label] { flex:0 0 36px; width:36px; min-width:36px; height:36px; padding:8px; border-color:var(--k-line); border-radius:8px; color:var(--k-muted); background:var(--k-soft); }
+.module-workspace .invoice-wizard-body { padding:20px; }
+.module-workspace :is(.invoice-wizard-footer,.sales-customer-dialog-footer) { display:flex; flex-wrap:wrap; align-items:center; justify-content:flex-end; gap:8px; padding:14px 20px; border-top:1px solid var(--k-line); background:var(--k-soft); }
+.module-workspace .invoice-wizard-footer .contact-button-primary { order:2; }
+.module-workspace .restaurant-pos-dialog { padding:20px; }
+.module-workspace .restaurant-pos-dialog :is(input:not([type=checkbox]):not([type=radio]),select,textarea) { min-height:38px; padding:8px 10px; border-color:var(--k-line); color:var(--k-text); background:var(--k-surface); }
+.module-workspace .restaurant-pos-dialog :is(p,small,label) { color:var(--k-muted); }
+.module-workspace .restaurant-checkout-total { color:var(--k-green-dark); background:var(--k-green-soft); border-color:var(--k-line); }
+.module-workspace .restaurant-checkout-payment { background:var(--k-soft); border-color:var(--k-line); }
+.module-workspace :is(a,button,summary):focus-visible { outline:2px solid var(--k-green); outline-offset:3px; }
+@media(max-width:720px) {
+    .module-workspace .contact-filters { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); padding:12px; gap:10px; }
+    .module-workspace .contact-filters>label:first-child { grid-column:1/-1; }
+    .module-workspace .contact-filters>.contact-button { min-width:0; min-height:44px; }
+    .module-workspace .contact-toolbar { row-gap:12px; }
+    .module-workspace .contact-toolbar>div:first-child { flex:1 1 100%; }
+    .module-workspace .contact-toolbar h1 { font-size:23px; }
+    .module-workspace .contact-sheet { padding:16px; }
+    .module-workspace .contact-form-grid { gap:14px 16px; }
+    .module-workspace .contact-form-actions { gap:8px; bottom:8px; }
+    .module-workspace .contact-form-actions>.contact-button { gap:5px; padding-inline:9px; font-size:12px; }
+    .module-workspace .contact-form-actions>.contact-button-primary { flex:1 1 0; padding-inline:9px; }
+    .module-workspace .contact-form-actions>a:last-child { flex:0 1 auto; margin-inline-start:0; }
+    .module-workspace .notebook-tabs { flex-wrap:nowrap; max-width:100%; overflow-x:auto; overscroll-behavior-inline:contain; scrollbar-width:thin; scrollbar-color:var(--k-line) transparent; padding-bottom:10px; }
+    .module-workspace .notebook-tabs a { flex:0 0 auto; min-height:44px; white-space:nowrap; }
+    .module-workspace .workspace-record-list .contact-name { font-size:16px; }
+    .module-workspace .workspace-record-list td.workspace-number { text-align:left; }
+    .module-workspace .workspace-record-list td { padding:9px 0; }
+    .module-workspace .quotation-status { gap:5px; }
+    .module-workspace .quotation-status li { padding:5px 8px; }
+    .module-workspace .document-actions { gap:8px; padding:10px; }
+    .module-workspace dialog { max-width:calc(100vw - 16px); max-height:calc(100dvh - 16px); border-radius:12px; }
+    .module-workspace :is(.invoice-wizard-header,.sales-customer-dialog-header,.restaurant-pos-catalog-head) { min-height:60px; padding:12px 14px; }
+    .module-workspace :is(.invoice-wizard-header,.sales-customer-dialog-header,.restaurant-pos-catalog-head) h2 { font-size:17px; }
+    .module-workspace :is(.invoice-wizard-header,.sales-customer-dialog-header,.restaurant-pos-catalog-head) button[aria-label] { flex-basis:44px; width:44px; min-width:44px; height:44px; }
+    .module-workspace .invoice-wizard-body { padding:16px; }
+    .module-workspace :is(.invoice-wizard-footer,.sales-customer-dialog-footer) { padding:12px 14px; }
+    .module-workspace .invoice-wizard-footer .contact-button { flex:1 1 110px; }
+    .module-workspace .restaurant-pos-dialog { padding:16px; }
+    .module-workspace .restaurant-pos-dialog :is(input:not([type=checkbox]):not([type=radio]),select,textarea) { font-size:16px; min-height:44px; }
+}
+@media(prefers-reduced-motion:reduce) { .module-workspace * { scroll-behavior:auto!important; } }
+
+/* Compact record headings and a common visual language for feedback. */
+.module-workspace .contact-toolbar { margin-bottom:14px; gap:12px; }
+.module-workspace .contact-toolbar h1 { overflow-wrap:anywhere; }
+.module-workspace .contact-sheet>fieldset:not(.quotation-fields) { margin:20px 0 24px; padding:0; }
+.module-workspace .contact-sheet>fieldset:not(.quotation-fields)>legend { padding-bottom:12px; margin-bottom:18px; border-bottom:1px solid var(--k-line); }
+.module-workspace .workspace-form-section+.workspace-form-section { margin-top:24px; padding-top:20px; }
+.module-workspace .contact-sheet .catalog-group-title { margin:24px 0 14px; padding-bottom:10px; border-bottom:1px solid var(--k-line); font-size:15px; color:var(--k-text); }
+.module-workspace .contact-sheet .notebook-page>h2,.module-workspace .contact-sheet .notebook-page>h3 { margin:0 0 14px; color:var(--k-text); font-size:16px; }
+.module-workspace .contact-sheet .section-subtitle { max-width:80ch; line-height:1.6; }
+.module-workspace .notice,.module-workspace .restaurant-notice { margin-block:12px; padding:12px 14px; border:1px solid var(--k-info-line); border-inline-start:3px solid var(--k-info-text); border-radius:9px; color:var(--k-info-text); background:var(--k-info-bg); font-size:13px; font-weight:400; line-height:1.6; overflow-wrap:anywhere; box-shadow:none; }
+.module-workspace .notice p { margin:0; }
+.module-workspace .notice p+p { margin-top:6px; }
+.module-workspace .notice a { color:inherit; text-decoration:underline; text-underline-offset:3px; }
+.module-workspace .notice.notice-success,.module-workspace .restaurant-notice.notice-success { border-color:var(--k-success-line); border-inline-start-color:var(--k-success-text); color:var(--k-success-text); background:var(--k-success-bg); }
+.module-workspace .notice.notice-error,.module-workspace .restaurant-notice.notice-error { border-color:var(--k-danger-line); border-inline-start-color:var(--k-danger-text); color:var(--k-danger-text); background:var(--k-danger-bg); }
+.module-workspace .notice.notice-warning,.module-workspace .restaurant-notice.notice-warning { border-color:var(--k-warning-line); border-inline-start-color:var(--k-warning-text); color:var(--k-warning-text); background:var(--k-warning-bg); }
+.module-workspace .workspace-empty-table .workspace-empty { gap:10px; max-width:460px; padding:32px 20px; }
+.module-workspace .workspace-empty>strong { color:var(--k-text); font-size:16px; }
+.module-workspace .workspace-empty>p { color:var(--k-muted); font-size:13px; line-height:1.6; }
+.module-workspace .workspace-empty-icon { display:grid; place-items:center; width:44px; height:44px; border-radius:12px; color:var(--k-muted); background:var(--k-soft); }
+.module-workspace .workspace-empty-icon svg { width:24px; height:24px; }
+.module-workspace .konta-empty-message { display:flex; flex-direction:column; align-items:center; justify-content:center; gap:12px; margin:16px 0; padding:24px 16px; border:1px dashed var(--k-line); border-radius:11px; color:var(--k-muted); background:var(--k-surface); text-align:center; font-size:13px; line-height:1.6; }
+.module-workspace .konta-empty-message[hidden] { display:none; }
+.module-workspace .konta-empty-icon { width:26px; height:26px; color:var(--k-muted); }
+.module-workspace .restaurant-empty { padding:24px 16px; color:var(--k-muted); }
+.module-workspace .restaurant-empty :is(h2,h3) { color:var(--k-text); font-size:17px; }
+.module-workspace .restaurant-empty-symbol { display:grid; place-items:center; width:44px; height:44px; margin:0 auto 12px; border-radius:12px; color:var(--k-muted); background:var(--k-soft); }
+.module-workspace .restaurant-pos-cart-empty { color:var(--k-muted); background:var(--k-soft); border-color:var(--k-line); }
+.module-workspace .restaurant-pos-cart-empty h3 { color:var(--k-text); }
+
+/* Module-specific surfaces also follow the saved light/dark appearance. */
+.module-workspace :is(.catalog-option,.contact-config-content,.access-group-card,.access-resource-card,.access-permission-card,.restaurant-toolbar,.restaurant-map,.restaurant-table-menu,.restaurant-pos-catalog,.restaurant-pos-ticket,.restaurant-checkout-sticky,.restaurant-wizard-review) { color:var(--k-text); background:var(--k-surface); border-color:var(--k-line); }
+.module-workspace .catalog-option:hover { border-color:var(--k-green); background:var(--k-green-soft); }
+.module-workspace .catalog-option strong { color:var(--k-green-dark); }
+.module-workspace .catalog-option>span { color:var(--k-muted); }
+.module-workspace .restaurant-table-menu button { color:var(--k-text); }
+.module-workspace .restaurant-table-menu button:is(:hover,:focus-visible) { background:var(--k-green-soft); }
+.module-workspace .restaurant-list-row { color:var(--k-text); border-color:var(--k-line); }
+.module-workspace .restaurant-list-row:hover { background:var(--k-green-soft); }
+.module-workspace :is(.restaurant-section-heading>span,.restaurant-list-row small,.restaurant-pos-dialog small,.restaurant-pos-dialog p,.restaurant-configuration-list .restaurant-list-caption) { color:var(--k-muted); }
+.module-workspace .restaurant-workspace .button { color:var(--k-text); background:var(--k-surface); border-color:var(--k-line); }
+.module-workspace .restaurant-workspace .button-primary { color:#fff; background:#00875f; border-color:#00875f; }
+.module-workspace :is(.restaurant-form,.restaurant-fields,.access-user-group-options) :is(input:not([type=checkbox]):not([type=radio]),select,textarea) { color:var(--k-text); background-color:var(--k-surface); border-color:var(--k-line); }
+.module-workspace .restaurant-table-dialog .restaurant-wizard-progress { color:var(--k-green-dark); background:var(--k-green-soft); }
+.module-workspace .restaurant-stat { color:var(--k-muted); background:var(--k-surface); border-color:var(--k-line); }
+.module-workspace .restaurant-stat strong { color:var(--k-text); }
+.module-workspace .restaurant-empty p { color:var(--k-muted); }
+.module-workspace :is(.restaurant-quick-setup,.restaurant-toolbar) :is(input,select) { min-height:38px; padding:8px 10px; border:1px solid var(--k-line); border-radius:8px; color:var(--k-text); background:var(--k-surface); font:inherit; }
+.module-workspace .restaurant-table { color:var(--k-success-text); border-color:var(--k-success-line); background:var(--k-success-bg); }
+.module-workspace .restaurant-table--occupied { color:var(--k-info-text); border-color:var(--k-info-line); background:var(--k-info-bg); }
+.module-workspace .restaurant-table--reserved { color:var(--k-warning-text); border-color:var(--k-warning-line); background:var(--k-warning-bg); }
+.module-workspace .restaurant-table--cleaning { color:var(--k-muted); border-color:var(--k-line); background:var(--k-soft); }
+.module-workspace .restaurant-table .restaurant-state { color:inherit; background:var(--k-surface); }
+.module-workspace .restaurant-pos-products button { color:var(--k-text); border-color:var(--k-line); background:var(--k-surface); }
+.module-workspace .restaurant-pos-products button:hover { border-color:var(--k-green); background:var(--k-green-soft); }
+.module-workspace .restaurant-pos-products button>span:last-of-type { color:var(--k-green-dark); }
+.module-workspace .restaurant-checkout-payment input[readonly] { color:var(--k-muted); background:var(--k-soft); }
+.module-workspace .restaurant-checkout-total>small { color:var(--k-green-dark); }
+.module-workspace .cash-flow-account-totals :is(.cash-flow-net,.cash-flow-balance_end) dd { color:var(--k-green-dark); }
+.module-workspace .cash-flow-account-card:hover { border-color:var(--k-green); box-shadow:none; }
+.module-workspace .contact-sheet :is(input,select,textarea)[aria-invalid=true] { color:var(--k-text); border-color:var(--k-danger-text); background-color:var(--k-danger-bg); }
+.module-workspace .contact-sheet :is(input,select,textarea)[aria-invalid=true]:focus-visible { outline-color:var(--k-danger-text); }
+@media(max-width:720px) {
+    .module-workspace .contact-toolbar:has(>div:first-child>.overview-link):has(>.transfer-menu) { position:relative; gap:8px; }
+    .module-workspace .contact-toolbar:has(>div:first-child>.overview-link):has(>.transfer-menu)>div:first-child>.overview-link { max-width:calc(100% - 120px); min-height:36px; margin-bottom:2px; }
+    .module-workspace .contact-toolbar:has(>div:first-child>.overview-link):has(>.transfer-menu)>.transfer-menu { position:absolute; top:0; right:0; margin:0; }
+    .module-workspace .contact-toolbar:has(>.quotation-status)>.quotation-status { width:100%; margin:0; }
+    .module-workspace .contact-toolbar h1 { margin-block:3px 4px; }
+    .module-workspace .contact-sheet>fieldset:not(.quotation-fields)>legend { margin-bottom:14px; padding-bottom:10px; }
+    .module-workspace .workspace-form-section+.workspace-form-section { margin-top:18px; padding-top:16px; }
+    .module-workspace .notice,.module-workspace .restaurant-notice { margin-block:10px; padding:10px 12px; font-size:13px; }
+    .module-workspace .workspace-empty-table .workspace-empty { padding:24px 12px; }
+    .module-workspace .konta-empty-message { padding:20px 12px; }
+    .module-workspace :is(.restaurant-quick-setup,.restaurant-toolbar) :is(input,select) { min-height:44px; font-size:16px; }
+}
