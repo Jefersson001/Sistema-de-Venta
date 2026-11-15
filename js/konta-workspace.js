@@ -54,6 +54,15 @@
             }
             control.prepend(templates.get(kind).cloneNode(true));
             control.dataset.kontaIconized = kind;
+            if(kind==='save'&&control.closest('.contact-form-actions')){
+                const label=control.textContent.trim();
+                if(!control.hasAttribute('aria-label'))control.setAttribute('aria-label',label);
+                const full=document.createElement('span');full.className='konta-save-label';
+                // Keep the native accessible name; shorten only the visible caption on narrow phones.
+                for(const child of [...control.childNodes])if(child.nodeType===Node.TEXT_NODE)full.append(child);
+                const compact=document.createElement('span');compact.className='konta-save-compact';compact.textContent='Guardar';compact.setAttribute('aria-hidden','true');
+                control.append(full,compact);
+            }
         }
         const badges = [...root.querySelectorAll('.contact-tag:not([data-tone])')];
         if (root.matches?.('.contact-tag:not([data-tone])')) badges.push(root);

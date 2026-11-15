@@ -249,6 +249,8 @@ html[data-konta-theme=dark] .module-workspace {
 .module-workspace .contact-button.contact-button-primary.konta-secondary-action:hover { color:var(--k-green-dark); background:var(--k-green-soft); }
 .module-workspace :is(.contact-form-actions,.document-actions) { gap:8px; }
 .module-workspace .contact-form-actions>.contact-button-primary { padding-inline:16px; }
+.module-workspace .konta-save-compact { display:none; }
+@media(max-width:360px){.module-workspace .konta-save-label{display:none;}.module-workspace .konta-save-compact{display:inline;}}
 .module-workspace .contact-table thead th { padding:12px 14px; font-size:var(--k-type-caption); font-weight:600; white-space:normal; vertical-align:middle; }
 .module-workspace .contact-table td { vertical-align:middle; line-height:1.5; }
 .module-workspace .contact-table .contact-name { font-size:14px; font-weight:650; }
@@ -317,6 +319,12 @@ html[data-konta-theme=dark] .module-workspace {
     .module-workspace .restaurant-pos-dialog :is(input:not([type=checkbox]):not([type=radio]),select,textarea) { font-size:16px; min-height:44px; }
 }
 @media(prefers-reduced-motion:reduce) { .module-workspace * { scroll-behavior:auto!important; } }
+@media(max-width:720px){
+    .module-workspace .contact-table .record-edit-link{min-width:44px;min-height:44px;justify-content:center;}
+    .module-workspace .restaurant-workspace :is(input:not([type=checkbox]):not([type=radio]):not([type=hidden]),select,textarea){font-size:16px;min-height:44px;}
+    .module-workspace :is(.module-menu-options,.transfer-menu-options){max-width:calc(100vw - 24px);min-width:min(210px,calc(100vw - 24px));max-height:65svh;overflow-y:auto;}
+    .module-workspace :is(.module-menu-options,.transfer-menu-options) a{display:flex;align-items:center;min-height:44px;}
+}
 
 /* Compact record headings and a common visual language for feedback. */
 .module-workspace .contact-toolbar { margin-bottom:14px; gap:12px; }
