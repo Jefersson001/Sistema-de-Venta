@@ -119,7 +119,7 @@
     }
     const filterSummaries=new WeakMap();
     function showAppliedFilters(){
-        if(!['ventas','inventario','contabilidad'].includes(document.body.dataset.module))return;
+        if(!['ventas','inventario','contabilidad','contactos','compras'].includes(document.body.dataset.module))return;
         const query=new URLSearchParams(location.search);
         const labels={q:'Búsqueda',status:'Estado',type:'Tipo',due:'Vencimiento',currency_code:'Moneda',warehouse_id:'Almacén',location_id:'Ubicación'};
         for(const form of document.querySelectorAll('form.contact-filters')){

@@ -9,7 +9,11 @@
     function validate() {
         const fields = [...lines.querySelectorAll('[data-contact-upload]')];
         let total = 0;
-        fields.forEach(field => { const file = field.files[0]; total += file?.size || 0; field.setCustomValidity(file && (!file.size || file.size>10*1024*1024) ? 'El archivo debe tener contenido y pesar como máximo 10 MB.' : ''); });
+        fields.forEach(field => {
+            const file = field.files[0]; total += file?.size || 0; field.setCustomValidity(file && (!file.size || file.size>10*1024*1024) ? 'El archivo debe tener contenido y pesar como máximo 10 MB.' : '');
+            const filename=field.closest('[data-contact-upload-row]')?.querySelector('[data-contact-upload-filename]');
+            if(filename){filename.textContent=file?.name||'';filename.hidden=!file;}
+        });
         if (total>20*1024*1024 && fields.length) fields[fields.length-1].setCustomValidity('Adjunta como máximo 20 MB por guardado.');
         add.disabled = fields.length>=20;
         status.textContent = fields.length ? fields.filter(field=>field.files.length).length + ' archivos nuevos · ' + (total/1024/1024).toFixed(2) + ' MB. Guarda el contacto para conservarlos.' : '';

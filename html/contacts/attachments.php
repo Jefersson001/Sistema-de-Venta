@@ -17,7 +17,7 @@
 <p class="section-subtitle" role="status" data-contact-attachment-status></p>
 <template data-contact-attachment-template>
     <div class="contact-attachment-upload" data-contact-upload-row>
-        <label>Foto o documento *<input type="file" name="contact_files[__INDEX__]" required accept=".jpg,.jpeg,.png,.webp,.gif,.pdf,.doc,.docx,.xls,.xlsx,.txt" data-contact-upload></label>
+        <label>Foto o documento *<input type="file" name="contact_files[__INDEX__]" required accept=".jpg,.jpeg,.png,.webp,.gif,.pdf,.doc,.docx,.xls,.xlsx,.txt" data-contact-upload><small class="contact-upload-filename" data-contact-upload-filename hidden></small></label>
         <label>Descripción<input type="text" name="attachment_descriptions[__INDEX__]" maxlength="200" placeholder="Ej.: Documento de identidad"></label>
         <button type="button" class="contact-button" data-contact-attachment-remove>Quitar línea</button>
     </div>

@@ -269,6 +269,26 @@ html[data-konta-theme=dark] .module-workspace {
 .module-workspace .konta-filter-caption { margin-right:3px; color:var(--k-muted); font-size:12px; }
 .module-workspace .konta-filter-chip { max-width:100%; padding:4px 8px; border:1px solid var(--k-line); border-radius:6px; color:var(--k-text); background:var(--k-soft); font-size:12px; line-height:1.4; overflow-wrap:anywhere; }
 .module-workspace .konta-product-name { margin-bottom:18px; }
+.module-workspace .contact-address-row,.module-workspace .contact-attachment-row,.module-workspace .contact-attachment-upload { border-color:var(--k-line); border-radius:10px; background:var(--k-surface); }
+.module-workspace .contact-address-row:has([data-address-active]:not(:checked)) { background:var(--k-soft); }
+.module-workspace .contact-attachment-info strong { display:block; color:var(--k-text); font-size:14px; overflow-wrap:anywhere; }
+.module-workspace .contact-attachment-info :is(p,small),.module-workspace .contact-attachment-kind { color:var(--k-muted); font-size:12px; }
+.module-workspace .contact-attachment-upload { align-items:flex-end; }
+.module-workspace .contact-upload-filename { color:var(--k-muted); font-size:12px; font-weight:400; white-space:normal; overflow-wrap:anywhere; }
+.module-workspace .contact-attachment-upload input[type=file] { max-width:100%; padding:6px; border:1px solid var(--k-line); border-radius:8px; color:var(--k-text); background:var(--k-surface); font-size:13px; }
+.module-workspace .geolocation-panel { border-color:var(--k-line); color:var(--k-text); background:var(--k-soft); }
+.module-workspace .geolocation-panel :is(h2,h3,h4) { color:var(--k-text); }
+.module-workspace .geolocation-panel :is(p,small) { color:var(--k-muted); }
+.module-workspace .contact-attachment-upload input[type=file]::file-selector-button { margin-inline-end:8px; min-height:36px; padding:7px 10px; border:1px solid var(--k-line); border-radius:7px; color:var(--k-green-dark); background:var(--k-green-soft); font:inherit; cursor:pointer; }
+@media(max-width:720px){
+    .module-workspace .contact-attachment-row { display:grid; grid-template-columns:auto minmax(0,1fr); gap:12px; }
+    .module-workspace .contact-attachment-row .contact-attachment-actions { grid-column:1/-1; }
+    .module-workspace .contact-attachment-remove { min-height:44px; }
+    .module-workspace .contact-attachment-upload { padding:12px; gap:12px; }
+    .module-workspace .contact-attachment-upload input[type=file] { font-size:16px; }
+    .module-workspace .contact-attachment-upload input[type=file]::file-selector-button { min-height:44px; }
+    .module-workspace .contact-address-options label { min-height:44px; }
+}
 .module-workspace .konta-stock-strip { display:flex; align-items:center; flex-wrap:wrap; gap:12px 24px; margin:-4px 0 8px; padding:10px 12px; border:1px solid var(--k-line); border-radius:9px; background:var(--k-soft); }
 .module-workspace .konta-stock-strip>span { display:flex; align-items:baseline; gap:8px; color:var(--k-muted); font-size:12px; }
 .module-workspace .konta-stock-strip strong { color:var(--k-text); font-size:15px; font-variant-numeric:tabular-nums; }

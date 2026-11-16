@@ -28,11 +28,11 @@ const {spawn} = require('node:child_process');
         await evaluate(`document.querySelector('[name="login"]').value=${JSON.stringify(login)};document.querySelector('[name="password"]').value=${JSON.stringify(password)};document.querySelector('form').requestSubmit();`);
         await until(`!location.pathname.endsWith('/login.php')`);
         await call('Page.navigate',{url:base+'/modules/ventas/index.php?new=1'});
-        await until(`!!document.querySelector('[data-create-sales-customer]') && !!document.querySelector('[role=combobox]')`);
+        await until(`document.readyState==='complete' && !!document.querySelector('[data-create-sales-customer]') && !!document.querySelector('[role=combobox]')`);
         await evaluate(`window.salesChanges=0;document.querySelector('[data-quotation-customer]').addEventListener('change',()=>window.salesChanges++); document.querySelector('[name="order_date"]').value='2026-10-20'; document.querySelector('[data-line-quantity]').value='2.00'; document.querySelector('[data-unregistered-customer]').click();`);
         assert.equal(await evaluate(`!document.querySelector('[data-create-sales-customer]').hidden`),true);
         await evaluate(`document.querySelector('[data-create-sales-customer]').click()`);
-        await until(`!!document.querySelector('iframe').contentDocument?.querySelector('input[name="name"]')`);
+        await until(`document.querySelector('iframe').contentDocument?.readyState==='complete' && !!document.querySelector('iframe').contentDocument?.querySelector('input[name="name"]')`);
         assert.equal(await evaluate(`document.querySelector('iframe').contentDocument.querySelector('[data-contact-type]').selectedOptions[0].dataset.contactKind==='client'`),true);
         const documentPoint = await evaluate(`(() => {const frame=document.querySelector('iframe'),d=frame.contentDocument,input=d.querySelector('#document-number');input.scrollIntoView({block:'center'});const r=input.getBoundingClientRect(),f=frame.getBoundingClientRect();const type=d.querySelector('#document-type').parentElement.getBoundingClientRect();if(r.width<=type.width)throw Error('Document number must be wider than type');return {x:f.left+r.left+r.width/2,y:f.top+r.top+r.height/2};})()`);
         await call('Input.dispatchMouseEvent',{type:'mousePressed',button:'left',clickCount:1,...documentPoint});
@@ -63,7 +63,7 @@ const {spawn} = require('node:child_process');
         console.log('PASS: real Contacts creation inside sales modal, photo upload, attachment lines, auto-selection, addresses, retained unsaved lines, searchable select, cancellation and mobile layout.');
         await call('Browser.close');
     } finally {
-        ws?.close();child.kill();await new Promise(resolve=>setTimeout(resolve,500));
-        if(path.dirname(profile)===path.resolve(os.tmpdir())&&path.basename(profile).startsWith('nexo-wizard-test-'))fs.rmSync(profile,{recursive:true,force:true,maxRetries:5,retryDelay:200});
+        ws?.close();child.kill();await new Promise(resolve=>setTimeout(resolve,1500));
+        if(path.dirname(profile)===path.resolve(os.tmpdir())&&path.basename(profile).startsWith('nexo-wizard-test-'))fs.rmSync(profile,{recursive:true,force:true,maxRetries:12,retryDelay:250});
     }
 })().catch(error=>{console.error(error);process.exitCode=1;});

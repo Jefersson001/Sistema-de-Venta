@@ -1,0 +1,960 @@
+{
+  "date": "2026-11-16T11:33:38.280Z",
+  "widths": [
+    390,
+    768,
+    1440
+  ],
+  "themes": [
+    "light",
+    "dark"
+  ],
+  "pages": [
+    {
+      "role": "admin",
+      "route": "/modules/contactos/index.php",
+      "checks": [
+        {
+          "theme": "light",
+          "width": 390,
+          "overflow": false,
+          "scrollWidth": 390,
+          "undersized": [],
+          "smallFields": [],
+          "outside": []
+        },
+        {
+          "theme": "light",
+          "width": 768,
+          "overflow": false,
+          "scrollWidth": 753,
+          "undersized": [],
+          "smallFields": [],
+          "outside": []
+        },
+        {
+          "theme": "light",
+          "width": 1440,
+          "overflow": false,
+          "scrollWidth": 1440,
+          "undersized": [],
+          "smallFields": [],
+          "outside": []
+        },
+        {
+          "theme": "dark",
+          "width": 390,
+          "overflow": false,
+          "scrollWidth": 390,
+          "undersized": [],
+          "smallFields": [],
+          "outside": []
+        },
+        {
+          "theme": "dark",
+          "width": 768,
+          "overflow": false,
+          "scrollWidth": 753,
+          "undersized": [],
+          "smallFields": [],
+          "outside": []
+        },
+        {
+          "theme": "dark",
+          "width": 1440,
+          "overflow": false,
+          "scrollWidth": 1440,
+          "undersized": [],
+          "smallFields": [],
+          "outside": []
+        }
+      ],
+      "tabs": 0,
+      "title": "Contactos | Konta",
+      "menus": 3
+    },
+    {
+      "role": "admin",
+      "route": "/modules/contactos/index.php?q=Cliente",
+      "checks": [
+        {
+          "theme": "light",
+          "width": 390,
+          "overflow": false,
+          "scrollWidth": 390,
+          "undersized": [],
+          "smallFields": [],
+          "outside": []
+        },
+        {
+          "theme": "light",
+          "width": 768,
+          "overflow": false,
+          "scrollWidth": 768,
+          "undersized": [],
+          "smallFields": [],
+          "outside": []
+        },
+        {
+          "theme": "light",
+          "width": 1440,
+          "overflow": false,
+          "scrollWidth": 1440,
+          "undersized": [],
+          "smallFields": [],
+          "outside": []
+        },
+        {
+          "theme": "dark",
+          "width": 390,
+          "overflow": false,
+          "scrollWidth": 390,
+          "undersized": [],
+          "smallFields": [],
+          "outside": []
+        },
+        {
+          "theme": "dark",
+          "width": 768,
+          "overflow": false,
+          "scrollWidth": 768,
+          "undersized": [],
+          "smallFields": [],
+          "outside": []
+        },
+        {
+          "theme": "dark",
+          "width": 1440,
+          "overflow": false,
+          "scrollWidth": 1440,
+          "undersized": [],
+          "smallFields": [],
+          "outside": []
+        }
+      ],
+      "tabs": 0,
+      "title": "Contactos | Konta",
+      "menus": 3
+    },
+    {
+      "role": "admin",
+      "route": "/modules/contactos/index.php?new=1",
+      "checks": [
+        {
+          "theme": "light",
+          "width": 390,
+          "overflow": false,
+          "scrollWidth": 390,
+          "undersized": [],
+          "smallFields": [],
+          "outside": []
+        },
+        {
+          "theme": "light",
+          "width": 768,
+          "overflow": false,
+          "scrollWidth": 753,
+          "undersized": [],
+          "smallFields": [],
+          "outside": []
+        },
+        {
+          "theme": "light",
+          "width": 1440,
+          "overflow": false,
+          "scrollWidth": 1425,
+          "undersized": [],
+          "smallFields": [],
+          "outside": []
+        },
+        {
+          "theme": "dark",
+          "width": 390,
+          "overflow": false,
+          "scrollWidth": 390,
+          "undersized": [],
+          "smallFields": [],
+          "outside": []
+        },
+        {
+          "theme": "dark",
+          "width": 768,
+          "overflow": false,
+          "scrollWidth": 753,
+          "undersized": [],
+          "smallFields": [],
+          "outside": []
+        },
+        {
+          "theme": "dark",
+          "width": 1440,
+          "overflow": false,
+          "scrollWidth": 1425,
+          "undersized": [],
+          "smallFields": [],
+          "outside": []
+        }
+      ],
+      "tabs": 6,
+      "title": "Contactos | Konta",
+      "menus": 3
+    },
+    {
+      "role": "admin",
+      "route": "/modules/contactos/index.php?id=448",
+      "checks": [
+        {
+          "theme": "light",
+          "width": 390,
+          "overflow": false,
+          "scrollWidth": 390,
+          "undersized": [],
+          "smallFields": [],
+          "outside": []
+        },
+        {
+          "theme": "light",
+          "width": 768,
+          "overflow": false,
+          "scrollWidth": 753,
+          "undersized": [],
+          "smallFields": [],
+          "outside": []
+        },
+        {
+          "theme": "light",
+          "width": 1440,
+          "overflow": false,
+          "scrollWidth": 1425,
+          "undersized": [],
+          "smallFields": [],
+          "outside": []
+        },
+        {
+          "theme": "dark",
+          "width": 390,
+          "overflow": false,
+          "scrollWidth": 390,
+          "undersized": [],
+          "smallFields": [],
+          "outside": []
+        },
+        {
+          "theme": "dark",
+          "width": 768,
+          "overflow": false,
+          "scrollWidth": 753,
+          "undersized": [],
+          "smallFields": [],
+          "outside": []
+        },
+        {
+          "theme": "dark",
+          "width": 1440,
+          "overflow": false,
+          "scrollWidth": 1425,
+          "undersized": [],
+          "smallFields": [],
+          "outside": []
+        }
+      ],
+      "tabs": 6,
+      "title": "Contactos | Konta",
+      "menus": 3
+    },
+    {
+      "role": "admin",
+      "route": "/modules/contactos/index.php?id=449",
+      "checks": [
+        {
+          "theme": "light",
+          "width": 390,
+          "overflow": false,
+          "scrollWidth": 390,
+          "undersized": [],
+          "smallFields": [],
+          "outside": []
+        },
+        {
+          "theme": "light",
+          "width": 768,
+          "overflow": false,
+          "scrollWidth": 753,
+          "undersized": [],
+          "smallFields": [],
+          "outside": []
+        },
+        {
+          "theme": "light",
+          "width": 1440,
+          "overflow": false,
+          "scrollWidth": 1425,
+          "undersized": [],
+          "smallFields": [],
+          "outside": []
+        },
+        {
+          "theme": "dark",
+          "width": 390,
+          "overflow": false,
+          "scrollWidth": 390,
+          "undersized": [],
+          "smallFields": [],
+          "outside": []
+        },
+        {
+          "theme": "dark",
+          "width": 768,
+          "overflow": false,
+          "scrollWidth": 753,
+          "undersized": [],
+          "smallFields": [],
+          "outside": []
+        },
+        {
+          "theme": "dark",
+          "width": 1440,
+          "overflow": false,
+          "scrollWidth": 1425,
+          "undersized": [],
+          "smallFields": [],
+          "outside": []
+        }
+      ],
+      "tabs": 6,
+      "title": "Contactos | Konta",
+      "menus": 3
+    },
+    {
+      "role": "admin",
+      "route": "/modules/contactos/index.php?id=447",
+      "checks": [
+        {
+          "theme": "light",
+          "width": 390,
+          "overflow": false,
+          "scrollWidth": 390,
+          "undersized": [],
+          "smallFields": [],
+          "outside": []
+        },
+        {
+          "theme": "light",
+          "width": 768,
+          "overflow": false,
+          "scrollWidth": 753,
+          "undersized": [],
+          "smallFields": [],
+          "outside": []
+        },
+        {
+          "theme": "light",
+          "width": 1440,
+          "overflow": false,
+          "scrollWidth": 1425,
+          "undersized": [],
+          "smallFields": [],
+          "outside": []
+        },
+        {
+          "theme": "dark",
+          "width": 390,
+          "overflow": false,
+          "scrollWidth": 390,
+          "undersized": [],
+          "smallFields": [],
+          "outside": []
+        },
+        {
+          "theme": "dark",
+          "width": 768,
+          "overflow": false,
+          "scrollWidth": 753,
+          "undersized": [],
+          "smallFields": [],
+          "outside": []
+        },
+        {
+          "theme": "dark",
+          "width": 1440,
+          "overflow": false,
+          "scrollWidth": 1425,
+          "undersized": [],
+          "smallFields": [],
+          "outside": []
+        }
+      ],
+      "tabs": 6,
+      "title": "Contactos | Konta",
+      "menus": 3
+    },
+    {
+      "role": "admin",
+      "route": "/modules/contactos/index.php?status=archived",
+      "checks": [
+        {
+          "theme": "light",
+          "width": 390,
+          "overflow": false,
+          "scrollWidth": 390,
+          "undersized": [],
+          "smallFields": [],
+          "outside": []
+        },
+        {
+          "theme": "light",
+          "width": 768,
+          "overflow": false,
+          "scrollWidth": 768,
+          "undersized": [],
+          "smallFields": [],
+          "outside": []
+        },
+        {
+          "theme": "light",
+          "width": 1440,
+          "overflow": false,
+          "scrollWidth": 1440,
+          "undersized": [],
+          "smallFields": [],
+          "outside": []
+        },
+        {
+          "theme": "dark",
+          "width": 390,
+          "overflow": false,
+          "scrollWidth": 390,
+          "undersized": [],
+          "smallFields": [],
+          "outside": []
+        },
+        {
+          "theme": "dark",
+          "width": 768,
+          "overflow": false,
+          "scrollWidth": 768,
+          "undersized": [],
+          "smallFields": [],
+          "outside": []
+        },
+        {
+          "theme": "dark",
+          "width": 1440,
+          "overflow": false,
+          "scrollWidth": 1440,
+          "undersized": [],
+          "smallFields": [],
+          "outside": []
+        }
+      ],
+      "tabs": 0,
+      "title": "Contactos | Konta",
+      "menus": 3
+    },
+    {
+      "role": "admin",
+      "route": "/modules/contactos/configuracion.php",
+      "checks": [
+        {
+          "theme": "light",
+          "width": 390,
+          "overflow": false,
+          "scrollWidth": 390,
+          "undersized": [],
+          "smallFields": [],
+          "outside": []
+        },
+        {
+          "theme": "light",
+          "width": 768,
+          "overflow": false,
+          "scrollWidth": 768,
+          "undersized": [],
+          "smallFields": [],
+          "outside": []
+        },
+        {
+          "theme": "light",
+          "width": 1440,
+          "overflow": false,
+          "scrollWidth": 1440,
+          "undersized": [],
+          "smallFields": [],
+          "outside": []
+        },
+        {
+          "theme": "dark",
+          "width": 390,
+          "overflow": false,
+          "scrollWidth": 390,
+          "undersized": [],
+          "smallFields": [],
+          "outside": []
+        },
+        {
+          "theme": "dark",
+          "width": 768,
+          "overflow": false,
+          "scrollWidth": 768,
+          "undersized": [],
+          "smallFields": [],
+          "outside": []
+        },
+        {
+          "theme": "dark",
+          "width": 1440,
+          "overflow": false,
+          "scrollWidth": 1440,
+          "undersized": [],
+          "smallFields": [],
+          "outside": []
+        }
+      ],
+      "tabs": 0,
+      "title": "Configuración | Contactos | Konta",
+      "menus": 2
+    },
+    {
+      "role": "admin",
+      "route": "/modules/contactos/configuracion.php?section=types",
+      "checks": [
+        {
+          "theme": "light",
+          "width": 390,
+          "overflow": false,
+          "scrollWidth": 390,
+          "undersized": [],
+          "smallFields": [],
+          "outside": []
+        },
+        {
+          "theme": "light",
+          "width": 768,
+          "overflow": false,
+          "scrollWidth": 753,
+          "undersized": [],
+          "smallFields": [],
+          "outside": []
+        },
+        {
+          "theme": "light",
+          "width": 1440,
+          "overflow": false,
+          "scrollWidth": 1440,
+          "undersized": [],
+          "smallFields": [],
+          "outside": []
+        },
+        {
+          "theme": "dark",
+          "width": 390,
+          "overflow": false,
+          "scrollWidth": 390,
+          "undersized": [],
+          "smallFields": [],
+          "outside": []
+        },
+        {
+          "theme": "dark",
+          "width": 768,
+          "overflow": false,
+          "scrollWidth": 753,
+          "undersized": [],
+          "smallFields": [],
+          "outside": []
+        },
+        {
+          "theme": "dark",
+          "width": 1440,
+          "overflow": false,
+          "scrollWidth": 1440,
+          "undersized": [],
+          "smallFields": [],
+          "outside": []
+        }
+      ],
+      "tabs": 0,
+      "title": "Configuración | Contactos | Konta",
+      "menus": 3
+    },
+    {
+      "role": "admin",
+      "route": "/modules/contactos/configuracion.php?section=document_types",
+      "checks": [
+        {
+          "theme": "light",
+          "width": 390,
+          "overflow": false,
+          "scrollWidth": 390,
+          "undersized": [],
+          "smallFields": [],
+          "outside": []
+        },
+        {
+          "theme": "light",
+          "width": 768,
+          "overflow": false,
+          "scrollWidth": 768,
+          "undersized": [],
+          "smallFields": [],
+          "outside": []
+        },
+        {
+          "theme": "light",
+          "width": 1440,
+          "overflow": false,
+          "scrollWidth": 1440,
+          "undersized": [],
+          "smallFields": [],
+          "outside": []
+        },
+        {
+          "theme": "dark",
+          "width": 390,
+          "overflow": false,
+          "scrollWidth": 390,
+          "undersized": [],
+          "smallFields": [],
+          "outside": []
+        },
+        {
+          "theme": "dark",
+          "width": 768,
+          "overflow": false,
+          "scrollWidth": 768,
+          "undersized": [],
+          "smallFields": [],
+          "outside": []
+        },
+        {
+          "theme": "dark",
+          "width": 1440,
+          "overflow": false,
+          "scrollWidth": 1440,
+          "undersized": [],
+          "smallFields": [],
+          "outside": []
+        }
+      ],
+      "tabs": 0,
+      "title": "Configuración | Contactos | Konta",
+      "menus": 3
+    },
+    {
+      "role": "admin",
+      "route": "/modules/compras/index.php",
+      "checks": [
+        {
+          "theme": "light",
+          "width": 390,
+          "overflow": false,
+          "scrollWidth": 390,
+          "undersized": [],
+          "smallFields": [],
+          "outside": []
+        },
+        {
+          "theme": "light",
+          "width": 768,
+          "overflow": false,
+          "scrollWidth": 768,
+          "undersized": [],
+          "smallFields": [],
+          "outside": []
+        },
+        {
+          "theme": "light",
+          "width": 1440,
+          "overflow": false,
+          "scrollWidth": 1440,
+          "undersized": [],
+          "smallFields": [],
+          "outside": []
+        },
+        {
+          "theme": "dark",
+          "width": 390,
+          "overflow": false,
+          "scrollWidth": 390,
+          "undersized": [],
+          "smallFields": [],
+          "outside": []
+        },
+        {
+          "theme": "dark",
+          "width": 768,
+          "overflow": false,
+          "scrollWidth": 768,
+          "undersized": [],
+          "smallFields": [],
+          "outside": []
+        },
+        {
+          "theme": "dark",
+          "width": 1440,
+          "overflow": false,
+          "scrollWidth": 1440,
+          "undersized": [],
+          "smallFields": [],
+          "outside": []
+        }
+      ],
+      "tabs": 0,
+      "title": "Compras | Konta",
+      "menus": 4
+    },
+    {
+      "role": "admin",
+      "route": "/modules/compras/index.php?q=Proveedor&status=purchase",
+      "checks": [
+        {
+          "theme": "light",
+          "width": 390,
+          "overflow": false,
+          "scrollWidth": 390,
+          "undersized": [],
+          "smallFields": [],
+          "outside": []
+        },
+        {
+          "theme": "light",
+          "width": 768,
+          "overflow": false,
+          "scrollWidth": 768,
+          "undersized": [],
+          "smallFields": [],
+          "outside": []
+        },
+        {
+          "theme": "light",
+          "width": 1440,
+          "overflow": false,
+          "scrollWidth": 1440,
+          "undersized": [],
+          "smallFields": [],
+          "outside": []
+        },
+        {
+          "theme": "dark",
+          "width": 390,
+          "overflow": false,
+          "scrollWidth": 390,
+          "undersized": [],
+          "smallFields": [],
+          "outside": []
+        },
+        {
+          "theme": "dark",
+          "width": 768,
+          "overflow": false,
+          "scrollWidth": 768,
+          "undersized": [],
+          "smallFields": [],
+          "outside": []
+        },
+        {
+          "theme": "dark",
+          "width": 1440,
+          "overflow": false,
+          "scrollWidth": 1440,
+          "undersized": [],
+          "smallFields": [],
+          "outside": []
+        }
+      ],
+      "tabs": 0,
+      "title": "Compras | Konta",
+      "menus": 4
+    },
+    {
+      "role": "admin",
+      "route": "/modules/compras/index.php?new=1",
+      "checks": [
+        {
+          "theme": "light",
+          "width": 390,
+          "overflow": false,
+          "scrollWidth": 390,
+          "undersized": [],
+          "smallFields": [],
+          "outside": []
+        },
+        {
+          "theme": "light",
+          "width": 768,
+          "overflow": false,
+          "scrollWidth": 753,
+          "undersized": [],
+          "smallFields": [],
+          "outside": []
+        },
+        {
+          "theme": "light",
+          "width": 1440,
+          "overflow": false,
+          "scrollWidth": 1425,
+          "undersized": [],
+          "smallFields": [],
+          "outside": []
+        },
+        {
+          "theme": "dark",
+          "width": 390,
+          "overflow": false,
+          "scrollWidth": 390,
+          "undersized": [],
+          "smallFields": [],
+          "outside": []
+        },
+        {
+          "theme": "dark",
+          "width": 768,
+          "overflow": false,
+          "scrollWidth": 753,
+          "undersized": [],
+          "smallFields": [],
+          "outside": []
+        },
+        {
+          "theme": "dark",
+          "width": 1440,
+          "overflow": false,
+          "scrollWidth": 1425,
+          "undersized": [],
+          "smallFields": [],
+          "outside": []
+        }
+      ],
+      "tabs": 2,
+      "title": "Compras | Konta",
+      "menus": 4
+    },
+    {
+      "role": "admin",
+      "route": "/modules/compras/index.php?id=207",
+      "checks": [
+        {
+          "theme": "light",
+          "width": 390,
+          "overflow": false,
+          "scrollWidth": 390,
+          "undersized": [],
+          "smallFields": [],
+          "outside": []
+        },
+        {
+          "theme": "light",
+          "width": 768,
+          "overflow": false,
+          "scrollWidth": 753,
+          "undersized": [],
+          "smallFields": [],
+          "outside": []
+        },
+        {
+          "theme": "light",
+          "width": 1440,
+          "overflow": false,
+          "scrollWidth": 1425,
+          "undersized": [],
+          "smallFields": [],
+          "outside": []
+        },
+        {
+          "theme": "dark",
+          "width": 390,
+          "overflow": false,
+          "scrollWidth": 390,
+          "undersized": [],
+          "smallFields": [],
+          "outside": []
+        },
+        {
+          "theme": "dark",
+          "width": 768,
+          "overflow": false,
+          "scrollWidth": 753,
+          "undersized": [],
+          "smallFields": [],
+          "outside": []
+        },
+        {
+          "theme": "dark",
+          "width": 1440,
+          "overflow": false,
+          "scrollWidth": 1425,
+          "undersized": [],
+          "smallFields": [],
+          "outside": []
+        }
+      ],
+      "tabs": 2,
+      "title": "Compras | Konta",
+      "menus": 4
+    },
+    {
+      "role": "admin",
+      "route": "/modules/compras/configuracion.php",
+      "checks": [
+        {
+          "theme": "light",
+          "width": 390,
+          "overflow": false,
+          "scrollWidth": 390,
+          "undersized": [],
+          "smallFields": [],
+          "outside": []
+        },
+        {
+          "theme": "light",
+          "width": 768,
+          "overflow": false,
+          "scrollWidth": 768,
+          "undersized": [],
+          "smallFields": [],
+          "outside": []
+        },
+        {
+          "theme": "light",
+          "width": 1440,
+          "overflow": false,
+          "scrollWidth": 1440,
+          "undersized": [],
+          "smallFields": [],
+          "outside": []
+        },
+        {
+          "theme": "dark",
+          "width": 390,
+          "overflow": false,
+          "scrollWidth": 390,
+          "undersized": [],
+          "smallFields": [],
+          "outside": []
+        },
+        {
+          "theme": "dark",
+          "width": 768,
+          "overflow": false,
+          "scrollWidth": 768,
+          "undersized": [],
+          "smallFields": [],
+          "outside": []
+        },
+        {
+          "theme": "dark",
+          "width": 1440,
+          "overflow": false,
+          "scrollWidth": 1440,
+          "undersized": [],
+          "smallFields": [],
+          "outside": []
+        }
+      ],
+      "tabs": 0,
+      "title": "Configuración | Compras | Konta",
+      "menus": 3
+    }
+  ],
+  "issues": []
+}

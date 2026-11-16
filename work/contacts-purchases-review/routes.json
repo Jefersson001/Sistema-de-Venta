@@ -1,0 +1,20 @@
+{
+    "admin": [
+        "/modules/contactos/index.php",
+        "/modules/contactos/index.php?q=Cliente",
+        "/modules/contactos/index.php?new=1",
+        "/modules/contactos/index.php?id=448",
+        "/modules/contactos/index.php?id=449",
+        "/modules/contactos/index.php?id=447",
+        "/modules/contactos/index.php?status=archived",
+        "/modules/contactos/configuracion.php",
+        "/modules/contactos/configuracion.php?section=types",
+        "/modules/contactos/configuracion.php?section=document_types",
+        "/modules/compras/index.php",
+        "/modules/compras/index.php?q=Proveedor&status=purchase",
+        "/modules/compras/index.php?new=1",
+        "/modules/compras/index.php?id=207",
+        "/modules/compras/configuracion.php"
+    ],
+    "seller": []
+}

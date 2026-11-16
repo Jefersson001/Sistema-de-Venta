@@ -6,8 +6,9 @@ require_once dirname(__DIR__).'/php/navigation-search.php';
 require_once dirname(__DIR__).'/php/company-repository.php';
 $server=startAuthTestServer();$cookies=[];
 $modules=in_array('--modules',$argv,true);
-$visual=$modules||in_array('--visual',$argv,true);
-$output=dirname(__DIR__).($modules?'/work/module-design-review':($visual?'/work/visual-review':'/work/mobile-audit'));
+$contactsPurchases=in_array('--contacts-purchases',$argv,true);
+$visual=$modules||$contactsPurchases||in_array('--visual',$argv,true);
+$output=dirname(__DIR__).($contactsPurchases?'/work/contacts-purchases-review':($modules?'/work/module-design-review':($visual?'/work/visual-review':'/work/mobile-audit')));
 if(!is_dir($output))mkdir($output,0777,true);
 try{
     $db=$server['db'];$password=bin2hex(random_bytes(16));$login='mobile.qa.'.bin2hex(random_bytes(5));
@@ -44,6 +45,17 @@ try{
     $response=authTestRequest($server,$path,$cookies['seller'],['csrf'=>authTestToken($html),'action'=>'direct_checkout','request_key'=>bin2hex(random_bytes(32)),'seller_id'=>$seller,'customer_id'=>$customer,'payment_term_id'=>$term,'lines_json'=>json_encode($saleLines)]);
     if($response[0]!==303||!preg_match('/[?&]id=(\d+)/',$response[2],$match))throw new RuntimeException('No se creó la venta aislada: '.mb_substr(strip_tags($response[1]),-900));
     $checkout=(int)$match[1];$row=$db->query('SELECT * FROM direct_sale_checkouts WHERE id='.$checkout)->fetch();
+    if($contactsPurchases){
+        $db->exec('SET @nexo_company_id=1, @nexo_actor_id='.$admin);
+        if(!$db->query("SELECT id FROM contact_types WHERE name='Administrador'")->fetchColumn())$db->exec("INSERT INTO contact_types(name) VALUES('Administrador')");
+        $db->prepare('INSERT INTO contacts(name,type_id,address,email,phone) VALUES(?,?,?,?,?)')->execute(['Proveedor de prueba con nombre largo para revisar órdenes de compra',$types['supplier'],'Avenida de prueba, local y referencias para recepción','proveedor@example.com','04121234568']);$supplier=(int)$db->lastInsertId();
+        $newPurchase='/modules/compras/index.php?new=1';[, $purchaseForm]=authTestRequest($server,$newPurchase,$cookies['admin']);
+        $purchaseLines=array_map(static fn(array $line):array=>['product_id'=>$line['product_id'],'quantity'=>'3','unit_price'=>'125.75','tax_id'=>''],$saleLines);
+        $r=authTestRequest($server,$newPurchase,$cookies['admin'],['csrf'=>authTestToken($purchaseForm),'action'=>'save_purchase','supplier_id'=>$supplier,'order_type'=>'receipt','order_date'=>date('Y-m-d'),'payment_term_id'=>$term,'destination_location_id'=>$location,'currency_code'=>'USD','exchange_rate'=>'100','lines'=>$purchaseLines]);
+        if($r[0]!==303||!preg_match('/[?&]id=(\d+)/',$r[2],$purchaseMatch))throw new RuntimeException('No se pudo preparar la compra de prueba: '.mb_substr(strip_tags($r[1]),-800));
+        $purchase=(int)$purchaseMatch[1];$purchasePath='/modules/compras/index.php?id='.$purchase;[, $purchaseForm]=authTestRequest($server,$purchasePath,$cookies['admin']);
+        $r=authTestRequest($server,$purchasePath,$cookies['admin'],['csrf'=>authTestToken($purchaseForm),'action'=>'confirm_purchase','version'=>1]);if($r[0]!==303)throw new RuntimeException('No se confirmó la compra de prueba.');
+    }
     $routes=['/index.php','/perfil.php','/cambiar-contrasena.php'];
     foreach(navigationSearchCatalog() as $entry)$routes[]='/modules/'.$entry['module'].'/'.$entry['route'];
     foreach(['contactos/index.php','inventario/index.php','inventario/lotes.php','inventario/variantes.php','ventas/index.php','compras/index.php','contabilidad/pagos.php?type=customer','contabilidad/pagos.php?type=supplier','ajustes/usuarios.php','ajustes/grupos.php','restaurante/cuenta.php'] as $route)$routes[]='/modules/'.$route.(str_contains($route,'?')?'&':'?').'new=1';
@@ -72,9 +84,15 @@ try{
             '/modules/contabilidad/index.php?type=customer','/modules/contabilidad/index.php?type=customer&status=not_paid','/modules/contabilidad/index.php?type=customer&id='.$row['invoice_id'],'/modules/contabilidad/pagos.php?type=customer','/modules/contabilidad/pagos.php?type=customer&new=1','/modules/contabilidad/cuentas-pendientes.php','/modules/contabilidad/ingresos-egresos.php',
         ];$sellerRoutes=[];
     }
+    if($contactsPurchases){
+        $routes=['/modules/contactos/index.php','/modules/contactos/index.php?q=Cliente','/modules/contactos/index.php?new=1','/modules/contactos/index.php?id='.$customer,'/modules/contactos/index.php?id='.$supplier,'/modules/contactos/index.php?id='.$seller,'/modules/contactos/index.php?status=archived',
+            '/modules/contactos/configuracion.php','/modules/contactos/configuracion.php?section=types','/modules/contactos/configuracion.php?section=document_types',
+            '/modules/compras/index.php','/modules/compras/index.php?q=Proveedor&status=purchase','/modules/compras/index.php?new=1',$purchasePath,'/modules/compras/configuracion.php'];$sellerRoutes=[];
+    }
     file_put_contents($output.'/routes.json',json_encode(['admin'=>array_values(array_unique($routes)),'seller'=>$sellerRoutes],JSON_PRETTY_PRINT|JSON_UNESCAPED_SLASHES));
     $env=getenv();$env['NEXO_TEST_BASE_URL']=$server['url'];$env['NEXO_TEST_LOGIN']=$login;$env['NEXO_TEST_SELLER']=$sellerLogin;$env['NEXO_TEST_PASSWORD']=$password;$env['NEXO_MOBILE_OUTPUT']=$output;
     if($visual)$env['NEXO_VISUAL_REVIEW']='1';
     if($modules)$env['NEXO_MODULE_REVIEW']='1';
+    if($contactsPurchases)$env['NEXO_CONTACTS_PURCHASES_REVIEW']='1';
     $p=proc_open(['node',__DIR__.'/mobile-audit-ui.js'],[0=>['pipe','r'],1=>STDOUT,2=>STDERR],$pipes,dirname(__DIR__),$env,['bypass_shell'=>true,'create_new_console'=>false]);fclose($pipes[0]);if(proc_close($p)!==0)throw new RuntimeException('La auditoría detectó incidencias; consultar '.$output.'/report.json.');
 }finally{foreach($cookies as $cookie)if(is_file($cookie))unlink($cookie);stopAuthTestServer($server);}

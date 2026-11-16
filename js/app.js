@@ -93,6 +93,11 @@ for (const notebook of document.querySelectorAll('[data-notebook]')) {
             tab.tabIndex = position === index ? 0 : -1;
             pages[position].hidden = position !== index;
         });
+        const strip=tabList.getBoundingClientRect(),selected=tabs[index].getBoundingClientRect();
+        if(strip.width>0){
+            if(selected.left<strip.left)tabList.scrollLeft+=selected.left-strip.left-4;
+            else if(selected.right>strip.right)tabList.scrollLeft+=selected.right-strip.right+4;
+        }
         if (focus) tabs[index].focus();
     }
 
@@ -145,6 +150,8 @@ for (const contactType of document.querySelectorAll('[data-contact-type]')) {
     const partnerOptions = partnerSelect ? [...partnerSelect.options].map(option => option.cloneNode(true)) : [];
     function updateSalespersonVisibility() {
         const kind = contactType.selectedOptions[0]?.dataset.contactKind;
+        const administratorHelp=form.querySelector('[data-contact-administrator-help]');
+        if(administratorHelp)administratorHelp.hidden=contactType.selectedOptions[0]?.textContent.trim().toLocaleLowerCase('es')!=='administrador';
         const isClient = kind === 'client';
         field.hidden = !isClient;
         salesperson.disabled = !isClient;

@@ -55,6 +55,33 @@ const {spawn}=require('node:child_process');
       }
      }
      await size(320);
+     if(process.env.NEXO_CONTACTS_PURCHASES_REVIEW==='1'){
+      if(route.includes('q=')){
+       if(!await ev('!!document.querySelector(".konta-filter-chip")'))report.issues.push({role,route,kind:'applied-filters'});
+      }
+      if(route.includes('/compras/index.php?new=1')){
+       if(!await ev('document.querySelector("[name=supplier_id]").compareDocumentPosition(document.querySelector("[name=order_type]"))&Node.DOCUMENT_POSITION_FOLLOWING'))report.issues.push({role,route,kind:'supplier-order'});
+      }
+      if(route.includes('/compras/index.php?id=')){
+       const count=await ev('document.querySelector(".konta-readonly-lines")?.tBodies[0].rows.length');
+       if(count!==13)report.issues.push({role,route,kind:'purchase-lines',count});
+      }
+      if(route.includes('/contactos/index.php?new=1')){
+       const help=await ev('document.querySelector("[data-contact-administrator-help]").hidden');if(!help)report.issues.push({role,route,kind:'client-admin-help'});
+       await ev('(()=>{const s=document.querySelector("[name=type_id]");s.value=[...s.options].find(o=>o.textContent.trim()==="Administrador").value;s.dispatchEvent(new Event("change",{bubbles:true}));})()');
+       if(await ev('document.querySelector("[data-contact-administrator-help]").hidden'))report.issues.push({role,route,kind:'administrator-help'});
+      }
+      if(route.includes('/contactos/index.php?id=')){
+       await size(390);await ev('document.querySelector("#tab-addresses").click();document.querySelector("#tab-secondary-addresses").click();document.querySelector("[data-add-contact-address]").click();document.querySelector("[data-contact-address-row]").scrollIntoView({block:"start"})');
+       if((await audit()).overflow)report.issues.push({role,route,kind:'address-line',overflow:true});
+       await screenshot('contact-'+report.pages.length+'-address');
+       await ev('document.querySelector("[data-remove-contact-address]").click();document.querySelector("#tab-attachments").click();document.querySelector("[data-contact-attachment-add]").click();document.querySelector("[data-contact-upload-row]").scrollIntoView({block:"start"})');
+       const selectedTab=await ev('(()=>{const t=document.querySelector("#tab-attachments"),r=t.getBoundingClientRect(),p=t.parentElement.getBoundingClientRect();return r.left>=p.left-1&&r.right<=p.right+1;})()');
+       if(!selectedTab)report.issues.push({role,route,kind:'selected-tab-clipped'});
+       const added=await audit();if(added.overflow||added.smallFields.length||added.undersized.length)report.issues.push({role,route,kind:'attachment-line',...added});
+       await screenshot('contact-'+report.pages.length+'-files');await ev('document.querySelector("[data-contact-attachment-remove]").click()');
+      }
+     }
      if(process.env.NEXO_MODULE_REVIEW==='1'){
       if(route.includes('q=')){
        const chips=await ev('[...document.querySelectorAll(".konta-filter-chip")].map(e=>e.textContent)');
