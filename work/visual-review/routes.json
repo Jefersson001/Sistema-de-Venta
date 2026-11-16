@@ -1,0 +1,23 @@
+{
+    "admin": [
+        "/index.php",
+        "/modules/dashboard/index.php",
+        "/modules/contactos/index.php",
+        "/modules/contactos/index.php?id=447",
+        "/modules/inventario/index.php",
+        "/modules/inventario/index.php?id=260",
+        "/modules/ventas/index.php",
+        "/modules/ventas/index.php?new=1",
+        "/modules/ventas/index.php?id=362",
+        "/modules/compras/index.php?new=1",
+        "/modules/contabilidad/index.php?type=customer&id=592",
+        "/modules/contabilidad/pagos.php?type=customer&new=1",
+        "/modules/restaurante/index.php",
+        "/modules/ajustes/grupos.php?new=1",
+        "/modules/ajustes/empresa.php"
+    ],
+    "seller": [
+        "/modules/venta_directa/index.php",
+        "/modules/venta_directa/index.php?id=7"
+    ]
+}

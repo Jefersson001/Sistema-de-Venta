@@ -25,12 +25,14 @@ function companyDecorateView(DOMDocument $dom,DOMXPath $xpath,string $current): 
     if($id&&$table) {
         $q=$db->prepare('SELECT r.company_id,r.created_at,r.updated_at,c.name AS creator,u.name AS editor FROM '.$table.' r LEFT JOIN auth_users c ON c.id=r.created_by LEFT JOIN auth_users u ON u.id=r.updated_by WHERE r.id=?');$q->execute([$id]);$audit=$q->fetch();
         if($audit) {
-            $box=$dom->createElement('aside');$box->setAttribute('class','notice company-record-info');$box->setAttribute('aria-label','Control del registro');
+            $box=$dom->createElement('details');$box->setAttribute('class','company-record-info');$box->setAttribute('aria-label','Control del registro');
+            $summary=$dom->createElement('summary');$summary->appendChild($dom->createTextNode('Información del registro'));$box->appendChild($summary);
             $text='Empresa: '.($names[(int)$audit['company_id']]??'').' · Creado: '.($audit['created_at']??'Sin fecha histórica').' · Por: '.($audit['creator']??'Sin usuario histórico').' · Modificado: '.($audit['updated_at']??'Sin fecha histórica').' · Por: '.($audit['editor']??'Sin usuario histórico');
-            $box->appendChild($dom->createTextNode($text));
+            $auditText=$dom->createElement('p');$auditText->appendChild($dom->createTextNode($text));$box->appendChild($auditText);
             $main=$xpath->query('//main//div[contains(@class,"page-content")]')->item(0);$main?->insertBefore($box,$main->firstChild);
             if((int)$audit['company_id']!==companyActiveId()) {
-                $box->appendChild($dom->createTextNode(' · Activa esta empresa en el selector para modificar el registro.'));
+                $box->setAttribute('open','open');
+                $warning=$dom->createElement('p');$warning->setAttribute('class','notice notice-warning');$warning->appendChild($dom->createTextNode('Activa esta empresa en el selector para modificar el registro.'));$box->appendChild($warning);
                 foreach($xpath->query('//main//form[translate(@method,"POST","post")="post"]//input|//main//form[translate(@method,"POST","post")="post"]//select|//main//form[translate(@method,"POST","post")="post"]//textarea|//main//form[translate(@method,"POST","post")="post"]//button') as $control)$control->setAttribute('disabled','disabled');
             }
         }

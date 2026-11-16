@@ -250,6 +250,17 @@ html[data-konta-theme=dark] .module-workspace {
 .module-workspace :is(.contact-form-actions,.document-actions) { gap:8px; }
 .module-workspace .contact-form-actions>.contact-button-primary { padding-inline:16px; }
 .module-workspace .konta-save-compact { display:none; }
+.module-workspace .company-record-info { margin:0 0 10px; color:var(--k-muted); font-size:12px; }
+.module-workspace .company-record-info>summary { width:fit-content; min-height:32px; padding:6px 0; cursor:pointer; }
+.module-workspace .company-record-info>p:not(.notice) { margin:4px 0 10px; padding:12px 14px; border:1px solid var(--k-line); border-radius:9px; color:var(--k-muted); background:var(--k-soft); line-height:1.7; overflow-wrap:anywhere; }
+.module-workspace .konta-saved-product-control { display:none; }
+.module-workspace .konta-saved-product { display:block; color:var(--k-text); font-size:13px; line-height:1.5; white-space:normal; overflow-wrap:anywhere; }
+.module-workspace .konta-row-details,.module-workspace .konta-saved-scalar { display:none; }
+.module-workspace .contact-form-actions:not(:has(button,input[type=submit])) { position:static; padding:8px 0 0; border:0; background:transparent; box-shadow:none; }
+.module-workspace .quotation-totals>div[data-invoice-total] { color:var(--k-text); font-size:19px; font-weight:700; }
+.module-workspace .quotation-totals>div:last-child:has([data-invoice-currency-reference]) { color:var(--k-muted); font-size:13px; font-weight:400; }
+.module-workspace [data-direct-edit-customer] { color:var(--k-green-dark); }
+.module-workspace .business-overview { background:transparent; }
 @media(max-width:360px){.module-workspace .konta-save-label{display:none;}.module-workspace .konta-save-compact{display:inline;}}
 .module-workspace .contact-table thead th { padding:12px 14px; font-size:var(--k-type-caption); font-weight:600; white-space:normal; vertical-align:middle; }
 .module-workspace .contact-table td { vertical-align:middle; line-height:1.5; }
@@ -288,6 +299,38 @@ html[data-konta-theme=dark] .module-workspace {
 .module-workspace .restaurant-checkout-payment { background:var(--k-soft); border-color:var(--k-line); }
 .module-workspace :is(a,button,summary):focus-visible { outline:2px solid var(--k-green); outline-offset:3px; }
 @media(max-width:720px) {
+    .module-workspace .quick-actions .action-buttons { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:8px; }
+    .module-workspace .quick-actions .action-button { min-width:0; padding:10px; }
+    .module-workspace .section-heading { align-items:flex-start; text-align:left; gap:8px; }
+    .module-workspace .direct-grand-total { font-size:clamp(24px,7vw,34px); overflow-wrap:anywhere; }
+    .module-workspace .contact-table.konta-readonly-lines td.konta-line-quantity { text-align:left; }
+    .module-workspace .konta-readonly-lines .konta-saved-product { font-size:14px; font-weight:600; }
+    .module-workspace .company-record-info>summary { min-height:44px; padding-block:10px; }
+    .module-workspace .document-actions { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); align-items:stretch; }
+    .module-workspace .document-actions>.quotation-state-actions,.module-workspace .document-actions>form,.module-workspace .document-actions .quotation-state-actions>form { display:contents; }
+    .module-workspace .document-actions .contact-button { width:100%; min-width:0; white-space:normal; }
+    .module-workspace .document-actions .contact-button-primary:not(.konta-secondary-action) { grid-column:1/-1; order:-1; }
+    .module-workspace .document-actions .workspace-danger { order:20; }
+    .module-workspace .contact-table-wrap:has(>.konta-readonly-lines) { overflow:visible; border:0; background:transparent; }
+    .module-workspace .contact-table-wrap:has(>.konta-readonly-lines)::after { display:none; }
+    .module-workspace .konta-readonly-lines { display:block; width:100%; min-width:0!important; }
+    .module-workspace .konta-readonly-lines thead { position:absolute; width:1px; height:1px; clip-path:inset(50%); overflow:hidden; }
+    .module-workspace .konta-readonly-lines tbody { display:grid; gap:12px; }
+    .module-workspace .konta-readonly-lines tbody tr { display:grid; grid-template-columns:minmax(0,1fr) minmax(0,1fr); gap:10px; padding:14px; border:1px solid var(--k-line); border-radius:10px; background:var(--k-surface); }
+    .module-workspace .konta-readonly-lines tbody td { display:block; min-width:0; padding:0; border:0; }
+    .module-workspace .konta-readonly-lines tbody .konta-line-name { grid-column:1/-1; width:auto; min-width:0; max-width:none; }
+    .module-workspace .konta-readonly-lines tbody .konta-line-extra { display:none; }
+    .module-workspace .konta-readonly-lines :is(.konta-line-quantity,.konta-line-total)::before { display:block; margin-bottom:4px; color:var(--k-muted); font-size:12px; font-weight:400; content:attr(data-column-label); }
+    .module-workspace .konta-readonly-lines .konta-line-total { text-align:right; font-weight:700; }
+    .module-workspace .konta-readonly-lines .konta-line-quantity { text-align:left; }
+    .module-workspace .konta-readonly-lines :is(.konta-line-quantity,.konta-line-total)>:is(input,select,.searchable-select) { display:none; }
+    .module-workspace .konta-saved-scalar { display:block; }
+    .module-workspace .konta-row-details { display:block; margin-top:4px; font-size:12px; font-weight:400; }
+    .module-workspace .konta-row-details>summary { display:list-item; width:fit-content; min-height:44px; padding:12px 0; color:var(--k-green-dark); cursor:pointer; }
+    .module-workspace .konta-row-details dl { margin:0 0 8px; padding:10px 0; border-block:1px solid var(--k-line); }
+    .module-workspace .konta-row-details dl>div { display:flex; justify-content:space-between; gap:12px; padding:5px 0; }
+    .module-workspace .konta-row-details dt { color:var(--k-muted); }
+    .module-workspace .konta-row-details dd { margin:0; color:var(--k-text); text-align:right; font-variant-numeric:tabular-nums; }
     .module-workspace .contact-filters { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); padding:12px; gap:10px; }
     .module-workspace .contact-filters>label:first-child { grid-column:1/-1; }
     .module-workspace .contact-filters>.contact-button { min-width:0; min-height:44px; }

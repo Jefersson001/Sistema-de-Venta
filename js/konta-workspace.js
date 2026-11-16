@@ -13,7 +13,43 @@
         templates.set(name, template.content.firstElementChild);
     }
     const normalize = value => value.normalize('NFD').replace(/[\u0300-\u036f]/g, '').trim().toLowerCase();
+    const savedText=cell=>{
+        const select=cell.querySelector('select');if(select)return select.selectedOptions[0]?.textContent.trim()||'—';
+        const input=cell.querySelector('input:not([type=hidden]),textarea');return input?input.value:cell.textContent.trim();
+    };
     function decorate(root) {
+        const savedProducts=[...root.querySelectorAll('fieldset[disabled] select[data-line-product],fieldset[disabled] select[data-order-product]')];
+        for(const select of savedProducts){
+            if(select.dataset.kontaProductRendered)continue;
+            select.dataset.kontaProductRendered='true';
+            const control=select.closest('.searchable-select')||select;
+            control.classList.add('konta-saved-product-control');
+            const value=document.createElement('span');value.className='konta-saved-product';value.textContent=select.selectedOptions[0]?.textContent.trim()||'—';
+            control.after(value);
+        }
+        for(const table of document.querySelectorAll('.konta-readonly-lines')){
+            table.setAttribute('role','table');
+            if(table.tHead)table.tHead.setAttribute('role','rowgroup');
+            for(const body of table.tBodies)body.setAttribute('role','rowgroup');
+            for(const row of table.rows){row.setAttribute('role','row');for(const cell of row.cells)cell.setAttribute('role',cell.tagName==='TH'?'columnheader':'cell');}
+            for(const row of [...table.tBodies].flatMap(body=>[...body.rows])){
+                if(row.dataset.kontaLineRendered)continue;
+                const name=row.querySelector('.konta-line-name');if(!name)continue;
+                row.dataset.kontaLineRendered='true';
+                const extras=[...row.querySelectorAll('.konta-line-extra')];
+                if(extras.length){
+                    const details=document.createElement('details');details.className='konta-row-details';
+                    const summary=document.createElement('summary');summary.textContent='Ver detalle';details.append(summary);
+                    const list=document.createElement('dl');
+                    for(const cell of extras){const group=document.createElement('div'),label=document.createElement('dt'),value=document.createElement('dd');label.textContent=cell.dataset.columnLabel;value.textContent=savedText(cell);group.append(label,value);list.append(group);}
+                    details.append(list);name.append(details);
+                }
+                for(const cell of row.querySelectorAll('.konta-line-quantity,.konta-line-total')){
+                    if(!cell.querySelector('input,select,textarea'))continue;
+                    const value=document.createElement('span');value.className='konta-saved-scalar';value.textContent=savedText(cell);cell.append(value);
+                }
+            }
+        }
         const emptySelector = '.direct-history>p,[data-direct-empty],.restaurant-empty-symbol,.restaurant-pos-cart-empty>span[aria-hidden]';
         const empties = [...root.querySelectorAll(emptySelector)];
         if (root.matches?.(emptySelector)) empties.push(root);
