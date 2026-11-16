@@ -1,22 +1,24 @@
 (() => {
     'use strict';
-    const form = document.querySelector('[data-quotation-form]');
+    const form = document.querySelector('[data-quotation-form],[data-direct-form][data-request-mode="0"]');
+    const direct = form?.matches('[data-direct-form]');
     const check = form?.querySelector('[data-unregistered-customer]');
     const button = form?.querySelector('[data-create-sales-customer]');
     const dialog = document.querySelector('[data-sales-customer-dialog]');
-    if (!check || !button || !dialog || form.dataset.permissionReadonly === 'true') return;
+    if ((!direct && !check) || !button || !dialog || form.dataset.permissionReadonly === 'true') return;
     const frame = dialog.querySelector('[data-sales-customer-frame]');
     const loading = dialog.querySelector('[data-sales-customer-loading]');
-    const customer = form.querySelector('[data-quotation-customer]');
+    const customer = form.querySelector('[data-quotation-customer],[name="customer_id"]');
     const result = document.querySelector('[data-sales-customer-result]');
     let scope = '';
-    check.addEventListener('input', event => event.stopPropagation());
-    check.addEventListener('change', event => { event.stopPropagation(); button.hidden = !check.checked; });
+    check?.addEventListener('input', event => event.stopPropagation());
+    check?.addEventListener('change', event => { event.stopPropagation(); button.hidden = !check.checked; });
     button.addEventListener('click', () => {
-        if (!check.checked || check.matches(':disabled')) return;
+        if ((check && (!check.checked || check.matches(':disabled'))) || button.matches(':disabled')) return;
         scope = form.querySelector('[name="company_scope"]')?.value || '';
         const url = new URL('../contactos/index.php', window.location.href);
         url.search = new URLSearchParams({new: '1', sales_wizard: '1', wizard_scope: scope});
+        if(direct)url.searchParams.set('direct_seller_id',form.elements.seller_id.value);
         loading.hidden = false; result.hidden = true;
         frame.src = url.href; dialog.showModal();
     });
@@ -27,6 +29,7 @@
         if (event.origin !== window.location.origin || event.source !== frame.contentWindow || !dialog.open || event.data?.type !== 'sales-customer-created') return;
         const record = event.data.customer;
         if (!record || record.scope !== scope || scope !== (form.querySelector('[name="company_scope"]')?.value || '') || !Number.isSafeInteger(record.id) || record.id <= 0 || typeof record.name !== 'string' || typeof record.address !== 'string' || !Number.isSafeInteger(record.salesperson_id)) return;
+        if(direct && record.salesperson_id!==Number(form.elements.seller_id.value))return;
         let option = [...customer.options].find(item => item.value === String(record.id));
         if (!option) { option = new Option(record.name, String(record.id)); customer.add(option); }
         option.textContent = record.name; option.dataset.address = record.address;
@@ -34,7 +37,7 @@
         option.dataset.addresses=JSON.stringify(Array.isArray(record.addresses)?record.addresses:[]);
         customer.value = String(record.id);
         customer.dispatchEvent(new Event('change', {bubbles: true}));
-        check.checked = false; button.hidden = true; dialog.close();
+        if(check){check.checked = false; button.hidden = true;}dialog.close();
         result.textContent = 'Cliente creado y seleccionado: ' + record.name; result.hidden = false;
         (customer.parentElement.querySelector('[role="combobox"]') || customer).focus();
     });

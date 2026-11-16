@@ -24,6 +24,10 @@ function renderContactsPage(bool $isConfiguration = false): void
     if ($salesWizard && (!is_string($_GET['wizard_scope'] ?? null) || !hash_equals(companyScopeToken(), $_GET['wizard_scope']))) {
         authStop(409, 'La selección de empresas cambió. Cierra esta ventana y vuelve a abrir Crear cliente.');
     }
+    $directSellerId=$salesWizard?contactId($_GET['direct_seller_id']??null):null;
+    if($salesWizard&&isset($_GET['direct_seller_id'])&&(!$directSellerId||!permissionHas('venta_directa.sales','create')||!in_array($directSellerId,permissionContacts(),true))){
+        authStop(403,'Solo puedes crear clientes para tu vendedor autorizado de Ventas Directas.');
+    }
     if (session_status() !== PHP_SESSION_ACTIVE) {
         session_start();
     }
@@ -31,7 +35,7 @@ function renderContactsPage(bool $isConfiguration = false): void
     $page = [
         'csrf' => $_SESSION['contacts_csrf'], 'errors' => [], 'available' => false,
         'flash' => $_SESSION['contacts_flash'] ?? null,
-        'section' => null, 'view' => 'list', 'record' => [], 'salesWizard' => $salesWizard,
+        'section' => null, 'view' => 'list', 'record' => [], 'salesWizard' => $salesWizard,'directSellerId'=>$directSellerId,
     ];
     unset($_SESSION['contacts_flash']);
     $config = require __DIR__ . '/config/database.php';
@@ -83,6 +87,11 @@ function renderContactsPage(bool $isConfiguration = false): void
             $page['storage'] = loadStorageRelations($db);
             $page['salespeople'] = loadContactSalespeople($db, contactId($page['record']['salesperson_id'] ?? null), $id);
             if(permissionScope('contactos.contacts',$id?'edit':'create')==='own'){$page['salespeople']=array_values(array_filter($page['salespeople'],static fn($r)=>(int)$r['id']===permissionContact()));if(!$id)$page['record']['salesperson_id']=permissionContact();}
+            if($directSellerId){
+                $page['salespeople']=array_values(array_filter($page['salespeople'],static fn($r)=>(int)$r['id']===$directSellerId));
+                if(!$page['salespeople'])authStop(403,'El vendedor no está disponible en esta empresa.');
+                if(!$id)$page['record']['salesperson_id']=$directSellerId;
+            }
         }
         if ($_SERVER['REQUEST_METHOD'] === 'POST' && $page['available']) {
             $token = $_POST['csrf'] ?? null;
@@ -105,7 +114,12 @@ function renderContactsPage(bool $isConfiguration = false): void
                     }
                 }
             } elseif (! $isConfiguration && ($_POST['action'] ?? '') === 'save_contact' && $page['view'] === 'form') {
-                $contactInput=$_POST;if($id&&!array_key_exists('municipality_id',$contactInput))$contactInput['municipality_id']=$page['record']['municipality_id']??'';
+                $contactInput=$_POST;
+                if($directSellerId){
+                    if(!empty($contactInput['salesperson_id'])&&contactId($contactInput['salesperson_id'])!==$directSellerId)authStop(403,'El cliente debe quedar asignado al vendedor de esta venta.');
+                    $contactInput['salesperson_id']=(string)$directSellerId;
+                }
+                if($id&&!array_key_exists('municipality_id',$contactInput))$contactInput['municipality_id']=$page['record']['municipality_id']??'';
                 if($id&&!array_key_exists('latitude',$contactInput)&&!array_key_exists('longitude',$contactInput)){ $contactInput['latitude']=$page['record']['latitude']??'';$contactInput['longitude']=$page['record']['longitude']??''; }
                 [$data, $page['errors']] = validateContact($contactInput, $page['catalogs'], $page['salespeople'], $id, $page['storage']);
                 [$addressChanges,$addressErrors]=validateContactAddressLines($_POST,$page['catalogs'],$page['addresses']);

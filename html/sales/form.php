@@ -80,13 +80,7 @@ $storageDisplay = $locked ? ($record['storage_label'] ?? '') : ($selectedSeller[
     </form>
 </section>
 <?php if (!$locked && permissionHas('contactos.contacts', 'read') && permissionHas('contactos.contacts', 'create')): ?>
-<dialog class="sales-customer-dialog" data-sales-customer-dialog aria-labelledby="sales-customer-dialog-title">
-    <div class="sales-customer-dialog-header"><h2 id="sales-customer-dialog-title">Crear cliente</h2><button type="button" class="contact-button" data-close-sales-customer>Cerrar</button></div>
-    <p class="section-subtitle" data-sales-customer-loading role="status">Cargando Contactos…</p>
-    <iframe title="Crear cliente en Contactos" data-sales-customer-frame></iframe>
-</dialog>
-<p class="notice notice-success" role="status" data-sales-customer-result hidden></p>
-<script src="../../js/sales-customer-wizard.js?v=<?= filemtime(dirname(__DIR__,2).'/js/sales-customer-wizard.js') ?>" defer></script>
+<?php require dirname(__DIR__).'/partials/customer-dialog.php'; ?>
 <?php endif; ?>
 <script type="application/json" data-currency-settings><?= json_encode($page['catalogs']['settings'],JSON_HEX_TAG|JSON_HEX_AMP|JSON_HEX_APOS|JSON_HEX_QUOT) ?></script><script src="../../js/product-commissions.js?v=<?= filemtime(dirname(__DIR__,2).'/js/product-commissions.js') ?>" defer></script><script src="../../js/currency.js" defer></script><script src="../../js/sales.js?v=<?= filemtime(dirname(__DIR__,2).'/js/sales.js') ?>" defer></script>
 

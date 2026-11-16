@@ -1,5 +1,6 @@
 <?php $e=static fn(mixed $v):string=>authEscape($v);$requests=$page['requests'];$detail=$page['detail'];$currency=$page['settings']['primary_code'];$warehouseStock=$page['warehouse_stock'];$canApprove=$requests&&permissionScope('venta_directa.requests','confirm')==='all'&&permissionHas('venta_directa.stock');$states=['pending'=>'Pendiente','approved'=>'Aprobada, pendiente de entrega','transferred'=>'Transferida','rejected'=>'Rechazada','cancelled'=>'Cancelada'];
 $directNav=[];
+$canCreateDirectCustomer=!$requests&&!$warehouseStock&&!$detail&&!isset($_GET['view'])&&!empty($page['can_create'])&&!empty($page['seller'])&&permissionHas('contactos.contacts','read')&&permissionHas('contactos.contacts','create');
 if(permissionHas('venta_directa.sales','create')&&permissionContact()){
     $directNav[]=['index.php','Vender',!$requests&&!$warehouseStock&&!$detail&&!isset($_GET['view'])];
     $directNav[]=['index.php?view=stock','Mi inventario',!$warehouseStock&&($_GET['view']??'')==='stock'];
@@ -68,7 +69,7 @@ if(permissionHas('venta_directa.configuration'))$directNav[]=['configuracion.php
 <?php if(!$stockView): ?><form class="direct-checkout" method="post" action="<?= $requests?'solicitudes.php':'index.php' ?>" data-direct-form data-request-mode="<?= $requests?'1':'0' ?>">
 <input type="hidden" name="csrf" value="<?= $e($page['csrf']) ?>"><input type="hidden" name="action" value="<?= $requests?'direct_request':'direct_checkout' ?>"><input type="hidden" name="request_key" value="<?= $e($page['input']['request_key']??$page['key']) ?>"><input type="hidden" name="seller_id" value="<?= (int)$page['seller']['id'] ?>"><input type="hidden" name="lines_json" data-direct-lines>
 <?php if(!$requests): ?><section class="contact-sheet direct-sale-details" aria-label="Cliente y plazo de pago"><h2>Datos de la venta</h2>
-<label>Cliente *<select name="customer_id" required><option value="">Selecciona o busca un cliente</option><?php foreach($page['customers'] as $customer): ?><option value="<?= (int)$customer['id'] ?>" <?= (int)($page['input']['customer_id']??0)===(int)$customer['id']?'selected':'' ?>><?= $e($customer['name']) ?></option><?php endforeach; ?></select></label>
+<div class="direct-customer-entry"><label>Cliente *<select name="customer_id" required><option value="">Selecciona o busca un cliente</option><?php foreach($page['customers'] as $customer): ?><option value="<?= (int)$customer['id'] ?>" <?= (int)($page['input']['customer_id']??0)===(int)$customer['id']?'selected':'' ?>><?= $e($customer['name']) ?></option><?php endforeach; ?></select></label><?php if($canCreateDirectCustomer): ?><button class="contact-button contact-button-link" type="button" data-create-sales-customer>Nuevo cliente</button><?php endif; ?></div>
 <label data-direct-terms>Plazo de pago *<select name="payment_term_id" required><?php foreach($page['terms'] as $term): ?><option value="<?= (int)$term['id'] ?>" data-days="<?= (int)$term['days'] ?>" <?= (int)($page['input']['payment_term_id']??0)===(int)$term['id']?'selected':'' ?>><?= $e($term['name'].' · '.((int)$term['days']===0?'vence hoy':$term['days'].' días')) ?></option><?php endforeach; ?></select><small data-direct-due></small></label><p class="notice" data-direct-credit hidden></p>
 
 </section><?php endif; ?>
@@ -83,4 +84,5 @@ if(permissionHas('venta_directa.configuration'))$directNav[]=['configuracion.php
 <script type="application/json" data-direct-data><?= json_encode(['products'=>$page['products'],'currency'=>$currency,'stock_only'=>$stockView,'initial'=>$page['input'],'today'=>commerceToday()],JSON_HEX_TAG|JSON_HEX_AMP|JSON_HEX_APOS|JSON_HEX_QUOT|JSON_UNESCAPED_UNICODE|JSON_THROW_ON_ERROR) ?></script>
 <?php endif; ?>
 <?php endif; ?>
+<?php if($canCreateDirectCustomer)require dirname(__DIR__).'/partials/customer-dialog.php'; ?>
 </main><nav class="direct-bottom-nav" aria-label="Accesos móviles"><?php foreach($directNav as [$href,$label,$current]): ?><a href="<?= $e($href) ?>" <?= $current?'aria-current="page"':'' ?>><?= $e(match($label){'Inventario para abastecer'=>'Almacenes','Devoluciones'=>'Devolver','Ventas realizadas'=>'Ventas',default=>$label}) ?></a><?php endforeach; ?></nav></div></body></html>

@@ -9,7 +9,7 @@
     </div>
 <?php endif; ?>
 <?php if (!empty($page['wizardCustomer'])): ?>
-    <p class="notice notice-success" role="status">Cliente creado. Volviendo a la orden de venta…</p>
+    <p class="notice notice-success" role="status">Cliente creado. Volviendo a la venta…</p>
     <script type="application/json" data-created-sales-customer><?= json_encode($page['wizardCustomer'], JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT | JSON_UNESCAPED_UNICODE) ?></script>
     <script src="../../js/contact-sales-wizard.js?v=<?= filemtime(dirname(__DIR__, 2).'/js/contact-sales-wizard.js') ?>" defer></script>
 <?php elseif ($page['available']): ?>

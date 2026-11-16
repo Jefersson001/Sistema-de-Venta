@@ -165,6 +165,10 @@
 .module-workspace .direct-pagination span { color:var(--k-muted); }
 .module-workspace .direct-cart-jump { color:#fff; background:#00875f; box-shadow:0 5px 18px #00875f25; }
 .module-workspace .direct-sale-details select,.module-workspace .direct-sale-details .searchable-select-input { color:var(--k-text); border-color:var(--k-line); background:var(--k-surface); }
+.module-workspace .direct-customer-entry { display:grid; align-content:start; gap:4px; min-width:0; }
+.module-workspace .direct-customer-entry>label { display:grid; gap:6px; min-width:0; font-size:13px; }
+.module-workspace .direct-customer-entry>[data-create-sales-customer] { justify-self:start; min-height:36px; padding:6px 0; }
+@media(max-width:720px){.module-workspace .direct-customer-entry>[data-create-sales-customer]{min-height:44px;}}
 .module-workspace .direct-quantity button { color:var(--k-green-dark); background:var(--k-green-soft); border-color:var(--k-line); }
 .module-workspace .direct-quantity .direct-remove { color:#a52d45; background:#fff1f4; }
 .module-workspace :is(.direct-quantity input,.direct-seller-picker select,.direct-request-detail input,.direct-request-detail select,.direct-request-detail textarea,.direct-simple-form input,.direct-simple-form select,.direct-simple-form textarea,.direct-supply-picker input,.direct-supply-picker select) { color:var(--k-text); background:var(--k-surface); border-color:var(--k-line); }

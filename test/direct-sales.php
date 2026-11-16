@@ -14,6 +14,12 @@ try{
     $supervisionMigration=require dirname(__DIR__).'/php/migrations/versioned/20261113161546_separar_supervision_ventas_directas.php';
     $operationsMigration=require dirname(__DIR__).'/php/migrations/versioned/20261113171011_completar_operacion_venta_directa.php';
     $baseMigration($db);$supervisionMigration($db);
+    $customerMigration=require dirname(__DIR__).'/php/migrations/versioned/20261116032904_clientes_desde_ventas_directas.php';
+    $db->exec("DELETE p FROM access_group_permissions p JOIN access_groups g ON g.id=p.group_id WHERE g.system_key='direct_sales' AND p.permission_code='contactos.contacts.create'");
+    $customerMigration($db);
+    dsExpect($db->query("SELECT p.record_scope FROM access_group_permissions p JOIN access_groups g ON g.id=p.group_id WHERE g.system_key='direct_sales' AND p.permission_code='contactos.contacts.create'")->fetchColumn()==='own','La migración no permite crear clientes propios.');
+    $beforePermissions=$db->query('SELECT * FROM access_group_permissions ORDER BY group_id,permission_code')->fetchAll();$customerMigration($db);
+    dsExpect($beforePermissions===$db->query('SELECT * FROM access_group_permissions ORDER BY group_id,permission_code')->fetchAll(),'La migración repetida cambia permisos existentes.');
     // Existing requests outside company 1 must migrate with that company's context.
     $legacyCompany=createBusinessCompany($db,['name'=>'ZZZ '.$prefix.' previa'],$admin);$db->exec('SET @nexo_company_id='.$legacyCompany);
     $db->prepare('INSERT INTO inventory_warehouses(name) VALUES(?)')->execute([$prefix.' previo']);$legacyWarehouse=(int)$db->lastInsertId();
@@ -46,6 +52,20 @@ try{
     foreach($logins as $role=>$login){$cookie=tempnam(sys_get_temp_dir(),'direct-test-');$cookies[$role]=$cookie;[, $html]=authTestRequest($server,'/login.php',$cookie);dsExpect(authTestRequest($server,'/login.php',$cookie,['csrf'=>authTestToken($html),'login'=>$login,'password'=>$password])[0]===303,'Falló login.');authTestRequest($server,'/index.php',$cookie);}
     $post=static function(string $role,string $path,array $input)use($server,$cookies):array{[, $html]=authTestRequest($server,$path,$cookies[$role]);if(!str_contains($html,'name="csrf"'))[, $html]=authTestRequest($server,'/index.php',$cookies[$role]);return authTestRequest($server,$path,$cookies[$role],['csrf'=>authTestToken($html)]+$input);};
     $path='/modules/venta_directa/index.php';$requestPath='/modules/venta_directa/solicitudes.php';
+    [, $directPage]=authTestRequest($server,$path,$cookies['seller']);
+    dsExpect(str_contains($directPage,'data-create-sales-customer')&&str_contains($directPage,'data-sales-customer-dialog'),'Falta crear cliente en Ventas Directas.');
+    $wizardScope=authTestToken($directPage,'company_scope');
+    $wizardPath='/modules/contactos/index.php?'.http_build_query(['new'=>1,'sales_wizard'=>1,'wizard_scope'=>$wizardScope,'direct_seller_id'=>$seller]);
+    [$wizardStatus,$wizardForm]=authTestRequest($server,$wizardPath,$cookies['seller']);
+    dsExpect($wizardStatus===200&&str_contains($wizardForm,'direct_seller_id='.$seller),'La ventana no conserva el vendedor.');
+    dsExpect(authTestRequest($server,str_replace('direct_seller_id='.$seller,'direct_seller_id='.$otherCustomer,$wizardPath),$cookies['seller'])[0]===403,'Permite crear clientes para otro vendedor.');
+    $newClient=['csrf'=>authTestToken($wizardForm),'action'=>'save_contact','entity_kind'=>'person','type_id'=>$types['client'],'name'=>$prefix.' nuevo cliente directo','salesperson_id'=>$seller];
+    dsExpect(authTestRequest($server,$wizardPath,$cookies['seller'],['csrf'=>'invalid']+$newClient)[0]===403,'Crear cliente omite CSRF.');
+    dsExpect(authTestRequest($server,$wizardPath,$cookies['seller'],['salesperson_id'=>$otherCustomer]+$newClient)[0]===403,'Permite reasignar el cliente a otro contacto.');
+    dsExpect(authTestRequest($server,$wizardPath,$cookies['seller'],['type_id'=>$types['supplier']]+$newClient)[0]===403,'El vendedor puede crear proveedores.');
+    $newClientId=dsId(authTestRequest($server,$wizardPath,$cookies['seller'],$newClient));
+    $q=$db->prepare('SELECT company_id,salesperson_id FROM contacts WHERE id=?');$q->execute([$newClientId]);$savedClient=$q->fetch();
+    dsExpect((int)$savedClient['company_id']===1&&(int)$savedClient['salesperson_id']===$seller,'El nuevo cliente no conserva empresa/vendedor.');
     [$code,$contactForm]=authTestRequest($server,'/modules/contactos/index.php?id='.$seller,$cookies['admin']);
     dsExpect($code===200&&str_contains($contactForm,'data-related-location')&&str_contains($contactForm,'name="location_id"'),'La ficha del vendedor no permite configurar su ubicación interna.');
     [$code,$html]=authTestRequest($server,$path,$cookies['seller']);dsExpect($code===200&&str_contains($html,'data-direct-form')&&str_contains($html,$prefix.' product'),'No abre el catálogo del vendedor.');

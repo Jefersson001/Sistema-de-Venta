@@ -17,7 +17,7 @@ $isExternalPartner = in_array($selectedType['system_key'] ?? '', ['client', 'sup
         <?php endif; ?>
     </div>
     <?php if (! ($record['active'] ?? 1)): ?><p class="notice" role="status">Este contacto está archivado. Puedes restaurarlo para que vuelva al listado de activos.</p><?php endif; ?>
-    <form class="contact-sheet" method="post" enctype="multipart/form-data" action="index.php?<?= $editing ? 'id=' . (int) $record['id'] : 'new=1' ?><?= !empty($page['salesWizard']) ? '&amp;sales_wizard=1&amp;wizard_scope='.rawurlencode(companyScopeToken()) : '' ?>">
+    <form class="contact-sheet" method="post" enctype="multipart/form-data" action="index.php?<?= $editing ? 'id=' . (int) $record['id'] : 'new=1' ?><?= !empty($page['salesWizard']) ? '&amp;sales_wizard=1&amp;wizard_scope='.rawurlencode(companyScopeToken()) : '' ?><?= !empty($page['directSellerId'])?'&amp;direct_seller_id='.(int)$page['directSellerId']:'' ?>">
         <input type="hidden" name="csrf" value="<?= contactEscape($page['csrf']) ?>"><input type="hidden" name="action" value="save_contact">
         <p class="section-subtitle">Los campos marcados con * son obligatorios.</p>
         <fieldset><legend>Información principal</legend>

@@ -148,7 +148,7 @@ function accessInitialGroups(): array
         'direct_sales'=>['Vendedor de venta directa','Venta móvil y de escritorio desde su ubicación; solicita mercancía y registra cobros pendientes.',[
             'venta_directa.sales'=>['own','read,create,register_payment'],'venta_directa.requests'=>['own','read,create,cancel'],
             'venta_directa.returns'=>['own','read,create'],'venta_directa.closing'=>['own','read,create'],
-            'contactos.contacts'=>['own','read'],'inventario.products'=>['all','read'],
+            'contactos.contacts'=>['own','read,create'],'inventario.products'=>['all','read'],
             'ventas.orders'=>['own','read'],'inventario.deliveries'=>['own','read'],
             'contabilidad.customer_invoices'=>['own','read,register_payment'],
         ]],
