@@ -7,8 +7,9 @@ require_once dirname(__DIR__).'/php/company-repository.php';
 $server=startAuthTestServer();$cookies=[];
 $modules=in_array('--modules',$argv,true);
 $contactsPurchases=in_array('--contacts-purchases',$argv,true);
-$visual=$modules||$contactsPurchases||in_array('--visual',$argv,true);
-$output=dirname(__DIR__).($contactsPurchases?'/work/contacts-purchases-review':($modules?'/work/module-design-review':($visual?'/work/visual-review':'/work/mobile-audit')));
+$remaining=in_array('--remaining',$argv,true);
+$visual=$remaining||$modules||$contactsPurchases||in_array('--visual',$argv,true);
+$output=dirname(__DIR__).($remaining?'/work/final-design-review':($contactsPurchases?'/work/contacts-purchases-review':($modules?'/work/module-design-review':($visual?'/work/visual-review':'/work/mobile-audit'))));
 if(!is_dir($output))mkdir($output,0777,true);
 try{
     $db=$server['db'];$password=bin2hex(random_bytes(16));$login='mobile.qa.'.bin2hex(random_bytes(5));
@@ -88,6 +89,16 @@ try{
         $routes=['/modules/contactos/index.php','/modules/contactos/index.php?q=Cliente','/modules/contactos/index.php?new=1','/modules/contactos/index.php?id='.$customer,'/modules/contactos/index.php?id='.$supplier,'/modules/contactos/index.php?id='.$seller,'/modules/contactos/index.php?status=archived',
             '/modules/contactos/configuracion.php','/modules/contactos/configuracion.php?section=types','/modules/contactos/configuracion.php?section=document_types',
             '/modules/compras/index.php','/modules/compras/index.php?q=Proveedor&status=purchase','/modules/compras/index.php?new=1',$purchasePath,'/modules/compras/configuracion.php'];$sellerRoutes=[];
+    }
+    if($remaining){
+        [, $setup]=authTestRequest($server,'/modules/restaurante/configuracion.php',$cookies['admin']);
+        $setupResponse=authTestRequest($server,'/modules/restaurante/configuracion.php',$cookies['admin'],['csrf'=>authTestToken($setup),'action'=>'setup_tables','table_count'=>3,'request_key'=>bin2hex(random_bytes(32))]);
+        if($setupResponse[0]!==303)throw new RuntimeException('No se prepararon las mesas aisladas.');
+        $table=(int)$db->query('SELECT id FROM restaurant_tables WHERE company_id=1 ORDER BY id LIMIT 1')->fetchColumn();
+        if(!$table)throw new RuntimeException('Falta mesa de prueba.');
+        $routes=['/index.php','/modules/dashboard/index.php','/modules/restaurante/index.php','/modules/restaurante/cuenta.php?new=1','/modules/restaurante/configuracion.php','/modules/ajustes/empresa.php','/modules/ajustes/usuarios.php','/modules/ajustes/usuarios.php?new=1','/modules/ajustes/grupos.php?new=1','/modules/venta_directa/index.php','/modules/venta_directa/solicitudes.php'];
+        $routes[3]='/modules/restaurante/cuenta.php?new=1&preview=1&table_id='.$table;
+        $sellerRoutes=['/modules/venta_directa/index.php','/modules/venta_directa/index.php?view=history','/modules/venta_directa/index.php?view=stock','/modules/venta_directa/solicitudes.php','/modules/venta_directa/devoluciones.php','/modules/venta_directa/cierre.php','/modules/venta_directa/index.php?id='.$checkout];
     }
     file_put_contents($output.'/routes.json',json_encode(['admin'=>array_values(array_unique($routes)),'seller'=>$sellerRoutes],JSON_PRETTY_PRINT|JSON_UNESCAPED_SLASHES));
     $env=getenv();$env['NEXO_TEST_BASE_URL']=$server['url'];$env['NEXO_TEST_LOGIN']=$login;$env['NEXO_TEST_SELLER']=$sellerLogin;$env['NEXO_TEST_PASSWORD']=$password;$env['NEXO_MOBILE_OUTPUT']=$output;

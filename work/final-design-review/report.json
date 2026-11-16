@@ -1,0 +1,1149 @@
+{
+  "date": "2026-11-16T12:01:01.222Z",
+  "widths": [
+    390,
+    768,
+    1440
+  ],
+  "themes": [
+    "light",
+    "dark"
+  ],
+  "pages": [
+    {
+      "role": "admin",
+      "route": "/index.php",
+      "checks": [
+        {
+          "theme": "light",
+          "width": 390,
+          "overflow": false,
+          "scrollWidth": 390,
+          "undersized": [],
+          "smallFields": [],
+          "outside": []
+        },
+        {
+          "theme": "light",
+          "width": 768,
+          "overflow": false,
+          "scrollWidth": 753,
+          "undersized": [],
+          "smallFields": [],
+          "outside": []
+        },
+        {
+          "theme": "light",
+          "width": 1440,
+          "overflow": false,
+          "scrollWidth": 1425,
+          "undersized": [],
+          "smallFields": [],
+          "outside": []
+        },
+        {
+          "theme": "dark",
+          "width": 390,
+          "overflow": false,
+          "scrollWidth": 390,
+          "undersized": [],
+          "smallFields": [],
+          "outside": []
+        },
+        {
+          "theme": "dark",
+          "width": 768,
+          "overflow": false,
+          "scrollWidth": 753,
+          "undersized": [],
+          "smallFields": [],
+          "outside": []
+        },
+        {
+          "theme": "dark",
+          "width": 1440,
+          "overflow": false,
+          "scrollWidth": 1425,
+          "undersized": [],
+          "smallFields": [],
+          "outside": []
+        }
+      ],
+      "tabs": 0,
+      "title": "Panel de Control | Konta",
+      "menus": 2
+    },
+    {
+      "role": "admin",
+      "route": "/modules/dashboard/index.php",
+      "checks": [
+        {
+          "theme": "light",
+          "width": 390,
+          "overflow": false,
+          "scrollWidth": 390,
+          "undersized": [],
+          "smallFields": [],
+          "outside": []
+        },
+        {
+          "theme": "light",
+          "width": 768,
+          "overflow": false,
+          "scrollWidth": 753,
+          "undersized": [],
+          "smallFields": [],
+          "outside": []
+        },
+        {
+          "theme": "light",
+          "width": 1440,
+          "overflow": false,
+          "scrollWidth": 1425,
+          "undersized": [],
+          "smallFields": [],
+          "outside": []
+        },
+        {
+          "theme": "dark",
+          "width": 390,
+          "overflow": false,
+          "scrollWidth": 390,
+          "undersized": [],
+          "smallFields": [],
+          "outside": []
+        },
+        {
+          "theme": "dark",
+          "width": 768,
+          "overflow": false,
+          "scrollWidth": 753,
+          "undersized": [],
+          "smallFields": [],
+          "outside": []
+        },
+        {
+          "theme": "dark",
+          "width": 1440,
+          "overflow": false,
+          "scrollWidth": 1425,
+          "undersized": [],
+          "smallFields": [],
+          "outside": []
+        }
+      ],
+      "tabs": 6,
+      "title": "Dashboard | Konta",
+      "menus": 2
+    },
+    {
+      "role": "admin",
+      "route": "/modules/restaurante/index.php",
+      "checks": [
+        {
+          "theme": "light",
+          "width": 390,
+          "overflow": false,
+          "scrollWidth": 390,
+          "undersized": [],
+          "smallFields": [],
+          "outside": []
+        },
+        {
+          "theme": "light",
+          "width": 768,
+          "overflow": false,
+          "scrollWidth": 768,
+          "undersized": [],
+          "smallFields": [],
+          "outside": []
+        },
+        {
+          "theme": "light",
+          "width": 1440,
+          "overflow": false,
+          "scrollWidth": 1440,
+          "undersized": [],
+          "smallFields": [],
+          "outside": []
+        },
+        {
+          "theme": "dark",
+          "width": 390,
+          "overflow": false,
+          "scrollWidth": 390,
+          "undersized": [],
+          "smallFields": [],
+          "outside": []
+        },
+        {
+          "theme": "dark",
+          "width": 768,
+          "overflow": false,
+          "scrollWidth": 768,
+          "undersized": [],
+          "smallFields": [],
+          "outside": []
+        },
+        {
+          "theme": "dark",
+          "width": 1440,
+          "overflow": false,
+          "scrollWidth": 1440,
+          "undersized": [],
+          "smallFields": [],
+          "outside": []
+        }
+      ],
+      "tabs": 0,
+      "title": "Restaurante | Konta",
+      "menus": 2
+    },
+    {
+      "role": "admin",
+      "route": "/modules/restaurante/cuenta.php?new=1&preview=1&table_id=7",
+      "checks": [
+        {
+          "theme": "light",
+          "width": 390,
+          "overflow": false,
+          "scrollWidth": 390,
+          "undersized": [],
+          "smallFields": [],
+          "outside": []
+        },
+        {
+          "theme": "light",
+          "width": 768,
+          "overflow": false,
+          "scrollWidth": 768,
+          "undersized": [],
+          "smallFields": [],
+          "outside": []
+        },
+        {
+          "theme": "light",
+          "width": 1440,
+          "overflow": false,
+          "scrollWidth": 1440,
+          "undersized": [],
+          "smallFields": [],
+          "outside": []
+        },
+        {
+          "theme": "dark",
+          "width": 390,
+          "overflow": false,
+          "scrollWidth": 390,
+          "undersized": [],
+          "smallFields": [],
+          "outside": []
+        },
+        {
+          "theme": "dark",
+          "width": 768,
+          "overflow": false,
+          "scrollWidth": 768,
+          "undersized": [],
+          "smallFields": [],
+          "outside": []
+        },
+        {
+          "theme": "dark",
+          "width": 1440,
+          "overflow": false,
+          "scrollWidth": 1440,
+          "undersized": [],
+          "smallFields": [],
+          "outside": []
+        }
+      ],
+      "tabs": 0,
+      "title": "Restaurante | Konta",
+      "menus": 3
+    },
+    {
+      "role": "admin",
+      "route": "/modules/restaurante/configuracion.php",
+      "checks": [
+        {
+          "theme": "light",
+          "width": 390,
+          "overflow": false,
+          "scrollWidth": 390,
+          "undersized": [],
+          "smallFields": [],
+          "outside": []
+        },
+        {
+          "theme": "light",
+          "width": 768,
+          "overflow": false,
+          "scrollWidth": 768,
+          "undersized": [],
+          "smallFields": [],
+          "outside": []
+        },
+        {
+          "theme": "light",
+          "width": 1440,
+          "overflow": false,
+          "scrollWidth": 1440,
+          "undersized": [],
+          "smallFields": [],
+          "outside": []
+        },
+        {
+          "theme": "dark",
+          "width": 390,
+          "overflow": false,
+          "scrollWidth": 390,
+          "undersized": [],
+          "smallFields": [],
+          "outside": []
+        },
+        {
+          "theme": "dark",
+          "width": 768,
+          "overflow": false,
+          "scrollWidth": 768,
+          "undersized": [],
+          "smallFields": [],
+          "outside": []
+        },
+        {
+          "theme": "dark",
+          "width": 1440,
+          "overflow": false,
+          "scrollWidth": 1440,
+          "undersized": [],
+          "smallFields": [],
+          "outside": []
+        }
+      ],
+      "tabs": 0,
+      "title": "Configuración | Restaurante | Konta",
+      "menus": 3
+    },
+    {
+      "role": "admin",
+      "route": "/modules/ajustes/empresa.php",
+      "checks": [
+        {
+          "theme": "light",
+          "width": 390,
+          "overflow": false,
+          "scrollWidth": 390,
+          "undersized": [],
+          "smallFields": [],
+          "outside": []
+        },
+        {
+          "theme": "light",
+          "width": 768,
+          "overflow": false,
+          "scrollWidth": 768,
+          "undersized": [],
+          "smallFields": [],
+          "outside": []
+        },
+        {
+          "theme": "light",
+          "width": 1440,
+          "overflow": false,
+          "scrollWidth": 1440,
+          "undersized": [],
+          "smallFields": [],
+          "outside": []
+        },
+        {
+          "theme": "dark",
+          "width": 390,
+          "overflow": false,
+          "scrollWidth": 390,
+          "undersized": [],
+          "smallFields": [],
+          "outside": []
+        },
+        {
+          "theme": "dark",
+          "width": 768,
+          "overflow": false,
+          "scrollWidth": 768,
+          "undersized": [],
+          "smallFields": [],
+          "outside": []
+        },
+        {
+          "theme": "dark",
+          "width": 1440,
+          "overflow": false,
+          "scrollWidth": 1440,
+          "undersized": [],
+          "smallFields": [],
+          "outside": []
+        }
+      ],
+      "tabs": 0,
+      "title": "Ajustes | Konta",
+      "menus": 3
+    },
+    {
+      "role": "admin",
+      "route": "/modules/ajustes/usuarios.php",
+      "checks": [
+        {
+          "theme": "light",
+          "width": 390,
+          "overflow": false,
+          "scrollWidth": 390,
+          "undersized": [],
+          "smallFields": [],
+          "outside": []
+        },
+        {
+          "theme": "light",
+          "width": 768,
+          "overflow": false,
+          "scrollWidth": 768,
+          "undersized": [],
+          "smallFields": [],
+          "outside": []
+        },
+        {
+          "theme": "light",
+          "width": 1440,
+          "overflow": false,
+          "scrollWidth": 1440,
+          "undersized": [],
+          "smallFields": [],
+          "outside": []
+        },
+        {
+          "theme": "dark",
+          "width": 390,
+          "overflow": false,
+          "scrollWidth": 390,
+          "undersized": [],
+          "smallFields": [],
+          "outside": []
+        },
+        {
+          "theme": "dark",
+          "width": 768,
+          "overflow": false,
+          "scrollWidth": 768,
+          "undersized": [],
+          "smallFields": [],
+          "outside": []
+        },
+        {
+          "theme": "dark",
+          "width": 1440,
+          "overflow": false,
+          "scrollWidth": 1440,
+          "undersized": [],
+          "smallFields": [],
+          "outside": []
+        }
+      ],
+      "tabs": 0,
+      "title": "Ajustes | Konta",
+      "menus": 3
+    },
+    {
+      "role": "admin",
+      "route": "/modules/ajustes/usuarios.php?new=1",
+      "checks": [
+        {
+          "theme": "light",
+          "width": 390,
+          "overflow": false,
+          "scrollWidth": 390,
+          "undersized": [],
+          "smallFields": [],
+          "outside": []
+        },
+        {
+          "theme": "light",
+          "width": 768,
+          "overflow": false,
+          "scrollWidth": 753,
+          "undersized": [],
+          "smallFields": [],
+          "outside": []
+        },
+        {
+          "theme": "light",
+          "width": 1440,
+          "overflow": false,
+          "scrollWidth": 1425,
+          "undersized": [],
+          "smallFields": [],
+          "outside": []
+        },
+        {
+          "theme": "dark",
+          "width": 390,
+          "overflow": false,
+          "scrollWidth": 390,
+          "undersized": [],
+          "smallFields": [],
+          "outside": []
+        },
+        {
+          "theme": "dark",
+          "width": 768,
+          "overflow": false,
+          "scrollWidth": 753,
+          "undersized": [],
+          "smallFields": [],
+          "outside": []
+        },
+        {
+          "theme": "dark",
+          "width": 1440,
+          "overflow": false,
+          "scrollWidth": 1425,
+          "undersized": [],
+          "smallFields": [],
+          "outside": []
+        }
+      ],
+      "tabs": 3,
+      "title": "Ajustes | Konta",
+      "menus": 3
+    },
+    {
+      "role": "admin",
+      "route": "/modules/ajustes/grupos.php?new=1",
+      "checks": [
+        {
+          "theme": "light",
+          "width": 390,
+          "overflow": false,
+          "scrollWidth": 390,
+          "undersized": [],
+          "smallFields": [],
+          "outside": []
+        },
+        {
+          "theme": "light",
+          "width": 768,
+          "overflow": false,
+          "scrollWidth": 753,
+          "undersized": [],
+          "smallFields": [],
+          "outside": []
+        },
+        {
+          "theme": "light",
+          "width": 1440,
+          "overflow": false,
+          "scrollWidth": 1425,
+          "undersized": [],
+          "smallFields": [],
+          "outside": []
+        },
+        {
+          "theme": "dark",
+          "width": 390,
+          "overflow": false,
+          "scrollWidth": 390,
+          "undersized": [],
+          "smallFields": [],
+          "outside": []
+        },
+        {
+          "theme": "dark",
+          "width": 768,
+          "overflow": false,
+          "scrollWidth": 753,
+          "undersized": [],
+          "smallFields": [],
+          "outside": []
+        },
+        {
+          "theme": "dark",
+          "width": 1440,
+          "overflow": false,
+          "scrollWidth": 1425,
+          "undersized": [],
+          "smallFields": [],
+          "outside": []
+        }
+      ],
+      "tabs": 9,
+      "title": "Ajustes | Konta",
+      "menus": 3
+    },
+    {
+      "role": "admin",
+      "route": "/modules/venta_directa/index.php",
+      "checks": [
+        {
+          "theme": "light",
+          "width": 390,
+          "overflow": false,
+          "scrollWidth": 390,
+          "undersized": [],
+          "smallFields": [],
+          "outside": []
+        },
+        {
+          "theme": "light",
+          "width": 768,
+          "overflow": false,
+          "scrollWidth": 768,
+          "undersized": [],
+          "smallFields": [],
+          "outside": []
+        },
+        {
+          "theme": "light",
+          "width": 1440,
+          "overflow": false,
+          "scrollWidth": 1440,
+          "undersized": [],
+          "smallFields": [],
+          "outside": []
+        },
+        {
+          "theme": "dark",
+          "width": 390,
+          "overflow": false,
+          "scrollWidth": 390,
+          "undersized": [],
+          "smallFields": [],
+          "outside": []
+        },
+        {
+          "theme": "dark",
+          "width": 768,
+          "overflow": false,
+          "scrollWidth": 768,
+          "undersized": [],
+          "smallFields": [],
+          "outside": []
+        },
+        {
+          "theme": "dark",
+          "width": 1440,
+          "overflow": false,
+          "scrollWidth": 1440,
+          "undersized": [],
+          "smallFields": [],
+          "outside": []
+        }
+      ],
+      "tabs": 0,
+      "title": "Ventas Directas | Konta",
+      "menus": 2
+    },
+    {
+      "role": "admin",
+      "route": "/modules/venta_directa/solicitudes.php",
+      "checks": [
+        {
+          "theme": "light",
+          "width": 390,
+          "overflow": false,
+          "scrollWidth": 390,
+          "undersized": [],
+          "smallFields": [],
+          "outside": []
+        },
+        {
+          "theme": "light",
+          "width": 768,
+          "overflow": false,
+          "scrollWidth": 768,
+          "undersized": [],
+          "smallFields": [],
+          "outside": []
+        },
+        {
+          "theme": "light",
+          "width": 1440,
+          "overflow": false,
+          "scrollWidth": 1440,
+          "undersized": [],
+          "smallFields": [],
+          "outside": []
+        },
+        {
+          "theme": "dark",
+          "width": 390,
+          "overflow": false,
+          "scrollWidth": 390,
+          "undersized": [],
+          "smallFields": [],
+          "outside": []
+        },
+        {
+          "theme": "dark",
+          "width": 768,
+          "overflow": false,
+          "scrollWidth": 768,
+          "undersized": [],
+          "smallFields": [],
+          "outside": []
+        },
+        {
+          "theme": "dark",
+          "width": 1440,
+          "overflow": false,
+          "scrollWidth": 1440,
+          "undersized": [],
+          "smallFields": [],
+          "outside": []
+        }
+      ],
+      "tabs": 0,
+      "title": "Ventas Directas | Konta",
+      "menus": 2
+    },
+    {
+      "role": "seller",
+      "route": "/modules/venta_directa/index.php",
+      "checks": [
+        {
+          "theme": "light",
+          "width": 390,
+          "overflow": false,
+          "scrollWidth": 390,
+          "undersized": [],
+          "smallFields": [],
+          "outside": []
+        },
+        {
+          "theme": "light",
+          "width": 768,
+          "overflow": false,
+          "scrollWidth": 753,
+          "undersized": [],
+          "smallFields": [],
+          "outside": []
+        },
+        {
+          "theme": "light",
+          "width": 1440,
+          "overflow": false,
+          "scrollWidth": 1425,
+          "undersized": [],
+          "smallFields": [],
+          "outside": []
+        },
+        {
+          "theme": "dark",
+          "width": 390,
+          "overflow": false,
+          "scrollWidth": 390,
+          "undersized": [],
+          "smallFields": [],
+          "outside": []
+        },
+        {
+          "theme": "dark",
+          "width": 768,
+          "overflow": false,
+          "scrollWidth": 753,
+          "undersized": [],
+          "smallFields": [],
+          "outside": []
+        },
+        {
+          "theme": "dark",
+          "width": 1440,
+          "overflow": false,
+          "scrollWidth": 1425,
+          "undersized": [],
+          "smallFields": [],
+          "outside": []
+        }
+      ],
+      "tabs": 0,
+      "title": "Ventas Directas | Konta",
+      "menus": 2
+    },
+    {
+      "role": "seller",
+      "route": "/modules/venta_directa/index.php?view=history",
+      "checks": [
+        {
+          "theme": "light",
+          "width": 390,
+          "overflow": false,
+          "scrollWidth": 390,
+          "undersized": [],
+          "smallFields": [],
+          "outside": []
+        },
+        {
+          "theme": "light",
+          "width": 768,
+          "overflow": false,
+          "scrollWidth": 768,
+          "undersized": [],
+          "smallFields": [],
+          "outside": []
+        },
+        {
+          "theme": "light",
+          "width": 1440,
+          "overflow": false,
+          "scrollWidth": 1440,
+          "undersized": [],
+          "smallFields": [],
+          "outside": []
+        },
+        {
+          "theme": "dark",
+          "width": 390,
+          "overflow": false,
+          "scrollWidth": 390,
+          "undersized": [],
+          "smallFields": [],
+          "outside": []
+        },
+        {
+          "theme": "dark",
+          "width": 768,
+          "overflow": false,
+          "scrollWidth": 768,
+          "undersized": [],
+          "smallFields": [],
+          "outside": []
+        },
+        {
+          "theme": "dark",
+          "width": 1440,
+          "overflow": false,
+          "scrollWidth": 1440,
+          "undersized": [],
+          "smallFields": [],
+          "outside": []
+        }
+      ],
+      "tabs": 0,
+      "title": "Ventas Directas | Konta",
+      "menus": 2
+    },
+    {
+      "role": "seller",
+      "route": "/modules/venta_directa/index.php?view=stock",
+      "checks": [
+        {
+          "theme": "light",
+          "width": 390,
+          "overflow": false,
+          "scrollWidth": 390,
+          "undersized": [],
+          "smallFields": [],
+          "outside": []
+        },
+        {
+          "theme": "light",
+          "width": 768,
+          "overflow": false,
+          "scrollWidth": 753,
+          "undersized": [],
+          "smallFields": [],
+          "outside": []
+        },
+        {
+          "theme": "light",
+          "width": 1440,
+          "overflow": false,
+          "scrollWidth": 1425,
+          "undersized": [],
+          "smallFields": [],
+          "outside": []
+        },
+        {
+          "theme": "dark",
+          "width": 390,
+          "overflow": false,
+          "scrollWidth": 390,
+          "undersized": [],
+          "smallFields": [],
+          "outside": []
+        },
+        {
+          "theme": "dark",
+          "width": 768,
+          "overflow": false,
+          "scrollWidth": 753,
+          "undersized": [],
+          "smallFields": [],
+          "outside": []
+        },
+        {
+          "theme": "dark",
+          "width": 1440,
+          "overflow": false,
+          "scrollWidth": 1425,
+          "undersized": [],
+          "smallFields": [],
+          "outside": []
+        }
+      ],
+      "tabs": 0,
+      "title": "Ventas Directas | Konta",
+      "menus": 2
+    },
+    {
+      "role": "seller",
+      "route": "/modules/venta_directa/solicitudes.php",
+      "checks": [
+        {
+          "theme": "light",
+          "width": 390,
+          "overflow": false,
+          "scrollWidth": 390,
+          "undersized": [],
+          "smallFields": [],
+          "outside": []
+        },
+        {
+          "theme": "light",
+          "width": 768,
+          "overflow": false,
+          "scrollWidth": 753,
+          "undersized": [],
+          "smallFields": [],
+          "outside": []
+        },
+        {
+          "theme": "light",
+          "width": 1440,
+          "overflow": false,
+          "scrollWidth": 1425,
+          "undersized": [],
+          "smallFields": [],
+          "outside": []
+        },
+        {
+          "theme": "dark",
+          "width": 390,
+          "overflow": false,
+          "scrollWidth": 390,
+          "undersized": [],
+          "smallFields": [],
+          "outside": []
+        },
+        {
+          "theme": "dark",
+          "width": 768,
+          "overflow": false,
+          "scrollWidth": 753,
+          "undersized": [],
+          "smallFields": [],
+          "outside": []
+        },
+        {
+          "theme": "dark",
+          "width": 1440,
+          "overflow": false,
+          "scrollWidth": 1425,
+          "undersized": [],
+          "smallFields": [],
+          "outside": []
+        }
+      ],
+      "tabs": 0,
+      "title": "Ventas Directas | Konta",
+      "menus": 2
+    },
+    {
+      "role": "seller",
+      "route": "/modules/venta_directa/devoluciones.php",
+      "checks": [
+        {
+          "theme": "light",
+          "width": 390,
+          "overflow": false,
+          "scrollWidth": 390,
+          "undersized": [],
+          "smallFields": [],
+          "outside": []
+        },
+        {
+          "theme": "light",
+          "width": 768,
+          "overflow": false,
+          "scrollWidth": 768,
+          "undersized": [],
+          "smallFields": [],
+          "outside": []
+        },
+        {
+          "theme": "light",
+          "width": 1440,
+          "overflow": false,
+          "scrollWidth": 1440,
+          "undersized": [],
+          "smallFields": [],
+          "outside": []
+        },
+        {
+          "theme": "dark",
+          "width": 390,
+          "overflow": false,
+          "scrollWidth": 390,
+          "undersized": [],
+          "smallFields": [],
+          "outside": []
+        },
+        {
+          "theme": "dark",
+          "width": 768,
+          "overflow": false,
+          "scrollWidth": 768,
+          "undersized": [],
+          "smallFields": [],
+          "outside": []
+        },
+        {
+          "theme": "dark",
+          "width": 1440,
+          "overflow": false,
+          "scrollWidth": 1440,
+          "undersized": [],
+          "smallFields": [],
+          "outside": []
+        }
+      ],
+      "tabs": 0,
+      "title": "Devoluciones de clientes | Konta",
+      "menus": 2
+    },
+    {
+      "role": "seller",
+      "route": "/modules/venta_directa/cierre.php",
+      "checks": [
+        {
+          "theme": "light",
+          "width": 390,
+          "overflow": false,
+          "scrollWidth": 390,
+          "undersized": [],
+          "smallFields": [],
+          "outside": []
+        },
+        {
+          "theme": "light",
+          "width": 768,
+          "overflow": false,
+          "scrollWidth": 753,
+          "undersized": [],
+          "smallFields": [],
+          "outside": []
+        },
+        {
+          "theme": "light",
+          "width": 1440,
+          "overflow": false,
+          "scrollWidth": 1425,
+          "undersized": [],
+          "smallFields": [],
+          "outside": []
+        },
+        {
+          "theme": "dark",
+          "width": 390,
+          "overflow": false,
+          "scrollWidth": 390,
+          "undersized": [],
+          "smallFields": [],
+          "outside": []
+        },
+        {
+          "theme": "dark",
+          "width": 768,
+          "overflow": false,
+          "scrollWidth": 753,
+          "undersized": [],
+          "smallFields": [],
+          "outside": []
+        },
+        {
+          "theme": "dark",
+          "width": 1440,
+          "overflow": false,
+          "scrollWidth": 1425,
+          "undersized": [],
+          "smallFields": [],
+          "outside": []
+        }
+      ],
+      "tabs": 0,
+      "title": "Cierre del vendedor | Konta",
+      "menus": 2
+    },
+    {
+      "role": "seller",
+      "route": "/modules/venta_directa/index.php?id=8",
+      "checks": [
+        {
+          "theme": "light",
+          "width": 390,
+          "overflow": false,
+          "scrollWidth": 390,
+          "undersized": [],
+          "smallFields": [],
+          "outside": []
+        },
+        {
+          "theme": "light",
+          "width": 768,
+          "overflow": false,
+          "scrollWidth": 753,
+          "undersized": [],
+          "smallFields": [],
+          "outside": []
+        },
+        {
+          "theme": "light",
+          "width": 1440,
+          "overflow": false,
+          "scrollWidth": 1425,
+          "undersized": [],
+          "smallFields": [],
+          "outside": []
+        },
+        {
+          "theme": "dark",
+          "width": 390,
+          "overflow": false,
+          "scrollWidth": 390,
+          "undersized": [],
+          "smallFields": [],
+          "outside": []
+        },
+        {
+          "theme": "dark",
+          "width": 768,
+          "overflow": false,
+          "scrollWidth": 753,
+          "undersized": [],
+          "smallFields": [],
+          "outside": []
+        },
+        {
+          "theme": "dark",
+          "width": 1440,
+          "overflow": false,
+          "scrollWidth": 1425,
+          "undersized": [],
+          "smallFields": [],
+          "outside": []
+        }
+      ],
+      "tabs": 0,
+      "title": "Ventas Directas | Konta",
+      "menus": 2
+    }
+  ],
+  "issues": []
+}

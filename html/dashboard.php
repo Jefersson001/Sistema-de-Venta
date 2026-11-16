@@ -31,8 +31,8 @@
                     <form class="contact-filters" data-dashboard-filter><label>Período<select name="period"><?php foreach(cashFlowPeriods() as $value=>$label): ?><option value="<?= $value ?>" <?= $cashFlowRange['period']===$value?'selected':'' ?>><?= htmlspecialchars($label,ENT_QUOTES,'UTF-8') ?></option><?php endforeach; ?></select></label><div data-dashboard-dates <?= $cashFlowRange['period']==='custom'?'':'hidden' ?>><label>Desde<input type="date" name="date_from" value="<?= $cashFlowRange['date_from'] ?>"></label><label>Hasta<input type="date" name="date_to" value="<?= $cashFlowRange['date_to'] ?>"></label></div></form>
                     <?php endif; ?>
                     <nav class="notebook-tabs dashboard-tabs" data-notebook-tabs aria-label="Secciones del dashboard">
-                        <a id="dashboard-tab-income" href="#dashboard-page-income">Ingresos y egresos</a>
                         <a id="dashboard-tab-overview" href="#dashboard-page-overview">Resumen del negocio</a>
+                        <a id="dashboard-tab-income" href="#dashboard-page-income">Ingresos y egresos</a>
                         <a id="dashboard-tab-balances" href="#dashboard-page-balances">Cuentas por cobrar y pagar</a>
                         <a id="dashboard-tab-alerts" href="#dashboard-page-alerts">Alertas de inventario</a>
                         <a id="dashboard-tab-tasks" href="#dashboard-page-tasks">Tareas pendientes</a>
@@ -40,14 +40,6 @@
                     </nav>
                     <p class="section-subtitle dashboard-updated" data-dashboard-updated role="status"><?= $dashboard['available'] && $modulePageData['cashFlow'] ? 'Actualizado '.$modulePageData['cashFlow']['updated_time'].' · Se actualiza cada 30 s' : 'Esperando datos del dashboard.' ?></p>
                     <p class="cash-flow-error" data-dashboard-error role="alert" <?= !$modulePageData['cashFlowErrors'] ? 'hidden' : '' ?>><?= htmlspecialchars(implode(' ', $modulePageData['cashFlowErrors']), ENT_QUOTES, 'UTF-8') ?></p>
-                    <section class="notebook-page" id="dashboard-page-income" data-notebook-page aria-labelledby="dashboard-tab-income">
-                <?php
-                $cashFlow = $modulePageData['cashFlow']; $cashFlowRange = $modulePageData['cashFlowRange'];
-                $cashFlowErrors = $modulePageData['cashFlowErrors']; $cashFlowLive = true;
-                $cashFlowEndpoint = 'resumen.php';
-                require __DIR__ . '/partials/cash-flow.php';
-                ?>
-                    </section>
                     <section class="notebook-page" id="dashboard-page-overview" data-notebook-page aria-labelledby="dashboard-tab-overview">
                 <section class="business-overview" aria-labelledby="overview-title">
                     <div class="section-heading">
@@ -77,6 +69,14 @@
                         <article class="overview-card"><span class="overview-label">Pagos sin aplicar</span><p class="overview-value" data-dashboard-metric="unallocated"><?= $dashboard['available']?htmlspecialchars(dashboardMoney($dashboard['unallocated']),ENT_QUOTES,'UTF-8'):'—' ?></p><a class="overview-link" href="../contabilidad/pagos.php?type=customer&amp;available=1">Clientes →</a> <a class="overview-link" href="../contabilidad/pagos.php?type=supplier&amp;available=1">Proveedores →</a></article>
                     </div>
                 </section>
+                    </section>
+                    <section class="notebook-page" id="dashboard-page-income" data-notebook-page aria-labelledby="dashboard-tab-income">
+                <?php
+                $cashFlow = $modulePageData['cashFlow']; $cashFlowRange = $modulePageData['cashFlowRange'];
+                $cashFlowErrors = $modulePageData['cashFlowErrors']; $cashFlowLive = true;
+                $cashFlowEndpoint = 'resumen.php';
+                require __DIR__ . '/partials/cash-flow.php';
+                ?>
                     </section>
                     <section class="notebook-page" id="dashboard-page-balances" data-notebook-page aria-labelledby="dashboard-tab-balances">
                         <!-- <p class="section-subtitle">Ssaldos actuales acumulados de las empresas seleccionadas. Se actualizan cada 30 segundos; el período de ingresos y egresos no limita las deudas pendientes.</p> -->
@@ -112,5 +112,5 @@
                 <script src="../../js/cash-flow.js?v=<?= filemtime(dirname(__DIR__).'/js/cash-flow.js') ?>" defer></script>
                 <footer class="page-footer">
                     <span>Un sistema que crece contigo.</span>
-                    <span><?= count($modules) ?> módulos · En construcción</span>
+                    <span>Konta · Gestión empresarial</span>
                 </footer>
