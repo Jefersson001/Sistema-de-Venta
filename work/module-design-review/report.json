@@ -1,0 +1,1338 @@
+{
+  "date": "2026-11-16T04:09:12.953Z",
+  "widths": [
+    390,
+    768,
+    1440
+  ],
+  "themes": [
+    "light",
+    "dark"
+  ],
+  "pages": [
+    {
+      "role": "admin",
+      "route": "/modules/ventas/index.php",
+      "checks": [
+        {
+          "theme": "light",
+          "width": 390,
+          "overflow": false,
+          "scrollWidth": 390,
+          "undersized": [],
+          "smallFields": [],
+          "outside": []
+        },
+        {
+          "theme": "light",
+          "width": 768,
+          "overflow": false,
+          "scrollWidth": 768,
+          "undersized": [],
+          "smallFields": [],
+          "outside": []
+        },
+        {
+          "theme": "light",
+          "width": 1440,
+          "overflow": false,
+          "scrollWidth": 1440,
+          "undersized": [],
+          "smallFields": [],
+          "outside": []
+        },
+        {
+          "theme": "dark",
+          "width": 390,
+          "overflow": false,
+          "scrollWidth": 390,
+          "undersized": [],
+          "smallFields": [],
+          "outside": []
+        },
+        {
+          "theme": "dark",
+          "width": 768,
+          "overflow": false,
+          "scrollWidth": 768,
+          "undersized": [],
+          "smallFields": [],
+          "outside": []
+        },
+        {
+          "theme": "dark",
+          "width": 1440,
+          "overflow": false,
+          "scrollWidth": 1440,
+          "undersized": [],
+          "smallFields": [],
+          "outside": []
+        }
+      ],
+      "tabs": 0,
+      "title": "Ventas | Konta",
+      "menus": 5
+    },
+    {
+      "role": "admin",
+      "route": "/modules/ventas/index.php?status=sale&q=Cliente",
+      "checks": [
+        {
+          "theme": "light",
+          "width": 390,
+          "overflow": false,
+          "scrollWidth": 390,
+          "undersized": [],
+          "smallFields": [],
+          "outside": []
+        },
+        {
+          "theme": "light",
+          "width": 768,
+          "overflow": false,
+          "scrollWidth": 768,
+          "undersized": [],
+          "smallFields": [],
+          "outside": []
+        },
+        {
+          "theme": "light",
+          "width": 1440,
+          "overflow": false,
+          "scrollWidth": 1440,
+          "undersized": [],
+          "smallFields": [],
+          "outside": []
+        },
+        {
+          "theme": "dark",
+          "width": 390,
+          "overflow": false,
+          "scrollWidth": 390,
+          "undersized": [],
+          "smallFields": [],
+          "outside": []
+        },
+        {
+          "theme": "dark",
+          "width": 768,
+          "overflow": false,
+          "scrollWidth": 768,
+          "undersized": [],
+          "smallFields": [],
+          "outside": []
+        },
+        {
+          "theme": "dark",
+          "width": 1440,
+          "overflow": false,
+          "scrollWidth": 1440,
+          "undersized": [],
+          "smallFields": [],
+          "outside": []
+        }
+      ],
+      "tabs": 0,
+      "title": "Ventas | Konta",
+      "menus": 5
+    },
+    {
+      "role": "admin",
+      "route": "/modules/ventas/index.php?new=1",
+      "checks": [
+        {
+          "theme": "light",
+          "width": 390,
+          "overflow": false,
+          "scrollWidth": 390,
+          "undersized": [],
+          "smallFields": [],
+          "outside": []
+        },
+        {
+          "theme": "light",
+          "width": 768,
+          "overflow": false,
+          "scrollWidth": 753,
+          "undersized": [],
+          "smallFields": [],
+          "outside": []
+        },
+        {
+          "theme": "light",
+          "width": 1440,
+          "overflow": false,
+          "scrollWidth": 1425,
+          "undersized": [],
+          "smallFields": [],
+          "outside": []
+        },
+        {
+          "theme": "dark",
+          "width": 390,
+          "overflow": false,
+          "scrollWidth": 390,
+          "undersized": [],
+          "smallFields": [],
+          "outside": []
+        },
+        {
+          "theme": "dark",
+          "width": 768,
+          "overflow": false,
+          "scrollWidth": 753,
+          "undersized": [],
+          "smallFields": [],
+          "outside": []
+        },
+        {
+          "theme": "dark",
+          "width": 1440,
+          "overflow": false,
+          "scrollWidth": 1425,
+          "undersized": [],
+          "smallFields": [],
+          "outside": []
+        }
+      ],
+      "tabs": 2,
+      "title": "Ventas | Konta",
+      "menus": 5
+    },
+    {
+      "role": "admin",
+      "route": "/modules/ventas/index.php?id=364",
+      "checks": [
+        {
+          "theme": "light",
+          "width": 390,
+          "overflow": false,
+          "scrollWidth": 390,
+          "undersized": [],
+          "smallFields": [],
+          "outside": []
+        },
+        {
+          "theme": "light",
+          "width": 768,
+          "overflow": false,
+          "scrollWidth": 753,
+          "undersized": [],
+          "smallFields": [],
+          "outside": []
+        },
+        {
+          "theme": "light",
+          "width": 1440,
+          "overflow": false,
+          "scrollWidth": 1425,
+          "undersized": [],
+          "smallFields": [],
+          "outside": []
+        },
+        {
+          "theme": "dark",
+          "width": 390,
+          "overflow": false,
+          "scrollWidth": 390,
+          "undersized": [],
+          "smallFields": [],
+          "outside": []
+        },
+        {
+          "theme": "dark",
+          "width": 768,
+          "overflow": false,
+          "scrollWidth": 753,
+          "undersized": [],
+          "smallFields": [],
+          "outside": []
+        },
+        {
+          "theme": "dark",
+          "width": 1440,
+          "overflow": false,
+          "scrollWidth": 1425,
+          "undersized": [],
+          "smallFields": [],
+          "outside": []
+        }
+      ],
+      "tabs": 2,
+      "title": "Ventas | Konta",
+      "menus": 5
+    },
+    {
+      "role": "admin",
+      "route": "/modules/ventas/comisiones.php",
+      "checks": [
+        {
+          "theme": "light",
+          "width": 390,
+          "overflow": false,
+          "scrollWidth": 390,
+          "undersized": [],
+          "smallFields": [],
+          "outside": []
+        },
+        {
+          "theme": "light",
+          "width": 768,
+          "overflow": false,
+          "scrollWidth": 753,
+          "undersized": [],
+          "smallFields": [],
+          "outside": []
+        },
+        {
+          "theme": "light",
+          "width": 1440,
+          "overflow": false,
+          "scrollWidth": 1425,
+          "undersized": [],
+          "smallFields": [],
+          "outside": []
+        },
+        {
+          "theme": "dark",
+          "width": 390,
+          "overflow": false,
+          "scrollWidth": 390,
+          "undersized": [],
+          "smallFields": [],
+          "outside": []
+        },
+        {
+          "theme": "dark",
+          "width": 768,
+          "overflow": false,
+          "scrollWidth": 753,
+          "undersized": [],
+          "smallFields": [],
+          "outside": []
+        },
+        {
+          "theme": "dark",
+          "width": 1440,
+          "overflow": false,
+          "scrollWidth": 1425,
+          "undersized": [],
+          "smallFields": [],
+          "outside": []
+        }
+      ],
+      "tabs": 0,
+      "title": "Ventas | Konta",
+      "menus": 5
+    },
+    {
+      "role": "admin",
+      "route": "/modules/ventas/pagos-comisiones.php",
+      "checks": [
+        {
+          "theme": "light",
+          "width": 390,
+          "overflow": false,
+          "scrollWidth": 390,
+          "undersized": [],
+          "smallFields": [],
+          "outside": []
+        },
+        {
+          "theme": "light",
+          "width": 768,
+          "overflow": false,
+          "scrollWidth": 768,
+          "undersized": [],
+          "smallFields": [],
+          "outside": []
+        },
+        {
+          "theme": "light",
+          "width": 1440,
+          "overflow": false,
+          "scrollWidth": 1440,
+          "undersized": [],
+          "smallFields": [],
+          "outside": []
+        },
+        {
+          "theme": "dark",
+          "width": 390,
+          "overflow": false,
+          "scrollWidth": 390,
+          "undersized": [],
+          "smallFields": [],
+          "outside": []
+        },
+        {
+          "theme": "dark",
+          "width": 768,
+          "overflow": false,
+          "scrollWidth": 768,
+          "undersized": [],
+          "smallFields": [],
+          "outside": []
+        },
+        {
+          "theme": "dark",
+          "width": 1440,
+          "overflow": false,
+          "scrollWidth": 1440,
+          "undersized": [],
+          "smallFields": [],
+          "outside": []
+        }
+      ],
+      "tabs": 0,
+      "title": "Ventas | Konta",
+      "menus": 5
+    },
+    {
+      "role": "admin",
+      "route": "/modules/inventario/index.php",
+      "checks": [
+        {
+          "theme": "light",
+          "width": 390,
+          "overflow": false,
+          "scrollWidth": 390,
+          "undersized": [],
+          "smallFields": [],
+          "outside": []
+        },
+        {
+          "theme": "light",
+          "width": 768,
+          "overflow": false,
+          "scrollWidth": 753,
+          "undersized": [],
+          "smallFields": [],
+          "outside": []
+        },
+        {
+          "theme": "light",
+          "width": 1440,
+          "overflow": false,
+          "scrollWidth": 1425,
+          "undersized": [],
+          "smallFields": [],
+          "outside": []
+        },
+        {
+          "theme": "dark",
+          "width": 390,
+          "overflow": false,
+          "scrollWidth": 390,
+          "undersized": [],
+          "smallFields": [],
+          "outside": []
+        },
+        {
+          "theme": "dark",
+          "width": 768,
+          "overflow": false,
+          "scrollWidth": 753,
+          "undersized": [],
+          "smallFields": [],
+          "outside": []
+        },
+        {
+          "theme": "dark",
+          "width": 1440,
+          "overflow": false,
+          "scrollWidth": 1425,
+          "undersized": [],
+          "smallFields": [],
+          "outside": []
+        }
+      ],
+      "tabs": 0,
+      "title": "Inventario | Konta",
+      "menus": 6
+    },
+    {
+      "role": "admin",
+      "route": "/modules/inventario/index.php?q=producto",
+      "checks": [
+        {
+          "theme": "light",
+          "width": 390,
+          "overflow": false,
+          "scrollWidth": 390,
+          "undersized": [],
+          "smallFields": [],
+          "outside": []
+        },
+        {
+          "theme": "light",
+          "width": 768,
+          "overflow": false,
+          "scrollWidth": 753,
+          "undersized": [],
+          "smallFields": [],
+          "outside": []
+        },
+        {
+          "theme": "light",
+          "width": 1440,
+          "overflow": false,
+          "scrollWidth": 1425,
+          "undersized": [],
+          "smallFields": [],
+          "outside": []
+        },
+        {
+          "theme": "dark",
+          "width": 390,
+          "overflow": false,
+          "scrollWidth": 390,
+          "undersized": [],
+          "smallFields": [],
+          "outside": []
+        },
+        {
+          "theme": "dark",
+          "width": 768,
+          "overflow": false,
+          "scrollWidth": 753,
+          "undersized": [],
+          "smallFields": [],
+          "outside": []
+        },
+        {
+          "theme": "dark",
+          "width": 1440,
+          "overflow": false,
+          "scrollWidth": 1425,
+          "undersized": [],
+          "smallFields": [],
+          "outside": []
+        }
+      ],
+      "tabs": 0,
+      "title": "Inventario | Konta",
+      "menus": 6
+    },
+    {
+      "role": "admin",
+      "route": "/modules/inventario/index.php?id=260",
+      "checks": [
+        {
+          "theme": "light",
+          "width": 390,
+          "overflow": false,
+          "scrollWidth": 390,
+          "undersized": [],
+          "smallFields": [],
+          "outside": []
+        },
+        {
+          "theme": "light",
+          "width": 768,
+          "overflow": false,
+          "scrollWidth": 753,
+          "undersized": [],
+          "smallFields": [],
+          "outside": []
+        },
+        {
+          "theme": "light",
+          "width": 1440,
+          "overflow": false,
+          "scrollWidth": 1425,
+          "undersized": [],
+          "smallFields": [],
+          "outside": []
+        },
+        {
+          "theme": "dark",
+          "width": 390,
+          "overflow": false,
+          "scrollWidth": 390,
+          "undersized": [],
+          "smallFields": [],
+          "outside": []
+        },
+        {
+          "theme": "dark",
+          "width": 768,
+          "overflow": false,
+          "scrollWidth": 753,
+          "undersized": [],
+          "smallFields": [],
+          "outside": []
+        },
+        {
+          "theme": "dark",
+          "width": 1440,
+          "overflow": false,
+          "scrollWidth": 1425,
+          "undersized": [],
+          "smallFields": [],
+          "outside": []
+        }
+      ],
+      "tabs": 7,
+      "title": "Inventario | Konta",
+      "menus": 6
+    },
+    {
+      "role": "admin",
+      "route": "/modules/inventario/index.php?new=1",
+      "checks": [
+        {
+          "theme": "light",
+          "width": 390,
+          "overflow": false,
+          "scrollWidth": 390,
+          "undersized": [],
+          "smallFields": [],
+          "outside": []
+        },
+        {
+          "theme": "light",
+          "width": 768,
+          "overflow": false,
+          "scrollWidth": 753,
+          "undersized": [],
+          "smallFields": [],
+          "outside": []
+        },
+        {
+          "theme": "light",
+          "width": 1440,
+          "overflow": false,
+          "scrollWidth": 1425,
+          "undersized": [],
+          "smallFields": [],
+          "outside": []
+        },
+        {
+          "theme": "dark",
+          "width": 390,
+          "overflow": false,
+          "scrollWidth": 390,
+          "undersized": [],
+          "smallFields": [],
+          "outside": []
+        },
+        {
+          "theme": "dark",
+          "width": 768,
+          "overflow": false,
+          "scrollWidth": 753,
+          "undersized": [],
+          "smallFields": [],
+          "outside": []
+        },
+        {
+          "theme": "dark",
+          "width": 1440,
+          "overflow": false,
+          "scrollWidth": 1425,
+          "undersized": [],
+          "smallFields": [],
+          "outside": []
+        }
+      ],
+      "tabs": 7,
+      "title": "Inventario | Konta",
+      "menus": 6
+    },
+    {
+      "role": "admin",
+      "route": "/modules/inventario/variantes.php",
+      "checks": [
+        {
+          "theme": "light",
+          "width": 390,
+          "overflow": false,
+          "scrollWidth": 390,
+          "undersized": [],
+          "smallFields": [],
+          "outside": []
+        },
+        {
+          "theme": "light",
+          "width": 768,
+          "overflow": false,
+          "scrollWidth": 768,
+          "undersized": [],
+          "smallFields": [],
+          "outside": []
+        },
+        {
+          "theme": "light",
+          "width": 1440,
+          "overflow": false,
+          "scrollWidth": 1440,
+          "undersized": [],
+          "smallFields": [],
+          "outside": []
+        },
+        {
+          "theme": "dark",
+          "width": 390,
+          "overflow": false,
+          "scrollWidth": 390,
+          "undersized": [],
+          "smallFields": [],
+          "outside": []
+        },
+        {
+          "theme": "dark",
+          "width": 768,
+          "overflow": false,
+          "scrollWidth": 768,
+          "undersized": [],
+          "smallFields": [],
+          "outside": []
+        },
+        {
+          "theme": "dark",
+          "width": 1440,
+          "overflow": false,
+          "scrollWidth": 1440,
+          "undersized": [],
+          "smallFields": [],
+          "outside": []
+        }
+      ],
+      "tabs": 0,
+      "title": "Inventario | Konta",
+      "menus": 6
+    },
+    {
+      "role": "admin",
+      "route": "/modules/inventario/lotes.php",
+      "checks": [
+        {
+          "theme": "light",
+          "width": 390,
+          "overflow": false,
+          "scrollWidth": 390,
+          "undersized": [],
+          "smallFields": [],
+          "outside": []
+        },
+        {
+          "theme": "light",
+          "width": 768,
+          "overflow": false,
+          "scrollWidth": 768,
+          "undersized": [],
+          "smallFields": [],
+          "outside": []
+        },
+        {
+          "theme": "light",
+          "width": 1440,
+          "overflow": false,
+          "scrollWidth": 1440,
+          "undersized": [],
+          "smallFields": [],
+          "outside": []
+        },
+        {
+          "theme": "dark",
+          "width": 390,
+          "overflow": false,
+          "scrollWidth": 390,
+          "undersized": [],
+          "smallFields": [],
+          "outside": []
+        },
+        {
+          "theme": "dark",
+          "width": 768,
+          "overflow": false,
+          "scrollWidth": 768,
+          "undersized": [],
+          "smallFields": [],
+          "outside": []
+        },
+        {
+          "theme": "dark",
+          "width": 1440,
+          "overflow": false,
+          "scrollWidth": 1440,
+          "undersized": [],
+          "smallFields": [],
+          "outside": []
+        }
+      ],
+      "tabs": 0,
+      "title": "Inventario | Konta",
+      "menus": 5
+    },
+    {
+      "role": "admin",
+      "route": "/modules/inventario/informes.php?view=stock",
+      "checks": [
+        {
+          "theme": "light",
+          "width": 390,
+          "overflow": false,
+          "scrollWidth": 390,
+          "undersized": [],
+          "smallFields": [],
+          "outside": []
+        },
+        {
+          "theme": "light",
+          "width": 768,
+          "overflow": false,
+          "scrollWidth": 753,
+          "undersized": [],
+          "smallFields": [],
+          "outside": []
+        },
+        {
+          "theme": "light",
+          "width": 1440,
+          "overflow": false,
+          "scrollWidth": 1425,
+          "undersized": [],
+          "smallFields": [],
+          "outside": []
+        },
+        {
+          "theme": "dark",
+          "width": 390,
+          "overflow": false,
+          "scrollWidth": 390,
+          "undersized": [],
+          "smallFields": [],
+          "outside": []
+        },
+        {
+          "theme": "dark",
+          "width": 768,
+          "overflow": false,
+          "scrollWidth": 753,
+          "undersized": [],
+          "smallFields": [],
+          "outside": []
+        },
+        {
+          "theme": "dark",
+          "width": 1440,
+          "overflow": false,
+          "scrollWidth": 1425,
+          "undersized": [],
+          "smallFields": [],
+          "outside": []
+        }
+      ],
+      "tabs": 0,
+      "title": "Inventario | Konta",
+      "menus": 6
+    },
+    {
+      "role": "admin",
+      "route": "/modules/inventario/operaciones.php?type=delivery&id=561",
+      "checks": [
+        {
+          "theme": "light",
+          "width": 390,
+          "overflow": false,
+          "scrollWidth": 390,
+          "undersized": [],
+          "smallFields": [],
+          "outside": []
+        },
+        {
+          "theme": "light",
+          "width": 768,
+          "overflow": false,
+          "scrollWidth": 753,
+          "undersized": [],
+          "smallFields": [],
+          "outside": []
+        },
+        {
+          "theme": "light",
+          "width": 1440,
+          "overflow": false,
+          "scrollWidth": 1425,
+          "undersized": [],
+          "smallFields": [],
+          "outside": []
+        },
+        {
+          "theme": "dark",
+          "width": 390,
+          "overflow": false,
+          "scrollWidth": 390,
+          "undersized": [],
+          "smallFields": [],
+          "outside": []
+        },
+        {
+          "theme": "dark",
+          "width": 768,
+          "overflow": false,
+          "scrollWidth": 753,
+          "undersized": [],
+          "smallFields": [],
+          "outside": []
+        },
+        {
+          "theme": "dark",
+          "width": 1440,
+          "overflow": false,
+          "scrollWidth": 1425,
+          "undersized": [],
+          "smallFields": [],
+          "outside": []
+        }
+      ],
+      "tabs": 3,
+      "title": "Inventario | Konta",
+      "menus": 6
+    },
+    {
+      "role": "admin",
+      "route": "/modules/contabilidad/index.php?type=customer",
+      "checks": [
+        {
+          "theme": "light",
+          "width": 390,
+          "overflow": false,
+          "scrollWidth": 390,
+          "undersized": [],
+          "smallFields": [],
+          "outside": []
+        },
+        {
+          "theme": "light",
+          "width": 768,
+          "overflow": false,
+          "scrollWidth": 768,
+          "undersized": [],
+          "smallFields": [],
+          "outside": []
+        },
+        {
+          "theme": "light",
+          "width": 1440,
+          "overflow": false,
+          "scrollWidth": 1440,
+          "undersized": [],
+          "smallFields": [],
+          "outside": []
+        },
+        {
+          "theme": "dark",
+          "width": 390,
+          "overflow": false,
+          "scrollWidth": 390,
+          "undersized": [],
+          "smallFields": [],
+          "outside": []
+        },
+        {
+          "theme": "dark",
+          "width": 768,
+          "overflow": false,
+          "scrollWidth": 768,
+          "undersized": [],
+          "smallFields": [],
+          "outside": []
+        },
+        {
+          "theme": "dark",
+          "width": 1440,
+          "overflow": false,
+          "scrollWidth": 1440,
+          "undersized": [],
+          "smallFields": [],
+          "outside": []
+        }
+      ],
+      "tabs": 0,
+      "title": "Contabilidad | Konta",
+      "menus": 7
+    },
+    {
+      "role": "admin",
+      "route": "/modules/contabilidad/index.php?type=customer&status=not_paid",
+      "checks": [
+        {
+          "theme": "light",
+          "width": 390,
+          "overflow": false,
+          "scrollWidth": 390,
+          "undersized": [],
+          "smallFields": [],
+          "outside": []
+        },
+        {
+          "theme": "light",
+          "width": 768,
+          "overflow": false,
+          "scrollWidth": 768,
+          "undersized": [],
+          "smallFields": [],
+          "outside": []
+        },
+        {
+          "theme": "light",
+          "width": 1440,
+          "overflow": false,
+          "scrollWidth": 1440,
+          "undersized": [],
+          "smallFields": [],
+          "outside": []
+        },
+        {
+          "theme": "dark",
+          "width": 390,
+          "overflow": false,
+          "scrollWidth": 390,
+          "undersized": [],
+          "smallFields": [],
+          "outside": []
+        },
+        {
+          "theme": "dark",
+          "width": 768,
+          "overflow": false,
+          "scrollWidth": 768,
+          "undersized": [],
+          "smallFields": [],
+          "outside": []
+        },
+        {
+          "theme": "dark",
+          "width": 1440,
+          "overflow": false,
+          "scrollWidth": 1440,
+          "undersized": [],
+          "smallFields": [],
+          "outside": []
+        }
+      ],
+      "tabs": 0,
+      "title": "Contabilidad | Konta",
+      "menus": 7
+    },
+    {
+      "role": "admin",
+      "route": "/modules/contabilidad/index.php?type=customer&id=593",
+      "checks": [
+        {
+          "theme": "light",
+          "width": 390,
+          "overflow": false,
+          "scrollWidth": 390,
+          "undersized": [],
+          "smallFields": [],
+          "outside": []
+        },
+        {
+          "theme": "light",
+          "width": 768,
+          "overflow": false,
+          "scrollWidth": 753,
+          "undersized": [],
+          "smallFields": [],
+          "outside": []
+        },
+        {
+          "theme": "light",
+          "width": 1440,
+          "overflow": false,
+          "scrollWidth": 1425,
+          "undersized": [],
+          "smallFields": [],
+          "outside": []
+        },
+        {
+          "theme": "dark",
+          "width": 390,
+          "overflow": false,
+          "scrollWidth": 390,
+          "undersized": [],
+          "smallFields": [],
+          "outside": []
+        },
+        {
+          "theme": "dark",
+          "width": 768,
+          "overflow": false,
+          "scrollWidth": 753,
+          "undersized": [],
+          "smallFields": [],
+          "outside": []
+        },
+        {
+          "theme": "dark",
+          "width": 1440,
+          "overflow": false,
+          "scrollWidth": 1425,
+          "undersized": [],
+          "smallFields": [],
+          "outside": []
+        }
+      ],
+      "tabs": 2,
+      "title": "Contabilidad | Konta",
+      "menus": 7
+    },
+    {
+      "role": "admin",
+      "route": "/modules/contabilidad/pagos.php?type=customer",
+      "checks": [
+        {
+          "theme": "light",
+          "width": 390,
+          "overflow": false,
+          "scrollWidth": 390,
+          "undersized": [],
+          "smallFields": [],
+          "outside": []
+        },
+        {
+          "theme": "light",
+          "width": 768,
+          "overflow": false,
+          "scrollWidth": 768,
+          "undersized": [],
+          "smallFields": [],
+          "outside": []
+        },
+        {
+          "theme": "light",
+          "width": 1440,
+          "overflow": false,
+          "scrollWidth": 1440,
+          "undersized": [],
+          "smallFields": [],
+          "outside": []
+        },
+        {
+          "theme": "dark",
+          "width": 390,
+          "overflow": false,
+          "scrollWidth": 390,
+          "undersized": [],
+          "smallFields": [],
+          "outside": []
+        },
+        {
+          "theme": "dark",
+          "width": 768,
+          "overflow": false,
+          "scrollWidth": 768,
+          "undersized": [],
+          "smallFields": [],
+          "outside": []
+        },
+        {
+          "theme": "dark",
+          "width": 1440,
+          "overflow": false,
+          "scrollWidth": 1440,
+          "undersized": [],
+          "smallFields": [],
+          "outside": []
+        }
+      ],
+      "tabs": 0,
+      "title": "Contabilidad | Konta",
+      "menus": 7
+    },
+    {
+      "role": "admin",
+      "route": "/modules/contabilidad/pagos.php?type=customer&new=1",
+      "checks": [
+        {
+          "theme": "light",
+          "width": 390,
+          "overflow": false,
+          "scrollWidth": 390,
+          "undersized": [],
+          "smallFields": [],
+          "outside": []
+        },
+        {
+          "theme": "light",
+          "width": 768,
+          "overflow": false,
+          "scrollWidth": 753,
+          "undersized": [],
+          "smallFields": [],
+          "outside": []
+        },
+        {
+          "theme": "light",
+          "width": 1440,
+          "overflow": false,
+          "scrollWidth": 1425,
+          "undersized": [],
+          "smallFields": [],
+          "outside": []
+        },
+        {
+          "theme": "dark",
+          "width": 390,
+          "overflow": false,
+          "scrollWidth": 390,
+          "undersized": [],
+          "smallFields": [],
+          "outside": []
+        },
+        {
+          "theme": "dark",
+          "width": 768,
+          "overflow": false,
+          "scrollWidth": 753,
+          "undersized": [],
+          "smallFields": [],
+          "outside": []
+        },
+        {
+          "theme": "dark",
+          "width": 1440,
+          "overflow": false,
+          "scrollWidth": 1425,
+          "undersized": [],
+          "smallFields": [],
+          "outside": []
+        }
+      ],
+      "tabs": 0,
+      "title": "Contabilidad | Konta",
+      "menus": 7
+    },
+    {
+      "role": "admin",
+      "route": "/modules/contabilidad/cuentas-pendientes.php",
+      "checks": [
+        {
+          "theme": "light",
+          "width": 390,
+          "overflow": false,
+          "scrollWidth": 390,
+          "undersized": [],
+          "smallFields": [],
+          "outside": []
+        },
+        {
+          "theme": "light",
+          "width": 768,
+          "overflow": false,
+          "scrollWidth": 753,
+          "undersized": [],
+          "smallFields": [],
+          "outside": []
+        },
+        {
+          "theme": "light",
+          "width": 1440,
+          "overflow": false,
+          "scrollWidth": 1440,
+          "undersized": [],
+          "smallFields": [],
+          "outside": []
+        },
+        {
+          "theme": "dark",
+          "width": 390,
+          "overflow": false,
+          "scrollWidth": 390,
+          "undersized": [],
+          "smallFields": [],
+          "outside": []
+        },
+        {
+          "theme": "dark",
+          "width": 768,
+          "overflow": false,
+          "scrollWidth": 753,
+          "undersized": [],
+          "smallFields": [],
+          "outside": []
+        },
+        {
+          "theme": "dark",
+          "width": 1440,
+          "overflow": false,
+          "scrollWidth": 1440,
+          "undersized": [],
+          "smallFields": [],
+          "outside": []
+        }
+      ],
+      "tabs": 0,
+      "title": "Contabilidad | Konta",
+      "menus": 7
+    },
+    {
+      "role": "admin",
+      "route": "/modules/contabilidad/ingresos-egresos.php",
+      "checks": [
+        {
+          "theme": "light",
+          "width": 390,
+          "overflow": false,
+          "scrollWidth": 390,
+          "undersized": [],
+          "smallFields": [],
+          "outside": []
+        },
+        {
+          "theme": "light",
+          "width": 768,
+          "overflow": false,
+          "scrollWidth": 753,
+          "undersized": [],
+          "smallFields": [],
+          "outside": []
+        },
+        {
+          "theme": "light",
+          "width": 1440,
+          "overflow": false,
+          "scrollWidth": 1425,
+          "undersized": [],
+          "smallFields": [],
+          "outside": []
+        },
+        {
+          "theme": "dark",
+          "width": 390,
+          "overflow": false,
+          "scrollWidth": 390,
+          "undersized": [],
+          "smallFields": [],
+          "outside": []
+        },
+        {
+          "theme": "dark",
+          "width": 768,
+          "overflow": false,
+          "scrollWidth": 753,
+          "undersized": [],
+          "smallFields": [],
+          "outside": []
+        },
+        {
+          "theme": "dark",
+          "width": 1440,
+          "overflow": false,
+          "scrollWidth": 1425,
+          "undersized": [],
+          "smallFields": [],
+          "outside": []
+        }
+      ],
+      "tabs": 0,
+      "title": "Contabilidad | Konta",
+      "menus": 7
+    }
+  ],
+  "issues": []
+}

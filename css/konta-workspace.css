@@ -264,6 +264,55 @@ html[data-konta-theme=dark] .module-workspace {
 .module-workspace .quotation-totals>div[data-invoice-total] { color:var(--k-text); font-size:19px; font-weight:700; }
 .module-workspace .quotation-totals>div:last-child:has([data-invoice-currency-reference]) { color:var(--k-muted); font-size:13px; font-weight:400; }
 .module-workspace [data-direct-edit-customer] { color:var(--k-green-dark); }
+.module-workspace .konta-filter-summary { display:flex; align-items:center; flex-wrap:wrap; gap:6px; margin:-4px 0 14px; }
+.module-workspace .konta-filter-summary[hidden] { display:none; }
+.module-workspace .konta-filter-caption { margin-right:3px; color:var(--k-muted); font-size:12px; }
+.module-workspace .konta-filter-chip { max-width:100%; padding:4px 8px; border:1px solid var(--k-line); border-radius:6px; color:var(--k-text); background:var(--k-soft); font-size:12px; line-height:1.4; overflow-wrap:anywhere; }
+.module-workspace .konta-product-name { margin-bottom:18px; }
+.module-workspace .konta-stock-strip { display:flex; align-items:center; flex-wrap:wrap; gap:12px 24px; margin:-4px 0 8px; padding:10px 12px; border:1px solid var(--k-line); border-radius:9px; background:var(--k-soft); }
+.module-workspace .konta-stock-strip>span { display:flex; align-items:baseline; gap:8px; color:var(--k-muted); font-size:12px; }
+.module-workspace .konta-stock-strip strong { color:var(--k-text); font-size:15px; font-variant-numeric:tabular-nums; }
+.module-workspace .konta-indicator-help { margin:0 0 18px; font-size:12px; color:var(--k-muted); }
+.module-workspace .konta-indicator-help>summary { min-height:32px; width:fit-content; padding:6px 0; cursor:pointer; }
+.module-workspace .konta-indicator-help .product-stats-help { margin:4px 0 10px; padding:12px; border:1px solid var(--k-line); border-radius:8px; background:var(--k-soft); color:var(--k-muted); }
+.module-workspace .konta-report-help { margin:4px 0 12px; color:var(--k-muted); font-size:12px; }
+.module-workspace .konta-report-help>summary { min-height:32px; width:fit-content; padding:6px 0; cursor:pointer; }
+.module-workspace .konta-report-help>p { margin-top:8px; padding:12px; border:1px solid var(--k-line); border-radius:8px; background:var(--k-soft); }
+@media(max-width:720px){.module-workspace .konta-report-help>summary{min-height:44px;padding-block:11px;}}
+.module-workspace .outstanding-section { margin-top:14px; }
+.module-workspace .outstanding-section>.section-heading { align-items:flex-start; margin-bottom:14px; }
+.module-workspace .outstanding-section .section-heading h2 { margin:0 0 5px; font-size:20px; }
+.module-workspace .outstanding-section .outstanding-totals { grid-template-columns:repeat(auto-fit,minmax(min(240px,100%),1fr)); gap:12px; }
+.module-workspace .outstanding-totals .overview-card { padding:16px; }
+.module-workspace .outstanding-totals .overview-label { align-self:flex-start; padding:3px 8px; border-radius:6px; background:var(--k-soft); color:var(--k-muted); font-size:12px; font-weight:600; }
+.module-workspace .outstanding-totals .cash-flow-account-totals { gap:0; margin-block:10px; }
+.module-workspace .outstanding-totals [data-balance-kind] { padding:8px 0; }
+.module-workspace .outstanding-totals [data-balance-kind=balance] { padding-block:12px; border-bottom:1px solid var(--k-line); }
+.module-workspace .outstanding-totals [data-balance-kind=balance] dd { color:var(--k-text); font-size:22px; font-weight:700; }
+.module-workspace .outstanding-totals :is([data-balance-kind=pending],[data-balance-kind=overdue]) dt { color:var(--k-muted); font-size:12px; }
+.module-workspace .outstanding-totals .overview-card>small { color:var(--k-muted); font-size:12px; }
+.module-workspace .outstanding-partner { padding:16px; }
+.module-workspace .outstanding-partner>summary { display:grid; grid-template-columns:minmax(0,1fr) auto; gap:10px 16px; align-items:start; list-style:none; }
+.module-workspace .outstanding-partner>summary::-webkit-details-marker { display:none; }
+.module-workspace .outstanding-partner>summary>strong { color:var(--k-text); font-variant-numeric:tabular-nums; }
+.module-workspace .outstanding-partner>summary>span:first-child { min-width:0; }
+.module-workspace .konta-balance-disclosure { display:inline-flex; align-items:center; gap:8px; min-height:32px; color:var(--k-green-dark); font-size:12px; }
+.module-workspace .konta-balance-disclosure::after { content:''; width:6px; height:6px; border-right:1.5px solid currentColor; border-bottom:1.5px solid currentColor; transform:rotate(45deg); }
+.module-workspace .outstanding-partner[open] .konta-balance-disclosure::after { transform:rotate(225deg); }
+.module-workspace .outstanding-overdue { color:var(--k-danger-text); }
+.module-workspace .outstanding-partner .contact-table :is(th,td) { white-space:nowrap; overflow-wrap:normal; word-break:normal; }
+@media(max-width:720px){
+    .module-workspace .konta-product-name { margin-bottom:14px; }
+    .module-workspace .konta-indicator-help>summary { min-height:44px; padding-block:11px; }
+    .module-workspace .konta-stock-strip { justify-content:space-between; gap:10px; }
+    .module-workspace .outstanding-columns { gap:16px; }
+    .module-workspace .outstanding-partner { padding:14px; }
+    .module-workspace .outstanding-partner>summary>span:first-child { grid-column:1/-1; }
+    .module-workspace .outstanding-partner>summary>strong { grid-row:2; grid-column:2; align-self:center; }
+    .module-workspace .konta-balance-disclosure { grid-row:2; grid-column:1; min-height:44px; }
+    .module-workspace .outstanding-partner .konta-readonly-lines td { white-space:normal; overflow-wrap:anywhere; }
+    .module-workspace .outstanding-partner .konta-readonly-lines .konta-line-name { font-weight:600; }
+}
 .module-workspace .business-overview { background:transparent; }
 @media(max-width:360px){.module-workspace .konta-save-label{display:none;}.module-workspace .konta-save-compact{display:inline;}}
 .module-workspace .contact-table thead th { padding:12px 14px; font-size:var(--k-type-caption); font-weight:600; white-space:normal; vertical-align:middle; }

@@ -95,13 +95,13 @@
         "/modules/contabilidad/tesoreria.php?kind=expense&new=1",
         "/modules/contabilidad/tesoreria.php?kind=transfer&new=1",
         "/modules/contabilidad/tesoreria.php?kind=opening&new=1",
+        "/modules/contactos/index.php?id=448",
         "/modules/contactos/index.php?id=447",
-        "/modules/contactos/index.php?id=446",
         "/modules/inventario/index.php?id=260",
-        "/modules/ventas/index.php?id=362",
-        "/modules/inventario/operaciones.php?type=delivery&id=560",
-        "/modules/contabilidad/index.php?type=customer&id=592",
-        "/modules/venta_directa/index.php?id=7",
+        "/modules/ventas/index.php?id=364",
+        "/modules/inventario/operaciones.php?type=delivery&id=561",
+        "/modules/contabilidad/index.php?type=customer&id=593",
+        "/modules/venta_directa/index.php?id=8",
         "/modules/contactos/index.php?q=qa_no_matching_record_97083"
     ],
     "seller": [
@@ -111,6 +111,6 @@
         "/modules/venta_directa/solicitudes.php",
         "/modules/venta_directa/devoluciones.php",
         "/modules/venta_directa/cierre.php",
-        "/modules/venta_directa/index.php?id=7"
+        "/modules/venta_directa/index.php?id=8"
     ]
 }

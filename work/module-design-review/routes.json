@@ -1,0 +1,26 @@
+{
+    "admin": [
+        "/modules/ventas/index.php",
+        "/modules/ventas/index.php?status=sale&q=Cliente",
+        "/modules/ventas/index.php?new=1",
+        "/modules/ventas/index.php?id=364",
+        "/modules/ventas/comisiones.php",
+        "/modules/ventas/pagos-comisiones.php",
+        "/modules/inventario/index.php",
+        "/modules/inventario/index.php?q=producto",
+        "/modules/inventario/index.php?id=260",
+        "/modules/inventario/index.php?new=1",
+        "/modules/inventario/variantes.php",
+        "/modules/inventario/lotes.php",
+        "/modules/inventario/informes.php?view=stock",
+        "/modules/inventario/operaciones.php?type=delivery&id=561",
+        "/modules/contabilidad/index.php?type=customer",
+        "/modules/contabilidad/index.php?type=customer&status=not_paid",
+        "/modules/contabilidad/index.php?type=customer&id=593",
+        "/modules/contabilidad/pagos.php?type=customer",
+        "/modules/contabilidad/pagos.php?type=customer&new=1",
+        "/modules/contabilidad/cuentas-pendientes.php",
+        "/modules/contabilidad/ingresos-egresos.php"
+    ],
+    "seller": []
+}

@@ -69,7 +69,9 @@
         if (!headings.length || table.tHead.rows.length !== 1 || headings.some(cell => cell.colSpan !== 1)) return;
         const labels = headings.map(cell => cell.textContent.trim());
         table.classList.toggle('konta-product-lines',normalize(labels[0]||'')==='producto'&&!!table.closest('.contact-sheet'));
-        const readonlyLines=table.classList.contains('konta-product-lines')&&labels.some(label=>normalize(label)==='cantidad')&&labels.some(label=>normalize(label)==='total')
+        const balanceLines=!!table.closest('.outstanding-partner')&&labels.some(label=>normalize(label)==='saldo pendiente')&&labels.some(label=>normalize(label)==='vencimiento');
+        const mainQuantity=balanceLines?'vencimiento':'cantidad',mainTotal=balanceLines?'saldo pendiente':'total';
+        const readonlyLines=(balanceLines||(table.classList.contains('konta-product-lines')&&labels.some(label=>normalize(label)==='cantidad')&&labels.some(label=>normalize(label)==='total')))
             &&!table.querySelector('input:not([type=hidden]):not(:disabled):not([readonly]),select:not(:disabled),textarea:not(:disabled):not([readonly]),button');
         table.classList.toggle('konta-readonly-lines',readonlyLines);
         headings.forEach((cell, index) => {
@@ -83,9 +85,9 @@
                     cell.dataset.columnLabel = labels[index] || (cell.classList.contains('record-selection') ? 'Seleccionar' : '');
                     if(readonlyLines){
                         cell.classList.toggle('konta-line-name',index===0);
-                        cell.classList.toggle('konta-line-quantity',normalize(labels[index])==='cantidad');
-                        cell.classList.toggle('konta-line-total',normalize(labels[index])==='total');
-                        cell.classList.toggle('konta-line-extra',index>0&&!['cantidad','total'].includes(normalize(labels[index])));
+                        cell.classList.toggle('konta-line-quantity',normalize(labels[index])===mainQuantity);
+                        cell.classList.toggle('konta-line-total',normalize(labels[index])===mainTotal);
+                        cell.classList.toggle('konta-line-extra',index>0&&![mainQuantity,mainTotal].includes(normalize(labels[index])));
                     }
                     cell.classList.toggle('workspace-record-title', !!cell.querySelector('a.contact-name'));
                     cell.classList.toggle('workspace-number', numericColumn(labels[index]));

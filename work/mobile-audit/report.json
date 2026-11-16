@@ -1,5 +1,5 @@
 {
-  "date": "2026-11-15T22:30:16.024Z",
+  "date": "2026-11-16T04:11:35.885Z",
   "widths": [
     320,
     390,
@@ -5997,7 +5997,7 @@
     },
     {
       "role": "admin",
-      "route": "/modules/contactos/index.php?id=447",
+      "route": "/modules/contactos/index.php?id=448",
       "checks": [
         {
           "theme": "light",
@@ -6060,7 +6060,7 @@
     },
     {
       "role": "admin",
-      "route": "/modules/contactos/index.php?id=446",
+      "route": "/modules/contactos/index.php?id=447",
       "checks": [
         {
           "theme": "light",
@@ -6186,7 +6186,7 @@
     },
     {
       "role": "admin",
-      "route": "/modules/ventas/index.php?id=362",
+      "route": "/modules/ventas/index.php?id=364",
       "checks": [
         {
           "theme": "light",
@@ -6249,7 +6249,7 @@
     },
     {
       "role": "admin",
-      "route": "/modules/inventario/operaciones.php?type=delivery&id=560",
+      "route": "/modules/inventario/operaciones.php?type=delivery&id=561",
       "checks": [
         {
           "theme": "light",
@@ -6312,7 +6312,7 @@
     },
     {
       "role": "admin",
-      "route": "/modules/contabilidad/index.php?type=customer&id=592",
+      "route": "/modules/contabilidad/index.php?type=customer&id=593",
       "checks": [
         {
           "theme": "light",
@@ -6375,7 +6375,7 @@
     },
     {
       "role": "admin",
-      "route": "/modules/venta_directa/index.php?id=7",
+      "route": "/modules/venta_directa/index.php?id=8",
       "checks": [
         {
           "theme": "light",
@@ -6879,7 +6879,7 @@
     },
     {
       "role": "seller",
-      "route": "/modules/venta_directa/index.php?id=7",
+      "route": "/modules/venta_directa/index.php?id=8",
       "checks": [
         {
           "theme": "light",

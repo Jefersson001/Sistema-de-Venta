@@ -117,8 +117,35 @@
             for (const button of choices) button.classList.toggle('konta-secondary-action', button !== primary);
         }
     }
-    decorate(document);
-    document.addEventListener('live-filters:updated', event => decorate(event.target));
+    const filterSummaries=new WeakMap();
+    function showAppliedFilters(){
+        if(!['ventas','inventario','contabilidad'].includes(document.body.dataset.module))return;
+        const query=new URLSearchParams(location.search);
+        const labels={q:'Búsqueda',status:'Estado',type:'Tipo',due:'Vencimiento',currency_code:'Moneda',warehouse_id:'Almacén',location_id:'Ubicación'};
+        for(const form of document.querySelectorAll('form.contact-filters')){
+            const filters=[];
+            for(const [key,label] of Object.entries(labels)){
+                const value=query.get(key),field=form.elements.namedItem(key);
+                if(!value||['all','active'].includes(value)||!field||field.type==='hidden')continue;
+                if(field.tagName==='SELECT'){
+                    const option=[...field.options].find(option=>option.value===value);
+                    if(!option||field.value!==value)continue;
+                    filters.push(label+': '+option.textContent.trim());
+                }else if(field.value.trim()===value.trim())filters.push(label+': '+value.trim());
+            }
+            for(const [key,label] of Object.entries({pending:'Pendientes',unpaid:'Sin pagar',overdue:'Vencidos'}))if(query.get(key)==='1'&&form.elements.namedItem(key))filters.push(label);
+            let summary=filterSummaries.get(form);
+            if(!summary||!summary.isConnected){summary=document.createElement('div');summary.className='konta-filter-summary';summary.setAttribute('role','group');summary.setAttribute('aria-label','Filtros aplicados');form.after(summary);filterSummaries.set(form,summary);}
+            summary.replaceChildren();summary.hidden=!filters.length;
+            if(filters.length){
+                const caption=document.createElement('span');caption.className='konta-filter-caption';caption.textContent='Filtros aplicados';summary.append(caption);
+                for(const text of filters){const chip=document.createElement('span');chip.className='konta-filter-chip';chip.textContent=text;summary.append(chip);}
+            }
+        }
+    }
+    decorate(document);showAppliedFilters();
+    document.addEventListener('live-filters:updated', event => {decorate(event.target);showAppliedFilters();});
+    window.addEventListener('popstate',showAppliedFilters);
     // Additions include invoice dialogs, restaurant actions and product lines.
     const observer = new MutationObserver(records => {
         for (const record of records) for (const node of record.addedNodes) {

@@ -5,8 +5,9 @@ require_once __DIR__.'/auth-server.php';
 require_once dirname(__DIR__).'/php/navigation-search.php';
 require_once dirname(__DIR__).'/php/company-repository.php';
 $server=startAuthTestServer();$cookies=[];
-$visual=in_array('--visual',$argv,true);
-$output=dirname(__DIR__).($visual?'/work/visual-review':'/work/mobile-audit');
+$modules=in_array('--modules',$argv,true);
+$visual=$modules||in_array('--visual',$argv,true);
+$output=dirname(__DIR__).($modules?'/work/module-design-review':($visual?'/work/visual-review':'/work/mobile-audit'));
 if(!is_dir($output))mkdir($output,0777,true);
 try{
     $db=$server['db'];$password=bin2hex(random_bytes(16));$login='mobile.qa.'.bin2hex(random_bytes(5));
@@ -64,8 +65,16 @@ try{
         '/modules/ajustes/grupos.php?new=1','/modules/ajustes/empresa.php',
     ];
     $sellerRoutes=$visual?['/modules/venta_directa/index.php','/modules/venta_directa/index.php?id='.$checkout]:['/modules/venta_directa/index.php','/modules/venta_directa/index.php?view=history','/modules/venta_directa/index.php?view=stock','/modules/venta_directa/solicitudes.php','/modules/venta_directa/devoluciones.php','/modules/venta_directa/cierre.php','/modules/venta_directa/index.php?id='.$checkout];
+    if($modules){
+        $routes=[
+            '/modules/ventas/index.php','/modules/ventas/index.php?status=sale&q=Cliente','/modules/ventas/index.php?new=1','/modules/ventas/index.php?id='.$row['sale_id'],'/modules/ventas/comisiones.php','/modules/ventas/pagos-comisiones.php',
+            '/modules/inventario/index.php','/modules/inventario/index.php?q=producto','/modules/inventario/index.php?id='.$product,'/modules/inventario/index.php?new=1','/modules/inventario/variantes.php','/modules/inventario/lotes.php','/modules/inventario/informes.php?view=stock','/modules/inventario/operaciones.php?type=delivery&id='.$row['operation_id'],
+            '/modules/contabilidad/index.php?type=customer','/modules/contabilidad/index.php?type=customer&status=not_paid','/modules/contabilidad/index.php?type=customer&id='.$row['invoice_id'],'/modules/contabilidad/pagos.php?type=customer','/modules/contabilidad/pagos.php?type=customer&new=1','/modules/contabilidad/cuentas-pendientes.php','/modules/contabilidad/ingresos-egresos.php',
+        ];$sellerRoutes=[];
+    }
     file_put_contents($output.'/routes.json',json_encode(['admin'=>array_values(array_unique($routes)),'seller'=>$sellerRoutes],JSON_PRETTY_PRINT|JSON_UNESCAPED_SLASHES));
     $env=getenv();$env['NEXO_TEST_BASE_URL']=$server['url'];$env['NEXO_TEST_LOGIN']=$login;$env['NEXO_TEST_SELLER']=$sellerLogin;$env['NEXO_TEST_PASSWORD']=$password;$env['NEXO_MOBILE_OUTPUT']=$output;
     if($visual)$env['NEXO_VISUAL_REVIEW']='1';
+    if($modules)$env['NEXO_MODULE_REVIEW']='1';
     $p=proc_open(['node',__DIR__.'/mobile-audit-ui.js'],[0=>['pipe','r'],1=>STDOUT,2=>STDERR],$pipes,dirname(__DIR__),$env,['bypass_shell'=>true,'create_new_console'=>false]);fclose($pipes[0]);if(proc_close($p)!==0)throw new RuntimeException('La auditoría detectó incidencias; consultar '.$output.'/report.json.');
 }finally{foreach($cookies as $cookie)if(is_file($cookie))unlink($cookie);stopAuthTestServer($server);}

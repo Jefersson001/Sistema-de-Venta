@@ -55,6 +55,24 @@ const {spawn}=require('node:child_process');
       }
      }
      await size(320);
+     if(process.env.NEXO_MODULE_REVIEW==='1'){
+      if(route.includes('q=')){
+       const chips=await ev('[...document.querySelectorAll(".konta-filter-chip")].map(e=>e.textContent)');
+       if(!chips.some(text=>text.startsWith('Búsqueda:')))report.issues.push({role,route,kind:'applied-filters',chips});
+       if(route.includes('status=sale')&&!chips.some(text=>text.startsWith('Estado:')))report.issues.push({role,route,kind:'applied-status',chips});
+      }
+      if(route.includes('/inventario/index.php?id=')){
+       const position=await ev('(()=>{const n=document.querySelector(".konta-product-name"),s=document.querySelector(".product-stat-buttons");return {nameBeforeStats:n.getBoundingClientRect().top<s.getBoundingClientRect().top,helpOpen:document.querySelector(".konta-indicator-help").open};})()');
+       if(!position.nameBeforeStats||position.helpOpen)report.issues.push({role,route,kind:'product-hierarchy',...position});
+      }
+      if(route.includes('cuentas-pendientes.php')){
+       await size(390);await ev('document.querySelector("[data-outstanding-partner]").open=true;document.querySelector("[data-outstanding-partner]").scrollIntoView({block:"start"})');
+       const cards=await ev('(()=>{const t=document.querySelector("[data-outstanding-partner] .konta-readonly-lines"),d=t?.querySelector(".konta-row-details");d?.querySelector("summary").click();return {table:!!t,detailsOpen:d?.open,values:d?.textContent};})()');
+       if(!cards.table||!cards.detailsOpen||!cards.values.includes('Pagado'))report.issues.push({role,route,kind:'balance-cards',...cards});
+       if((await audit()).overflow)report.issues.push({role,route,kind:'open-balances',overflow:true});
+       await screenshot('accounting-open-balance');
+      }
+     }
      const tabCount=await ev('document.querySelectorAll("[data-notebook-tabs] a").length');
      for(let n=0;n<tabCount;n++){
       const clicked=await ev('(()=>{const a=document.querySelectorAll("[data-notebook-tabs] a")['+n+'];if(a.closest("[hidden]"))return false;a.click();return true;})()');
