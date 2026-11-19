@@ -156,7 +156,8 @@ try{
     $db->prepare("INSERT INTO direct_sale_actions(sale_id,seller_id,action_kind,request_key,payload_hash,payload_json) VALUES(?,?,'return',?,?,'{}')")->execute([$foreignSale,$otherSeller,bin2hex(random_bytes(32)),str_repeat('c',64)]);$foreignReturn=(int)$db->lastInsertId();
     $db->prepare("INSERT INTO direct_day_closings(seller_id,closing_date,snapshot_json,declared_json) VALUES(?,?,'{}','{}')")->execute([$otherSeller,commerceToday()]);$foreignClosing=(int)$db->lastInsertId();
     dsExpect(authTestRequest($server,'/modules/venta_directa/devoluciones.php?id='.$foreignReturn,$cookies['seller'])[0]===403,'El vendedor consulta una devolución de otra empresa.');
-    dsExpect(authTestRequest($server,'/modules/venta_directa/cierre.php?id='.$foreignClosing,$cookies['seller'])[0]===403,'El vendedor consulta un cierre de otra empresa.');
+    [$closingStatus,$closingBody]=authTestRequest($server,'/modules/venta_directa/cierre.php?id='.$foreignClosing,$cookies['seller']);
+    dsExpect(in_array($closingStatus,[303,403],true)&&!str_contains($closingBody,'data-day-summary'),'La ruta retirada muestra datos de cierre.');
     $bad=$salePost;$bad['request_key']=bin2hex(random_bytes(32));$bad['seller_id']=(string)$otherSeller;dsExpect($post('seller',$path,$bad)[0]===403,'Se puede vender desde el almacén de otro vendedor o empresa.');
     dsExpect(authTestRequest($server,$path,$cookies['seller'],['action'=>'direct_checkout','csrf'=>'invalid'])[0]===403,'El módulo omite la protección CSRF.');
     $db->exec('SET @nexo_company_id=1');$db->exec('DELETE FROM accounting_currency_rates WHERE company_id=1');

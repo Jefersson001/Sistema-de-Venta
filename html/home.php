@@ -1,8 +1,6 @@
 <?php
 $quickSale=permissionHas('venta_directa.sales','create')&&permissionContact()>0;
 $canReview=permissionScope('venta_directa.requests','confirm')==='all';
-$canClose=permissionHas('venta_directa.closing');
-$closingLabel=permissionHas('venta_directa.closing','create')?'Mi cierre de jornada':'Revisar cierres';
 $cardCopy=[
  'dashboard'=>['Dashboard','Resumen del negocio, indicadores y actividad reciente.'],
  'contactos'=>['Contactos & CRM','Centraliza clientes, proveedores y sus datos de contacto.'],
@@ -28,7 +26,6 @@ $cardCopy=[
 <div class="konta-page-head"><div><div class="konta-heading-line"><h1 id="modules-title">Panel de Control</h1><span class="konta-online <?= !$databaseStatus['connected']?'is-offline':'' ?>"><i aria-hidden="true"></i><?= $databaseStatus['connected']?'En línea':'Sin conexión' ?></span></div><p>Accede a los módulos operativos y financieros de tu negocio.</p></div>
 <div class="konta-quick-actions">
 <?php if($quickSale): ?><a class="konta-button konta-button-primary" href="modules/venta_directa/index.php"><?= kontaIcon('bolt') ?>Nueva venta rápida</a><?php elseif($canReview): ?><a class="konta-button konta-button-primary" href="modules/venta_directa/solicitudes.php"><?= kontaIcon('inventario') ?>Revisar solicitudes</a><?php endif; ?>
-<?php if($canClose): ?><a class="konta-button konta-button-dark" href="modules/venta_directa/cierre.php"><?= kontaIcon('closing') ?><?= authEscape($closingLabel) ?></a><?php endif; ?>
 </div></div>
 <div class="konta-module-grid" data-module-grid>
 <?php if(!$modules): ?><div class="notice">No tienes módulos autorizados. Solicita al administrador que revise tus permisos. Puedes acceder a <a href="perfil.php">tu perfil</a>.</div><?php endif; ?>
@@ -39,7 +36,6 @@ $cardCopy=[
 <div class="konta-card-foot"><span><?= authEscape($note['value']) ?></span><span class="konta-foot-<?= authEscape($note['tone']) ?>"><?= authEscape($note['detail']) ?><?= $key==='venta_directa'?kontaIcon('arrow'):'' ?></span></div>
 </a><?php endforeach; ?>
 </div></section>
-<?php if($canClose): ?><section class="konta-day-banner" aria-labelledby="closing-title"><div><span class="konta-banner-label"><?= kontaIcon('closing') ?>Tu jornada, en un solo lugar</span><h2 id="closing-title">¿Listo para revisar el día?</h2><p>Consulta ventas, cobros, mercancía y comisiones desde el cierre del vendedor.</p></div><a class="konta-button konta-button-primary" href="modules/venta_directa/cierre.php"><?= kontaIcon('arrow') ?><?= authEscape($closingLabel) ?></a></section><?php endif; ?>
 </main>
 <footer class="konta-footer"><span>© <?= date('Y') ?> Konta Software · Gestión empresarial</span><span><?= kontaIcon('shield') ?>Acceso por permisos <i aria-hidden="true">·</i> Tu negocio, conectado.</span></footer>
 </div></body></html>

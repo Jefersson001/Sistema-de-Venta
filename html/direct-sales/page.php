@@ -9,7 +9,6 @@ if(permissionHas('venta_directa.stock'))$directNav[]=['inventario.php','Inventar
 if(permissionHas('venta_directa.requests'))$directNav[]=['solicitudes.php','Solicitudes',$requests];
 if(permissionHas('venta_directa.sales'))$directNav[]=['index.php?view=history',permissionScope('venta_directa.sales')==='own'?'Mis ventas':'Ventas realizadas',($_GET['view']??'')==='history'];
 if(permissionHas('venta_directa.returns'))$directNav[]=['devoluciones.php','Devoluciones',false];
-if(permissionHas('venta_directa.closing'))$directNav[]=['cierre.php','Cierre',false];
 if(permissionHas('venta_directa.configuration'))$directNav[]=['configuracion.php','Crédito',false];
 ?>
 <!doctype html><html lang="es"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><meta name="theme-color" content="#00ad78"><title>Ventas Directas | Konta</title>

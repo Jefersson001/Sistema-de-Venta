@@ -32,19 +32,19 @@ if(PHP_SAPI!=='cli'){http_response_code(404);exit;}
     dsId($post('manager',$requestPath.'?id='.$surplusId,['action'=>'direct_approve','version'=>'1','source_location_id'=>(string)$locations['central'],'approved'=>[$requestLine=>'1.00']]));
     dsId($post('manager',$requestPath.'?id='.$surplusId,['action'=>'direct_dispatch','version'=>'2']));$op=(int)$db->query('SELECT operation_id FROM direct_stock_requests WHERE id='.$surplusId)->fetchColumn();
     $movement=$db->query('SELECT * FROM inventory_operations WHERE id='.$op)->fetch();dsExpect((int)$movement['source_location_id']===$locations['seller']&&(int)$movement['destination_location_id']===$locations['central']&&$movement['status']==='done','El retorno de sobrantes no invierte correctamente el movimiento.');
-    [$code,$body]=authTestRequest($server,$closing,$cookies['seller']);dsExpect($code===200&&str_contains($body,'data-day-summary'),'No abre el resumen de jornada.');
-    $close=['action'=>'direct_close','seller_id'=>(string)$seller,'closing_date'=>commerceToday(),'declared'=>['USD'=>'16.40'],'notes'=>'Revisión de la jornada'];$closeId=dsId($post('seller',$closing,$close));dsExpect(dsId($post('seller',$closing,$close))===$closeId,'Se duplica un cierre de la misma jornada.');
-    $q=$db->prepare('SELECT * FROM direct_day_closings WHERE id=?');$q->execute([$closeId]);$closed=$q->fetch();$snapshot=json_decode($closed['snapshot_json'],true,32,JSON_THROW_ON_ERROR);dsExpect($snapshot['money']['USD']['cash']==='16.40'&&$snapshot['money']['USD']['settled']==='0.00','El cierre confunde cobros pendientes, caja o confirmados.');
-    dsExpect($post('seller',$closing.'?id='.$closeId,['action'=>'direct_close_validate'])[0]===403,'El vendedor valida su cierre.');
-    dsId($post('manager',$closing.'?id='.$closeId,['action'=>'direct_close_validate']));dsExpect($db->query('SELECT status FROM direct_day_closings WHERE id='.$closeId)->fetchColumn()==='validated','El supervisor no valida el cierre.');
-    dsExpect($db->query('SELECT status FROM accounting_payments WHERE id='.$payment)->fetchColumn()==='pending','Validar el cierre confirma dinero sin autorización.');
+    $closingCount=(int)$db->query('SELECT COUNT(*) FROM direct_day_closings')->fetchColumn();
+    foreach(['seller','manager'] as $role){
+        [$code,,$destination]=authTestRequest($server,$closing,$cookies[$role]);
+        dsExpect($code===303&&str_ends_with($destination,'/modules/venta_directa/index.php?view=history'),'Retired closing must redirect.');
+        dsExpect(in_array($post($role,$closing,['action'=>'direct_close','seller_id'=>(string)$seller,'closing_date'=>commerceToday()])[0],[303,403],true),'Old closing POST must not execute.');
+    }
+    dsExpect((int)$db->query('SELECT COUNT(*) FROM direct_day_closings')->fetchColumn()===$closingCount,'Retired closing created records.');
     $late=$pay;$late['request_key']=bin2hex(random_bytes(32));$late['amount']='0.50';$late['version']=(string)$db->query('SELECT version FROM accounting_invoices WHERE id='.(int)$creditInvoice['id'])->fetchColumn();dsId($post('seller',$path.'?id='.$creditId,$late));
-    $q->execute([$closeId]);dsExpect($q->fetch()['snapshot_json']===$closed['snapshot_json'],'Un cobro posterior cambia el cierre histórico.');
     $proofFile=tempnam($server['sessions'],'direct-proof-');file_put_contents($proofFile,base64_decode('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+aN2kAAAAASUVORK5CYII='));
     try{
         [, $form]=authTestRequest($server,$path.'?id='.$creditId,$cookies['seller']);$upload=$late;$upload['request_key']=bin2hex(random_bytes(32));$upload['version']=(string)$db->query('SELECT version FROM accounting_invoices WHERE id='.(int)$creditInvoice['id'])->fetchColumn();$upload['amount']='0.10';$upload['csrf']=authTestToken($form);$upload['company_scope']=authTestToken($form,'company_scope');$upload['proof_files[0]']=new CURLFile($proofFile,'image/png','comprobante.png');
         $curl=curl_init($server['url'].$path.'?id='.$creditId);curl_setopt_array($curl,[CURLOPT_RETURNTRANSFER=>true,CURLOPT_COOKIEFILE=>$cookies['seller'],CURLOPT_POST=>true,CURLOPT_POSTFIELDS=>$upload]);$body=curl_exec($curl);$code=curl_getinfo($curl,CURLINFO_RESPONSE_CODE);curl_close($curl);dsExpect($code===303,'No se registra el cobro con comprobante: '.mb_substr(strip_tags((string)$body),-1200));
         $proof=$db->prepare('SELECT p.storage_key,p.id FROM payment_proofs p JOIN direct_sale_actions a ON a.payment_id=p.payment_id WHERE a.request_key=?');$proof->execute([$upload['request_key']]);$stored=$proof->fetch();dsExpect($stored&&is_file($server['sessions'].'/payment-proofs/'.$stored['storage_key'].'.bin'),'El comprobante no queda asociado al cobro privado.');
     }finally{unlink($proofFile);}
-    echo "PASS: plazo único, crédito configurable, advertencia permitida, abonos idempotentes pendientes, devolución parcial con nota e inventario, retorno de sobrantes y cierre revisado sin confirmar dinero.\n";
+    echo "PASS: plazo único, crédito configurable, advertencia permitida, abonos idempotentes pendientes, devolución parcial con nota e inventario, retorno de sobrantes y cierre retirado sin crear registros.\n";
 })();

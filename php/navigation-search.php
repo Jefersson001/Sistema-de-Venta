@@ -26,7 +26,6 @@ function navigationSearchCatalog(): array
     $add('venta_directa',['Solicitudes de mercancía'],'solicitudes.php','aprobar reposición almacén vendedor');
     $add('venta_directa',['Inventario para abastecimiento'],'inventario.php','almacenes disponibles supervisor existencias');
     $add('venta_directa',['Devoluciones de clientes'],'devoluciones.php','devolver nota crédito retorno');
-    $add('venta_directa',['Cierre del vendedor'],'cierre.php','jornada efectivo cobros comisiones');
     $add('venta_directa',['Control de crédito'],'configuracion.php','límites advertir vencimiento clientes');
     $add('ventas',['Comisiones','Comisiones'],'comisiones.php','vendedores');
     $add('ventas',['Comisiones','Pagos de comisiones'],'pagos-comisiones.php','pagar vendedores');
