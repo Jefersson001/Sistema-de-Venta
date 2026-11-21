@@ -37,6 +37,7 @@ $invoiceCompletedOperations=count(array_filter($invoiceOperations,static fn(arra
         <fieldset <?= $posted ? 'disabled' : '' ?> class="quotation-fields">
 <section class="workspace-form-section" aria-labelledby="invoice-section-0"><h2 id="invoice-section-0" class="workspace-section-title">Datos de facturación</h2><div class="contact-form-grid">
 <label><?= $page['type'] === 'customer' ? 'Cliente' : 'Proveedor' ?><input readonly value="<?= accountingEscape($record['contact_name']) ?>"></label>
+<label>Teléfono<input type="tel" readonly value="<?= accountingEscape($record['contact_phone'] ?? '') ?>" placeholder="Sin teléfono registrado"></label>
 <label>Dirección de factura<textarea readonly rows="3"><?= accountingEscape($record['invoice_address']) ?></textarea></label>
 <label>Términos de pago<input readonly value="<?= accountingEscape($record['term_name'] ?? '') ?>"></label>
 </div></section>

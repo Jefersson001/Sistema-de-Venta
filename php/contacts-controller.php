@@ -196,7 +196,7 @@ function renderContactsPage(bool $isConfiguration = false): void
         $record = $page['record'];
         $type = contactCatalogRecord($page['catalogs']['types'], (int)$record['type_id']);
         if (($type['system_key'] ?? '') === 'client' && $record['active'] && permissionFilterContacts([$record])) {
-            $page['wizardCustomer'] = ['id' => (int)$record['id'], 'name' => $record['name'], 'address' => contactAddressText($record,$page['catalogs']), 'addresses'=>loadContactAddresses($db,(int)$record['id']), 'salesperson_id' => (int)($record['salesperson_id'] ?? 0), 'scope' => companyScopeToken()];
+            $page['wizardCustomer'] = ['phone' => $record['phone'] ?? '', 'id' => (int)$record['id'], 'name' => $record['name'], 'address' => contactAddressText($record,$page['catalogs']), 'addresses'=>loadContactAddresses($db,(int)$record['id']), 'salesperson_id' => (int)($record['salesperson_id'] ?? 0), 'scope' => companyScopeToken()];
         }
     }
     renderModulePage('contactos', $isConfiguration, $page);

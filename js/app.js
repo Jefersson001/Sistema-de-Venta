@@ -78,6 +78,14 @@ function initializeContactLocations(root){
 initializeContactLocations(document);
 document.addEventListener('contact-addresses:added',event=>initializeContactLocations(event.detail));
 
+for (const source of document.querySelectorAll('[data-partner-phone-source]')) {
+    const phone = source.closest('form')?.querySelector('[data-partner-phone]');
+    if (!phone) continue;
+    const update = () => { phone.value = source.selectedOptions[0]?.dataset.phone || ''; };
+    source.addEventListener('change', update);
+    update();
+}
+
 for (const notebook of document.querySelectorAll('[data-notebook]')) {
     const tabList = [...notebook.querySelectorAll('[data-notebook-tabs]')]
         .find(list => list.closest('[data-notebook]') === notebook);

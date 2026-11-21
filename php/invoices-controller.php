@@ -21,7 +21,7 @@ function renderAccountingInvoices(): void
         $id = salesId($_GET['id'] ?? null); $page['view'] = $id ? 'form' : 'list';
         if (isset($_GET['id']) && ! $id) { http_response_code(404); $page['available'] = false; $page['errors'][] = 'La factura no existe.'; }
         if ($id) {
-            $query = $db->prepare('SELECT i.*, c.name AS contact_name, t.name AS term_name, s.name AS seller_name FROM accounting_invoices i JOIN contacts c ON c.id = i.contact_id
+            $query = $db->prepare('SELECT i.*, c.name AS contact_name, c.phone AS contact_phone, t.name AS term_name, s.name AS seller_name FROM accounting_invoices i JOIN contacts c ON c.id = i.contact_id
                 LEFT JOIN accounting_payment_terms t ON t.id = i.payment_term_id LEFT JOIN contacts s ON s.id = i.salesperson_id WHERE i.id = ? AND i.invoice_type = ?');
             $query->execute([$id, $type]); $page['record'] = $query->fetch();
             if (! $page['record']) { http_response_code(404); $page['available'] = false; $page['errors'][] = 'La factura no existe.'; }

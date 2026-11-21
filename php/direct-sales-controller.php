@@ -52,14 +52,14 @@ function renderDirectSales(bool $requests=false,bool $warehouseStock=false): voi
         if($page['seller'])$page['products']=directProducts($db,(int)$page['seller']['location_id'],$requests);
         }
         if(!$requests&&!$warehouseStock){
-            $q=$db->prepare("SELECT c.id,c.name FROM contacts c JOIN contact_types t ON t.id=c.type_id WHERE c.company_id=? AND c.active=1 AND t.system_key='client' AND ".permissionWhere('contactos.contacts','c')." ORDER BY c.name");
+            $q=$db->prepare("SELECT c.id,c.name,c.phone FROM contacts c JOIN contact_types t ON t.id=c.type_id WHERE c.company_id=? AND c.active=1 AND t.system_key='client' AND ".permissionWhere('contactos.contacts','c')." ORDER BY c.name");
             $q->execute([companyActiveId()]);$page['customers']=$q->fetchAll();
             $q=$db->prepare('SELECT id,name,days FROM accounting_payment_terms WHERE company_id=? ORDER BY days,name');$q->execute([companyActiveId()]);$page['terms']=$q->fetchAll();
             $q=$db->query('SELECT d.id,d.request_key,d.payment_mode,d.seller_id,d.sale_id,d.operation_id,d.invoice_id,d.created_at,i.status AS invoice_status,i.name,i.total_amount,i.currency_code,i.due_date,i.payment_state,c.name AS customer_name,s.name AS seller_name
                 FROM direct_sale_checkouts d JOIN accounting_invoices i ON i.id=d.invoice_id JOIN contacts c ON c.id=i.contact_id JOIN contacts s ON s.id=d.seller_id
                 WHERE '.permissionWhere($resource,'d').' ORDER BY d.id DESC LIMIT 100');$page['rows']=$q->fetchAll();
             if($id){
-                $q=$db->prepare('SELECT d.*,i.status AS invoice_status,i.name,i.invoice_date,i.due_date,i.currency_code,i.total_amount,i.payment_state,c.name AS customer_name,s.name AS seller_name FROM direct_sale_checkouts d JOIN accounting_invoices i ON i.id=d.invoice_id JOIN contacts c ON c.id=i.contact_id JOIN contacts s ON s.id=d.seller_id WHERE d.id=? AND '.permissionWhere($resource,'d'));
+                $q=$db->prepare('SELECT d.*,i.status AS invoice_status,i.name,i.invoice_date,i.due_date,i.currency_code,i.total_amount,i.payment_state,c.phone AS customer_phone,c.name AS customer_name,s.name AS seller_name FROM direct_sale_checkouts d JOIN accounting_invoices i ON i.id=d.invoice_id JOIN contacts c ON c.id=i.contact_id JOIN contacts s ON s.id=d.seller_id WHERE d.id=? AND '.permissionWhere($resource,'d'));
                 $q->execute([$id]);$page['detail']=$q->fetch();
                 if(!$page['detail'])authStop(404,'La venta no está disponible.');
                 $q=$db->prepare('SELECT id,product_name,quantity,unit_price,total_amount FROM accounting_invoice_lines WHERE invoice_id=? ORDER BY position,id');$q->execute([$page['detail']['invoice_id']]);$page['lines']=$q->fetchAll();

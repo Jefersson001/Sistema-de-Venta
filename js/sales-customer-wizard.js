@@ -32,7 +32,7 @@
         if(direct && record.salesperson_id!==Number(form.elements.seller_id.value))return;
         let option = [...customer.options].find(item => item.value === String(record.id));
         if (!option) { option = new Option(record.name, String(record.id)); customer.add(option); }
-        option.textContent = record.name; option.dataset.address = record.address;
+        option.dataset.phone = typeof record.phone === 'string' ? record.phone : ''; option.textContent = record.name; option.dataset.address = record.address;
         option.dataset.salesperson = String(record.salesperson_id || '');
         option.dataset.addresses=JSON.stringify(Array.isArray(record.addresses)?record.addresses:[]);
         customer.value = String(record.id);
