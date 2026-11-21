@@ -10,6 +10,7 @@ function homeModuleFootnotes(PDO $db,array $modules): array {
         $notes[$key]=['value'=>$module['category'],'detail'=>'Abrir módulo','tone'=>'muted'];
         try{
             switch($key){
+                case 'compra_directa':if(permissionHas('compra_directa.purchases')){$n=$count('SELECT COUNT(*) FROM direct_purchase_checkouts d WHERE d.company_id='.(int)companyActiveId().' AND DATE(d.created_at)=CURRENT_DATE() AND '.permissionWhere('compra_directa.purchases','d'));$notes[$key]=['value'=>$quantity($n,'compra hoy','compras hoy'),'detail'=>'Compra rápida','tone'=>'green'];}break;
                 case 'dashboard':$notes[$key]=['value'=>$quantity(count($modules),'módulo habilitado','módulos habilitados'),'detail'=>'Tu negocio','tone'=>'green'];break;
                 case 'contactos':if(permissionHas('contactos.contacts')){$n=$count("SELECT COUNT(*) FROM contacts c JOIN contact_types t ON t.id=c.type_id WHERE c.active=1 AND t.system_key='client' AND ".permissionWhere('contactos.contacts','c'));$notes[$key]=['value'=>$quantity($n,'cliente','clientes'),'detail'=>'Directorio','tone'=>'blue'];}break;
                 case 'inventario':if(permissionHas('inventario.products')){$n=$count('SELECT COUNT(*) FROM inventory_products p WHERE '.permissionWhere('inventario.products','p'));$notes[$key]=['value'=>$quantity($n,'producto','productos'),'detail'=>'Catálogo','tone'=>'amber'];}break;

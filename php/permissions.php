@@ -97,6 +97,7 @@ function permissionRoute(string $path,array $query): ?string
     }
     if($file==='configuracion.php')return $module==='dashboard'?null:$module.'.configuration';
     return match($module.'/'.$file){
+        'compra_directa/index.php'=>'compra_directa.purchases',
         'venta_directa/index.php'=>'venta_directa.sales',
         'venta_directa/inventario.php'=>'venta_directa.stock',
         'venta_directa/devoluciones.php'=>'venta_directa.returns',
@@ -124,6 +125,7 @@ function permissionRoute(string $path,array $query): ?string
 }
 function permissionAction(string $resource,mixed $action,?int $id): ?string
 {
+    if($resource==='compra_directa.purchases'&&$action==='direct_purchase')return 'create';
     if(!is_string($action))return null;
     if(str_ends_with($resource,'.configuration'))return 'configure';
     if(in_array($action,['move_account','attach_table','detach_table','change_table_service'],true))return 'edit';
@@ -158,6 +160,7 @@ function permissionModuleUrl(string $module): ?string
         'restaurante'=>['index.php','cuentas.php','configuracion.php'],
         'ventas'=>['index.php','comisiones.php','pagos-comisiones.php','configuracion.php'],
         'compras'=>['index.php','configuracion.php'],
+        'compra_directa'=>permissionHas('compra_directa.purchases','create')?['index.php','index.php?view=history']:['index.php?view=history'],
         'inventario'=>['index.php','lotes.php','operaciones.php?type=delivery','operaciones.php?type=receipt','operaciones.php?type=internal','informes.php?view=stock','informes.php?view=movements','configuracion.php'],
         'contabilidad'=>['index.php?type=customer','index.php?type=supplier','pagos.php?type=customer','pagos.php?type=supplier','tesoreria.php?kind=income','tesoreria.php?kind=expense','tesoreria.php?kind=transfer','tesoreria.php?kind=opening','ingresos-egresos.php','configuracion.php'],
         'ajustes'=>['index.php','empresa.php','grupos.php','usuarios.php'],default=>[]};

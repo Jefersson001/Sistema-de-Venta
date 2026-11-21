@@ -8,6 +8,7 @@ function recordDecorateView(DOMDocument $dom,DOMXPath $xpath,string $current,arr
     $base=authBasePath().'/acciones.php?';
     if($id&&in_array($m['save'],['sale_orders','purchase_orders','operations','invoices'],true)){
         $link=$dom->createElement('a','Imprimir / Guardar PDF');$link->setAttribute('href',$base.http_build_query(['source'=>$current,'action'=>'print']));$options->insertBefore($link,$options->firstChild);
+        if($m['save']==='invoices'){$ticket=$dom->createElement('a','Imprimir ticket');$ticket->setAttribute('href',$base.http_build_query(['source'=>$current,'action'=>'print','format'=>'ticket']));$options->insertBefore($ticket,$link->nextSibling);}
     }
     foreach(['duplicate'=>'Duplicar','delete'=>'Eliminar'] as $action=>$label){
         if($action==='duplicate'&&!$id)continue;

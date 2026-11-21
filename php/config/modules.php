@@ -64,6 +64,11 @@ return [
         'category'=>'Operaciones','initials'=>'VD','color'=>'violet',
         'features'=>['Venta rápida','Mi inventario','Solicitudes de mercancía'],
     ],
+    'compra_directa' => [
+        'name'=>'Compras Directas','description'=>'Compra, recibe mercancía y genera la factura del proveedor en un paso.',
+        'category'=>'Operaciones','initials'=>'CD','color'=>'emerald',
+        'features'=>['Compra rápida','Recepción inmediata','Historial de compras'],
+    ],
     'ajustes' => [
         'name' => 'Ajustes',
         'description' => 'Configura tu empresa y las opciones de cada módulo.',

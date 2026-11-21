@@ -4,7 +4,7 @@ declare(strict_types=1);
 function accessModules(): array
 {
     return ['dashboard'=>'Dashboard','contactos'=>'Contactos','ventas'=>'Ventas','compras'=>'Compras',
-        'inventario'=>'Inventario','contabilidad'=>'Contabilidad','restaurante'=>'Restaurante','ajustes'=>'Ajustes','venta_directa'=>'Ventas Directas'];
+        'inventario'=>'Inventario','contabilidad'=>'Contabilidad','restaurante'=>'Restaurante','ajustes'=>'Ajustes','venta_directa'=>'Ventas Directas','compra_directa'=>'Compras Directas'];
 }
 
 function accessActions(): array
@@ -44,6 +44,7 @@ function accessResources(): array
         ['restaurante','configuration','Áreas y mesas del restaurante','read,configure',false],
         ['compras','orders','Solicitudes y órdenes de compra','read,create,edit,send,confirm,cancel,create_receipt,create_invoice',false],
         ['compras','configuration','Impuestos de compra','read,configure',false],
+        ['compra_directa','purchases','Compras directas','read,create',false],
         ['inventario','products','Productos y variantes','read,create,edit,view_cost,set_commission',false],
         ['inventario','lots','Lotes y números de serie','read,create,edit',false],
         ['inventario','deliveries','Entregas','read,create,edit,confirm,reserve,validate,cancel,return,create_invoice',true],
@@ -87,6 +88,7 @@ function accessResourceHelp(string $resource): string
 {
     return match($resource){
         'venta_directa.sales'=>'Consultar permite revisar ventas realizadas. Crear es exclusivo para operar desde el contacto vendedor propio y genera orden, entrega y factura, sin confirmar cobros. Administrador no incluye Crear; puede agregarse expresamente mediante un grupo vendedor.',
+        'compra_directa.purchases'=>'Consultar muestra compras directas de la empresa activa. Crear confirma orden, recepción física y factura del proveedor sin pagarla; requiere crear y confirmar órdenes de compra, generar recepción/factura y consultar costos. Permite completar recepción y registrar factura desde este flujo en un paso.',
         'venta_directa.stock'=>'Consulta independiente del inventario para abastecimiento, sin ser vendedor. Incluye solo almacenes de la empresa activa no asignados a contactos vendedores, con reservas y disponibilidad. Se requiere también para aprobar solicitudes.',
         'venta_directa.requests'=>'Crear solicita mercancía o retorno de sobrantes sin mover stock. Aprobar con Todos autoriza cantidades y almacén central sin transferir ni reservar; Validar con Todos confirma la entrega o recepción física y genera la transferencia. Ambas requieren consultar inventario para abastecimiento. Cancelar con Propios cancela solicitudes propias; con Todos permite rechazarlas con motivo.',
         'venta_directa.returns'=>'Crear solicita devolución de una venta propia sin modificar documentos. Confirmar con Todos recibe las cantidades y registra devolución de inventario y nota de crédito vinculadas, sin reembolso automático. Cancelar con Todos rechaza la solicitud.',
@@ -167,6 +169,7 @@ function accessInitialGroups(): array
             'inventario.deliveries'=>['own','read'],'contabilidad.customer_invoices'=>['own','read'],
         ]],
         'purchases'=>['Compras','Compras y proveedores; generación de recepciones y facturas de proveedor.',[
+            'compra_directa.purchases'=>['all','read,create'],
             'dashboard.business'=>['all','read'],'dashboard.tasks'=>['all','read'],
             'contactos.contacts'=>['all','read,create,edit'], 'inventario.products'=>['all','read,view_cost'],
             'inventario.configuration'=>['all','read'],'compras.configuration'=>['all','read'],

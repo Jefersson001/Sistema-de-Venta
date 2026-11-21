@@ -1,0 +1,13 @@
+.purchase-workspace { display:grid; grid-template-columns:minmax(0,1fr) minmax(300px,.8fr); gap:20px; align-items:start; margin-top:20px; }
+.purchase-catalog { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:10px; margin:16px 0; }
+.purchase-product { border:1px solid var(--k-line); border-radius:10px; padding:12px; min-width:0; display:grid; gap:10px; background:var(--k-surface); }
+.purchase-product strong,.purchase-cart h3 { overflow-wrap:anywhere; }
+.purchase-cart-line { padding:14px 0; border-bottom:1px solid var(--k-line); display:grid; gap:12px; }
+.purchase-cart-line h3 { margin:0; font-size:15px; }
+.purchase-cart-line .contact-form-grid { grid-template-columns:repeat(2,minmax(0,1fr)); }
+.purchase-cart-line label { display:grid; gap:6px; min-width:0; }
+.purchase-cart-shortcut { display:none; }
+[data-module=compra_directa] .direct-tabs { display:flex!important; }
+.purchase-cart input,.purchase-cart textarea,.purchase-cart select { max-width:100%; width:100%; }
+@media(max-width:900px){.purchase-workspace { grid-template-columns:minmax(0,1fr); }.purchase-cart-shortcut { display:flex; position:fixed; bottom:14px; right:14px; z-index:30; background:var(--k-green); color:white; gap:12px; }.direct-main:has([data-purchase-checkout]) { padding-bottom:85px; }}
+@media(max-width:360px){.purchase-catalog { grid-template-columns:minmax(0,1fr); }}

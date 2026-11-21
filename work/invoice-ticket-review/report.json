@@ -1,0 +1,29 @@
+{
+  "checks": [
+    {
+      "paper": 80,
+      "width": 320
+    },
+    {
+      "paper": 80,
+      "width": 390
+    },
+    {
+      "paper": 80,
+      "width": 1440
+    },
+    {
+      "paper": 58,
+      "width": 320
+    },
+    {
+      "paper": 58,
+      "width": 390
+    },
+    {
+      "paper": 58,
+      "width": 1440
+    }
+  ],
+  "errors": []
+}

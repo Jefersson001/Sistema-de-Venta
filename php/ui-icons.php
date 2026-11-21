@@ -9,6 +9,7 @@ function kontaIcon(string $name,string $class=''): string {
         'compras'=>'<path d="M3 3h2l3 13h11l3-10H6m2 6h12"/><circle cx="9" cy="21" r="1"/><circle cx="18" cy="21" r="1"/>',
         'ventas'=>'<path d="M4 10v11h16V10M3 4h18l1 6a3 3 0 0 1-5 2 3 3 0 0 1-5 0 3 3 0 0 1-5 0 3 3 0 0 1-5-2l1-6Zm6 17v-6h6v6"/>',
         'venta_directa'=>'<rect x="6" y="2" width="12" height="20" rx="3"/><path d="M10 5h4m-2 4-3 4h6l-3 4m-1 2h2"/>',
+        'compra_directa'=>'<path d="M3 3h2l3 12h10l3-9H6m6 1v6m-3-3 3 3 3-3"/><circle cx="9" cy="20" r="1"/><circle cx="18" cy="20" r="1"/>',
         'contabilidad'=>'<path d="M12 3v18M3 7h18M6 7l-4 8h8L6 7Zm12 0-4 8h8l-4-8ZM8 21h8"/>',
         'restaurante'=>'<path d="M3 20h18M4 16a8 8 0 0 1 16 0H4Zm8-12V2m-2 2h4m-2 0v4"/>',
         'ajustes'=>'<path d="m9 3-1 3-3 1-2 3 2 2-1 4 3 2 3-1 3 3 3-2 1-3 4-1v-4l-3-2-1-3-4 1-3-2-1 2Z"/><circle cx="12" cy="12" r="3"/>',

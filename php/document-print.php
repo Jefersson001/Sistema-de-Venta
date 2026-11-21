@@ -47,7 +47,19 @@ function businessDocumentData(PDO $db,array $m,int $id): array
 function renderBusinessDocument(PDO $db,array $m,?int $id,string $source): void
 {
     if($_SERVER['REQUEST_METHOD']!=='GET'){header('Allow: GET');authStop(405,'La impresión solo admite consultas.');}
-    try{if(!$id)throw new InvalidArgumentException('Abre un documento guardado antes de imprimir.',404);$db->beginTransaction();$document=businessDocumentData($db,$m,$id);$db->commit();}
+    $format=$_GET['format']??'a4';$width=$_GET['width']??'80';
+    if(!is_string($format)||!in_array($format,['a4','ticket'],true)||!is_string($width)||!in_array($width,['58','80'],true))authStop(400,'Formato de impresión no válido.');
+    if($format==='ticket'&&$m['save']!=='invoices')authStop(400,'El ticket está disponible para facturas y notas de crédito.');
+    try{if(!$id)throw new InvalidArgumentException('Abre un documento guardado antes de imprimir.',404);$db->beginTransaction();$document=businessDocumentData($db,$m,$id);
+        if($format==='ticket'){
+            require_once __DIR__.'/invoice-status-repository.php';
+            $document['paymentDetails']=invoicePaymentDetails($db,$id);
+            $document['ticketPayable']=$document['row']['document_type']==='credit'?creditRefundAmount($db,$document['row']):bcsub($document['row']['total_amount'],$document['paymentDetails']['credited'],2);
+            $q=$db->prepare("SELECT l.amount,l.status,p.currency_code AS payment_currency,p.name,m.name AS method_name FROM accounting_invoice_payments l JOIN accounting_payments p ON p.id=l.payment_id JOIN accounting_payment_methods m ON m.id=p.method_id WHERE l.invoice_id=? AND l.status IN ('settled','pending') ORDER BY l.id");$q->execute([$id]);$document['ticketPayments']=$q->fetchAll();
+            $q=$db->prepare('SELECT name FROM auth_users WHERE id=?');$q->execute([$document['row']['created_by']??null]);$document['registeredBy']=$q->fetchColumn()?:'';
+        }
+        $db->commit();}
     catch(InvalidArgumentException $e){authStop($e->getCode()===404?404:422,$e->getMessage());}
+    if($format==='ticket'){authPrivacyHeaders();require dirname(__DIR__).'/html/invoice-ticket.php';return;}
     authPrivacyHeaders();require dirname(__DIR__).'/html/document-print.php';
 }

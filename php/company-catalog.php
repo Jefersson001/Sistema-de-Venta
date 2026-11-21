@@ -26,6 +26,7 @@ function companySharedTables(): array
 function companyResourceTable(string $resource): ?string
 {
     return match($resource){
+        'compra_directa.purchases'=>'direct_purchase_checkouts',
         'restaurante.accounts'=>'restaurant_accounts','restaurante.tables'=>'restaurant_tables',
         'venta_directa.sales'=>'direct_sale_checkouts','venta_directa.requests'=>'direct_stock_requests',
         'venta_directa.returns'=>'direct_sale_actions','venta_directa.closing'=>'direct_day_closings',

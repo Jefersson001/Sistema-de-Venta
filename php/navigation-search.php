@@ -20,6 +20,8 @@ function navigationSearchCatalog(): array
     foreach(['movements'=>'Historial de movimientos','stock'=>'Existencias por ubicación'] as $view=>$label)$add('inventario',['Informes',$label],'informes.php?view='.$view,'stock almacén');
     foreach(['categories'=>'Categorías','warehouses'=>'Almacenes','locations'=>'Ubicaciones'] as $section=>$label)$add('inventario',['Configuración',$label],'configuracion.php?section='.$section);
     $add('compras',['Órdenes de compra'],'index.php','solicitudes cotizaciones proveedores');
+    $add('compra_directa',['Comprar'],'index.php','compras directas carrito proveedor recepción rápida');
+    $add('compra_directa',['Historial'],'index.php?view=history','compras realizadas facturas proveedores');
     $add('compras',['Configuración','Impuestos de compra'],'configuracion.php?section=taxes');
     $add('ventas',['Órdenes de venta'],'index.php','cotizaciones pedidos clientes');
     $add('venta_directa',['Vender'],'index.php','móvil celular carrito ventas directas contado crédito');

@@ -2,6 +2,7 @@
 $quickSale=permissionHas('venta_directa.sales','create')&&permissionContact()>0;
 $canReview=permissionScope('venta_directa.requests','confirm')==='all';
 $cardCopy=[
+ 'compra_directa'=>['Compras Directas','Compra y registra recepción y factura del proveedor en un paso.'],
  'dashboard'=>['Dashboard','Resumen del negocio, indicadores y actividad reciente.'],
  'contactos'=>['Contactos & CRM','Centraliza clientes, proveedores y sus datos de contacto.'],
  'inventario'=>['Inventario','Organiza productos, existencias, variantes y movimientos.'],
