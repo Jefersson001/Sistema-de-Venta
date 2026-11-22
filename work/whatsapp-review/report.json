@@ -7,9 +7,14 @@
       "inside": true,
       "overflow": false,
       "checked": [
-        "invoice:594"
+        "message"
       ],
       "phone": "0412 1234567"
+    },
+    {
+      "width": 390,
+      "theme": "light",
+      "footer": true
     },
     {
       "route": "/modules/ventas/index.php?id=364",
@@ -18,9 +23,14 @@
       "inside": true,
       "overflow": false,
       "checked": [
-        "order:364"
+        "message"
       ],
       "phone": "0412 1234567"
+    },
+    {
+      "width": 390,
+      "theme": "light",
+      "footer": true
     },
     {
       "route": "/modules/inventario/operaciones.php?type=delivery&id=563",
@@ -29,9 +39,14 @@
       "inside": true,
       "overflow": false,
       "checked": [
-        "operation:563"
+        "message"
       ],
       "phone": "0412 1234567"
+    },
+    {
+      "width": 390,
+      "theme": "light",
+      "footer": true
     },
     {
       "route": "/modules/contabilidad/index.php?type=customer&id=594",
@@ -40,9 +55,14 @@
       "inside": true,
       "overflow": false,
       "checked": [
-        "invoice:594"
+        "message"
       ],
       "phone": "0412 1234567"
+    },
+    {
+      "width": 390,
+      "theme": "dark",
+      "footer": true
     },
     {
       "route": "/modules/ventas/index.php?id=364",
@@ -51,9 +71,14 @@
       "inside": true,
       "overflow": false,
       "checked": [
-        "order:364"
+        "message"
       ],
       "phone": "0412 1234567"
+    },
+    {
+      "width": 390,
+      "theme": "dark",
+      "footer": true
     },
     {
       "route": "/modules/inventario/operaciones.php?type=delivery&id=563",
@@ -62,9 +87,14 @@
       "inside": true,
       "overflow": false,
       "checked": [
-        "operation:563"
+        "message"
       ],
       "phone": "0412 1234567"
+    },
+    {
+      "width": 390,
+      "theme": "dark",
+      "footer": true
     },
     {
       "route": "/modules/contabilidad/index.php?type=customer&id=594",
@@ -73,9 +103,14 @@
       "inside": true,
       "overflow": false,
       "checked": [
-        "invoice:594"
+        "message"
       ],
       "phone": "0412 1234567"
+    },
+    {
+      "width": 1440,
+      "theme": "light",
+      "footer": true
     },
     {
       "route": "/modules/ventas/index.php?id=364",
@@ -84,9 +119,14 @@
       "inside": true,
       "overflow": false,
       "checked": [
-        "order:364"
+        "message"
       ],
       "phone": "0412 1234567"
+    },
+    {
+      "width": 1440,
+      "theme": "light",
+      "footer": true
     },
     {
       "route": "/modules/inventario/operaciones.php?type=delivery&id=563",
@@ -95,9 +135,14 @@
       "inside": true,
       "overflow": false,
       "checked": [
-        "operation:563"
+        "message"
       ],
       "phone": "0412 1234567"
+    },
+    {
+      "width": 1440,
+      "theme": "light",
+      "footer": true
     },
     {
       "route": "/modules/contabilidad/index.php?type=customer&id=594",
@@ -106,9 +151,14 @@
       "inside": true,
       "overflow": false,
       "checked": [
-        "invoice:594"
+        "message"
       ],
       "phone": "0412 1234567"
+    },
+    {
+      "width": 1440,
+      "theme": "dark",
+      "footer": true
     },
     {
       "route": "/modules/ventas/index.php?id=364",
@@ -117,9 +167,14 @@
       "inside": true,
       "overflow": false,
       "checked": [
-        "order:364"
+        "message"
       ],
       "phone": "0412 1234567"
+    },
+    {
+      "width": 1440,
+      "theme": "dark",
+      "footer": true
     },
     {
       "route": "/modules/inventario/operaciones.php?type=delivery&id=563",
@@ -128,9 +183,14 @@
       "inside": true,
       "overflow": false,
       "checked": [
-        "operation:563"
+        "message"
       ],
       "phone": "0412 1234567"
+    },
+    {
+      "width": 1440,
+      "theme": "dark",
+      "footer": true
     }
   ],
   "errors": []

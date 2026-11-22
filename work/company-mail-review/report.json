@@ -6,9 +6,25 @@
       "inside": true,
       "overflow": false,
       "checked": [
-        "invoice:594"
+        "message"
       ],
       "recipient": "cliente@example.test"
+    },
+    {
+      "width": 390,
+      "theme": "light",
+      "bodyEditor": false,
+      "aligned": false,
+      "documentsAligned": false,
+      "touchTargets": true,
+      "historyClosed": true
+    },
+    {
+      "width": 390,
+      "theme": "light",
+      "visible": true,
+      "formAttached": true,
+      "metadataRemoved": true
     },
     {
       "width": 390,
@@ -16,9 +32,25 @@
       "inside": true,
       "overflow": false,
       "checked": [
-        "invoice:594"
+        "message"
       ],
       "recipient": "cliente@example.test"
+    },
+    {
+      "width": 390,
+      "theme": "dark",
+      "bodyEditor": false,
+      "aligned": false,
+      "documentsAligned": false,
+      "touchTargets": true,
+      "historyClosed": true
+    },
+    {
+      "width": 390,
+      "theme": "dark",
+      "visible": true,
+      "formAttached": true,
+      "metadataRemoved": true
     },
     {
       "width": 1440,
@@ -26,9 +58,25 @@
       "inside": true,
       "overflow": false,
       "checked": [
-        "invoice:594"
+        "message"
       ],
       "recipient": "cliente@example.test"
+    },
+    {
+      "width": 1440,
+      "theme": "light",
+      "bodyEditor": false,
+      "aligned": true,
+      "documentsAligned": true,
+      "touchTargets": true,
+      "historyClosed": true
+    },
+    {
+      "width": 1440,
+      "theme": "light",
+      "visible": true,
+      "formAttached": true,
+      "metadataRemoved": true
     },
     {
       "width": 1440,
@@ -36,15 +84,31 @@
       "inside": true,
       "overflow": false,
       "checked": [
-        "invoice:594"
+        "message"
       ],
       "recipient": "cliente@example.test"
+    },
+    {
+      "width": 1440,
+      "theme": "dark",
+      "bodyEditor": false,
+      "aligned": true,
+      "documentsAligned": true,
+      "touchTargets": true,
+      "historyClosed": true
+    },
+    {
+      "width": 1440,
+      "theme": "dark",
+      "visible": true,
+      "formAttached": true,
+      "metadataRemoved": true
     },
     {
       "route": "/modules/ventas/index.php?id=365",
       "width": 390,
       "checked": [
-        "order:365"
+        "message"
       ],
       "overflow": false,
       "recipient": "cliente@example.test"
@@ -53,25 +117,25 @@
       "route": "/modules/ventas/index.php?id=365",
       "width": 1440,
       "checked": [
-        "order:365"
+        "message"
       ],
       "overflow": false,
       "recipient": "cliente@example.test"
     },
     {
-      "route": "/modules/inventario/operaciones.php?type=delivery&id=563",
+      "route": "/modules/inventario/operaciones.php?type=delivery&id=564",
       "width": 390,
       "checked": [
-        "operation:563"
+        "message"
       ],
       "overflow": false,
       "recipient": "cliente@example.test"
     },
     {
-      "route": "/modules/inventario/operaciones.php?type=delivery&id=563",
+      "route": "/modules/inventario/operaciones.php?type=delivery&id=564",
       "width": 1440,
       "checked": [
-        "operation:563"
+        "message"
       ],
       "overflow": false,
       "recipient": "cliente@example.test"

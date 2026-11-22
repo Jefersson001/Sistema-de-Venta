@@ -22,7 +22,18 @@ function companyMailDecrypt(string $cipher,int $company): string {
 }
 function loadCompanyMail(PDO $db,int $company,bool $secret=false): array {
     $q=$db->prepare('SELECT * FROM company_mail_settings WHERE company_id=?');$q->execute([$company]);$row=$q->fetch()?:['enabled'=>0,'smtp_host'=>'smtp.gmail.com','smtp_port'=>587,'encryption'=>'starttls','smtp_user'=>'','from_email'=>'','from_name'=>'','reply_to'=>'','version'=>0,'password_cipher'=>null];
+    $row['message_template']=$row['message_template']??companyMailDefaultMessage();
+    $row['payment_details']=$row['payment_details']??'';
     $row['has_password']=!empty($row['password_cipher']);if(!$secret)unset($row['password_cipher']);return $row;
+}
+function companyMailDefaultMessage(): string {
+    return "¡Hola, {cliente}!\nEspero que te encuentres muy bien.\n\nTe compartimos el detalle de {documento}:\n\n{productos}\n\nTotal: {total}\n\nMedios de pago:\n{medios_pago}\n\nAgradecemos tu confianza y preferencia. Si realizas un pago, recuerda enviarnos el comprobante.\n\n{empresa}";
+}
+function companyMailMessageTemplate(mixed $value,array $extraVariables=[]): string {
+    $text=mailText($value,10000,true);if($text==='')throw new InvalidArgumentException('Escribe el mensaje predeterminado del correo.');
+    $allowed=array_merge(['cliente','empresa','documento','productos','total','moneda','medios_pago','fecha','vencimiento','tasa_factura','tasa_actual','fecha_envio'],$extraVariables);
+    preg_match_all('/\{([^{}]+)\}/',$text,$matches);foreach($matches[1] as $key)if(!in_array($key,$allowed,true))throw new InvalidArgumentException('La plantilla contiene una variable de mensaje no reconocida.');
+    return $text;
 }
 function mailText(mixed $value,int $max,bool $multiline=false): string {
     if(!is_string($value)||mb_strlen($value)>$max||str_contains($value,"\0")||(!$multiline&&preg_match('/[\r\n]/',$value)))throw new InvalidArgumentException('Revisa el formato y la longitud de los datos del correo.');return trim($value);
@@ -43,12 +54,15 @@ function saveCompanyMail(PDO $db,int $company,array $input): void {
         // Lock a stable parent even before a settings row exists.
         $q=$db->prepare('SELECT id FROM business_company WHERE id=? FOR UPDATE');$q->execute([$company]);if(!$q->fetchColumn())throw new InvalidArgumentException('Empresa no disponible.');
         $current=loadCompanyMail($db,$company,true);if((int)($input['version']??-1)!==(int)$current['version'])throw new InvalidArgumentException('La configuración cambió. Recarga antes de guardar.',409);
+        $messageTemplate=companyMailMessageTemplate($input['message_template']??$current['message_template']);
+        $paymentDetails=mailText($input['payment_details']??$current['payment_details'],10000,true);
         $cipher=$current['password_cipher'];
         if($cipher&&$password===''&&($input['remove_password']??'')!=='1'&&($current['smtp_host']!==$host||(int)$current['smtp_port']!==$port||$current['smtp_user']!==$user||$current['encryption']!==$encryption))throw new InvalidArgumentException('Al cambiar el servidor o usuario SMTP, introduce de nuevo la credencial.');
         if(($input['remove_password']??'')==='1')$cipher=null;
         if($password!=='')$cipher=companyMailEncrypt($password,$company);
         if($enabled&&(!$cipher||$user===''))throw new InvalidArgumentException('Para habilitar el correo, indica el usuario SMTP y una credencial de aplicación.');
-        $db->prepare('INSERT INTO company_mail_settings(company_id,enabled,smtp_host,smtp_port,encryption,smtp_user,password_cipher,from_email,from_name,reply_to) VALUES(?,?,?,?,?,?,?,?,?,?) ON DUPLICATE KEY UPDATE enabled=VALUES(enabled),smtp_host=VALUES(smtp_host),smtp_port=VALUES(smtp_port),encryption=VALUES(encryption),smtp_user=VALUES(smtp_user),password_cipher=VALUES(password_cipher),from_email=VALUES(from_email),from_name=VALUES(from_name),reply_to=VALUES(reply_to),version=version+1')->execute([$company,(int)$enabled,$host,$port,$encryption,$user,$cipher,$from,$name,$reply]);
+        $db->prepare('INSERT INTO company_mail_settings(company_id,enabled,smtp_host,smtp_port,encryption,smtp_user,password_cipher,from_email,from_name,reply_to,message_template) VALUES(?,?,?,?,?,?,?,?,?,?,?) ON DUPLICATE KEY UPDATE enabled=VALUES(enabled),smtp_host=VALUES(smtp_host),smtp_port=VALUES(smtp_port),encryption=VALUES(encryption),smtp_user=VALUES(smtp_user),password_cipher=VALUES(password_cipher),from_email=VALUES(from_email),from_name=VALUES(from_name),reply_to=VALUES(reply_to),message_template=VALUES(message_template),version=version+1')->execute([$company,(int)$enabled,$host,$port,$encryption,$user,$cipher,$from,$name,$reply,$messageTemplate]);
+        $db->prepare('UPDATE company_mail_settings SET payment_details=? WHERE company_id=?')->execute([$paymentDetails,$company]);
         $db->commit();
     }catch(Throwable $e){if($db->inTransaction())$db->rollBack();throw $e;}
 }

@@ -2,6 +2,7 @@
 declare(strict_types=1);
 require_once __DIR__.'/company-mail.php';
 require_once __DIR__.'/document-print.php';
+require_once __DIR__.'/currency-repository.php';
 
 function emailInvoice(PDO $db,int $id,string $type): array {
     $resource=permissionInvoiceResource($type);permissionRequire($resource,'send',$id);
@@ -58,32 +59,93 @@ function emailSourceChoices(PDO $db,array $record,string $kind): array {
     }
     return $choices;
 }
+final class EmailResendConfirmationRequired extends InvalidArgumentException {}
+function emailPreviousDelivery(PDO $db,string $kind,int $id,int $company): ?array {
+    $q=$db->prepare("SELECT id,status,recipient FROM document_email_log WHERE company_id=? AND ((origin_kind=? AND origin_id=?) OR (origin_kind='invoice' AND origin_id IS NULL AND invoice_id=?)) ORDER BY id DESC LIMIT 1");$q->execute([$company,$kind,$id,$kind==='invoice'?$id:0]);return $q->fetch()?:null;
+}
+function emailRequireResendConfirmation(PDO $db,string $kind,int $id,int $company,array $input): void {
+    $previous=emailPreviousDelivery($db,$kind,$id,$company);
+    if($previous&&(($input['confirm_resend']??'')!=='yes'||($input['previous_log_id']??null)!==(string)$previous['id']))throw new EmailResendConfirmationRequired('Existe un envío previo. Confirma si deseas volver a enviar el correo.',409);
+}
+function emailMessageRates(PDO $db,array $row,bool $stock,int $company): array {
+    $now=new DateTimeImmutable('now',new DateTimeZone('America/Caracas'));$today=$now->format('Y-m-d');
+    $from=$row['currency_primary_code']??null;$to=$row['currency_alternate_code']??null;
+    if(!$from||!$to){$q=$db->prepare('SELECT primary_code,alternate_code FROM accounting_currency_settings WHERE company_id=?');$q->execute([$company]);$pair=$q->fetch()?:[];$from=$pair['primary_code']??null;$to=$pair['alternate_code']??null;}
+    $historical='No registrada en este documento';$current='No disponible para la fecha de envío';
+    $formatDate=static fn(string $date):string=>(new DateTimeImmutable($date))->format('d/m/Y');
+    if(!$stock&&$from&&$to&&!empty($row['exchange_rate'])&&bccomp((string)$row['exchange_rate'],'0',2)>0){
+        $date=$row['exchange_rate_date']??$row['invoice_date']??$row['order_date']??null;
+        $historical='1 '.$from.' = '.decimalDisplay((string)$row['exchange_rate']).' '.$to;
+        if($date)$historical.=' ('.(!empty($row['exchange_rate_date'])?'fecha valor: ':'fecha del documento: ').$formatDate($date).')';
+    }
+    if($from&&$to){
+        try{$snapshot=currencyRateSnapshot($db,$from,$to,$today,$company);}catch(InvalidArgumentException){$snapshot=null;}
+        if($snapshot)$current='1 '.$from.' = '.decimalDisplay((string)$snapshot['rate']).' '.$to.' (fecha valor: '.$formatDate($snapshot['rate_date']).'; envío: '.$now->format('d/m/Y').')';
+    }
+    return ['{tasa_factura}'=>$historical,'{tasa_actual}'=>$current,'{fecha_envio}'=>$now->format('d/m/Y H:i')];
+}
+function emailRenderedMessage(PDO $db,array $record,string $kind,array $settings,?array $choices=null,array $extraVariables=[]): string {
+    $choices??=emailSourceChoices($db,$record,$kind);$choice=$choices[$record['email_default']];$model=transferRouteModel($choice['source']);if(!$model)throw new InvalidArgumentException('Documento no disponible.');
+    $data=businessDocumentData($db,$model,(int)$record['id']);$row=$data['row'];$stock=$data['stock'];$currency=$stock?'':(string)$row['currency_code'];$products=[];
+    foreach($data['lines'] as $line){
+        $quantity=(string)($stock?($row['status']==='done'?$line['quantity']:$line['demand']):$line['quantity']);if(str_contains($quantity,'.'))$quantity=rtrim(rtrim($quantity,'0'),'.');
+        $text='• '.$line['product_name'].' — Cantidad: '.$quantity;
+        if(!$stock)$text.=' | Precio: '.decimalDisplay((string)$line['unit_price']).' '.$currency.' | Importe: '.decimalDisplay((string)$line['total_amount']).' '.$currency;
+        $products[]=$text;
+    }
+    $template=companyMailMessageTemplate($settings['message_template'],array_keys($extraVariables));
+    // Add missing rate lines beside the total without changing saved custom text.
+    if(!$stock){
+        $rateLines=[];if(!str_contains($template,'{tasa_factura}'))$rateLines[]='Tasa del documento: {tasa_factura}';if(!str_contains($template,'{tasa_actual}'))$rateLines[]='Tasa vigente al envío: {tasa_actual}';
+        if($rateLines){$extra="\n".implode("\n",$rateLines);$position=strpos($template,'{total}');$template=$position===false?$template."\n".$extra:substr_replace($template,'{total}'.$extra,$position,strlen('{total}'));}
+    }
+    $variables=[
+        '{cliente}'=>$record['contact_name'],'{empresa}'=>$data['company']['name'],'{documento}'=>$record['name'],
+        '{productos}'=>implode("\n",$products),'{total}'=>$stock?'Sin importe monetario en este documento':decimalDisplay((string)$row['total_amount']).' '.$currency,
+        '{moneda}'=>$currency,'{medios_pago}'=>$settings['payment_details']?:'Consulta con nosotros los medios de pago disponibles.',
+        '{fecha}'=>$row['order_date']??$row['scheduled_date']??$row['invoice_date']??'',
+        '{vencimiento}'=>$row['due_date']??'',
+    ];
+    if(str_contains($template,'{tasa_factura}')||str_contains($template,'{tasa_actual}')||str_contains($template,'{fecha_envio}'))$variables+=emailMessageRates($db,$row,$stock,(int)$row['company_id']);
+    $body=strtr($template,$variables+$extraVariables);
+    if(strlen($body)>60000)throw new InvalidArgumentException('El mensaje es demasiado extenso. Reduce la plantilla o envía únicamente los documentos PDF.');return $body;
+}
 function sendInvoiceDocuments(CompanyConnection $db,int $id,string $type,array $input): int {
     return sendEmailDocuments($db,'invoice',$id,$type,$input);
 }
 function sendEmailDocuments(CompanyConnection $db,string $kind,int $id,string $type,array $input): int {
-    $invoice=emailSource($db,$kind,$id,$type);$recipient=mailAddress($input['recipient']??'');$subject=mailText($input['subject']??'',200);$body=mailText($input['body']??'',10000,true);
+    $invoice=emailSource($db,$kind,$id,$type);$recipient=mailAddress($input['recipient']??'');$subject=mailText($input['subject']??'',200);
     if($subject==='')throw new InvalidArgumentException('Escribe un asunto.');
-    $selected=$input['documents']??null;if(!is_array($selected)||!count($selected)||count($selected)>20)throw new InvalidArgumentException('Selecciona entre 1 y 20 documentos.');
+    $selected=$input['documents']??null;if(!is_array($selected)||!count($selected)||count($selected)>21)throw new InvalidArgumentException('Selecciona Mensaje o al menos un documento PDF.');
     foreach($selected as $value)if(!is_string($value))throw new InvalidArgumentException('Selección de documentos no válida.');$selected=array_values(array_unique($selected));sort($selected);
     $key=$input['request_key']??null;if(!is_string($key)||!preg_match('/^[a-f0-9]{64}$/D',$key))throw new InvalidArgumentException('Recarga la ventana antes de enviar.');
+    $includeMessage=in_array('message',$selected,true);$company=companyActiveId();$settings=loadCompanyMail($db,$company,true);$choices=emailSourceChoices($db,$invoice,$kind);
+    foreach($selected as $value)if($value!=='message'&&!isset($choices[$value]))throw new InvalidArgumentException('Solo puedes adjuntar documentos autorizados relacionados con este registro.');
+    $q=$db->prepare('SELECT id,payload_hash,body FROM document_email_log WHERE request_key=? AND company_id=?');$q->execute([$key,$company]);$old=$q->fetch();
+    // A retry retains the exact original message even if company settings changed.
+    $body=$old?$old['body']:($includeMessage?emailRenderedMessage($db,$invoice,$kind,$settings,$choices):'');
     $payload=[$id,$type,$recipient,$subject,$body,$selected];if($kind!=='invoice')array_unshift($payload,$kind);
-    $hash=hash('sha256',json_encode($payload,JSON_THROW_ON_ERROR));$company=companyActiveId();
-    $q=$db->prepare('SELECT id,payload_hash FROM document_email_log WHERE request_key=? AND company_id=?');$q->execute([$key,$company]);if($old=$q->fetch()){if(!hash_equals($old['payload_hash'],$hash))throw new InvalidArgumentException('Esta solicitud ya se utilizó con otros datos.',409);return (int)$old['id'];}
-    $settings=loadCompanyMail($db,$company,true);$mail=companyMailer($settings,$company);$choices=emailSourceChoices($db,$invoice,$kind);$files=[];$bytes=0;
-    foreach($selected as $value){if(!isset($choices[$value]))throw new InvalidArgumentException('Solo puedes adjuntar documentos autorizados relacionados con este registro.');}
+    $hash=hash('sha256',json_encode($payload,JSON_THROW_ON_ERROR));if($old){if(!hash_equals($old['payload_hash'],$hash))throw new InvalidArgumentException('Esta solicitud ya se utilizó con otros datos.',409);return (int)$old['id'];}
+    $files=[];$bytes=0;$choices['message']=['label'=>'Mensaje'];
+    emailRequireResendConfirmation($db,$kind,$id,$company,$input);$mail=companyMailer($settings,$company);
     // Render a consistent read snapshot before any network connection is attempted.
     $db->beginTransaction();
-    try{foreach($selected as $value){$pdf=emailDocumentPdf($db,$choices[$value]);$bytes+=strlen($pdf);if($bytes>12*1024*1024)throw new InvalidArgumentException('Los adjuntos superan 12 MB. Envía menos documentos.');$name=preg_replace('/[^\pL\pN._-]+/u','-',$choices[$value]['label']).'.pdf';$files[]=['name'=>$name,'pdf'=>$pdf];}$db->commit();}catch(Throwable $e){if($db->inTransaction())$db->rollBack();throw $e;}
+    try{foreach($selected as $value){if($value==='message')continue;$pdf=emailDocumentPdf($db,$choices[$value]);$bytes+=strlen($pdf);if($bytes>12*1024*1024)throw new InvalidArgumentException('Los adjuntos superan 12 MB. Envía menos documentos.');$name=preg_replace('/[^\pL\pN._-]+/u','-',$choices[$value]['label']).'.pdf';$files[]=['name'=>$name,'pdf'=>$pdf];}$db->commit();}catch(Throwable $e){if($db->inTransaction())$db->rollBack();throw $e;}
     try{
+        // Serialize registering sends, without holding the lock during SMTP.
+        $db->beginTransaction();$q=$db->prepare('SELECT id FROM business_company WHERE id=? FOR UPDATE');$q->execute([$company]);
+        $q=$db->prepare('SELECT id,payload_hash FROM document_email_log WHERE request_key=? AND company_id=?');$q->execute([$key,$company]);if($existing=$q->fetch()){if(!hash_equals($existing['payload_hash'],$hash))throw new InvalidArgumentException('La solicitud ya se utilizó.',409);$db->commit();return (int)$existing['id'];}
+        emailRequireResendConfirmation($db,$kind,$id,$company,$input);
         $db->prepare("INSERT INTO document_email_log(invoice_id,origin_kind,origin_id,sale_id,operation_id,request_key,payload_hash,recipient,subject,body,documents_json,from_email,status) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,'sending')")->execute([$kind==='invoice'?$id:null,$kind,$id,$kind==='order'?$id:($invoice['sale_id']??null),$kind==='delivery'?$id:null,$key,$hash,$recipient,$subject,$body,json_encode(array_map(static fn($value)=>['key'=>$value,'label'=>$choices[$value]['label']],$selected),JSON_UNESCAPED_UNICODE|JSON_THROW_ON_ERROR),$settings['from_email']]);$log=(int)$db->lastInsertId();
-    }catch(PDOException $e){if(($e->errorInfo[1]??null)!==1062)throw $e;$q=$db->prepare('SELECT id,payload_hash FROM document_email_log WHERE request_key=? AND company_id=?');$q->execute([$key,$company]);$old=$q->fetch();if(!$old||!hash_equals($old['payload_hash'],$hash))throw new InvalidArgumentException('La solicitud ya se utilizó.',409);return (int)$old['id'];}
+        $db->commit();
+    }catch(Throwable $e){if($db->inTransaction())$db->rollBack();if(!$e instanceof PDOException||($e->errorInfo[1]??null)!==1062)throw $e;$q=$db->prepare('SELECT id,payload_hash FROM document_email_log WHERE request_key=? AND company_id=?');$q->execute([$key,$company]);$old=$q->fetch();if(!$old||!hash_equals($old['payload_hash'],$hash))throw new InvalidArgumentException('La solicitud ya se utilizó.',409);return (int)$old['id'];}
     try{
-        $mail->addAddress($recipient);$mail->Subject=$subject;$mail->Body=$body;$mail->isHTML(false);
+        $mail->addAddress($recipient);$mail->Subject=$subject;$mail->Body=$body;$mail->isHTML(false);$mail->AllowEmpty=!$includeMessage&&count($files)>0;
         foreach($files as $file)$mail->addStringAttachment($file['pdf'],$file['name'],'base64','application/pdf');
         if(!$mail->send())throw new RuntimeException('SMTP');
         $db->prepare("UPDATE document_email_log SET status='sent',sent_at=CURRENT_TIMESTAMP WHERE id=?")->execute([$log]);
-        foreach($selected as $documentKey)if(str_starts_with($documentKey,'invoice:'))$db->prepare("UPDATE accounting_invoices SET sent_at=COALESCE(sent_at,CURRENT_TIMESTAMP) WHERE id=? AND company_id=? AND status='posted'")->execute([(int)substr($documentKey,8),$company]);
+        $sentDocuments=$selected;if($includeMessage&&$kind==='invoice')$sentDocuments[]='invoice:'.$id;
+        foreach(array_unique($sentDocuments) as $documentKey)if(str_starts_with($documentKey,'invoice:'))$db->prepare("UPDATE accounting_invoices SET sent_at=COALESCE(sent_at,CURRENT_TIMESTAMP) WHERE id=? AND company_id=? AND status='posted'")->execute([(int)substr($documentKey,8),$company]);
     }catch(Throwable){
         // SMTP delivery can be ambiguous after a connection drop. Never retry automatically.
         $db->prepare("UPDATE document_email_log SET status='uncertain',error_message=? WHERE id=?")->execute(['No se pudo confirmar el envío. Revisa la conexión y si el destinatario lo recibió antes de crear otro envío.',$log]);
