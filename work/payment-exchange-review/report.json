@@ -1,0 +1,30 @@
+[
+  {
+    "width": 390,
+    "invoiceCurrency": "USD",
+    "inside": true,
+    "overflow": false,
+    "preview": "Este abono cubre 10.00 USD. Saldo por cubrir: 20.00 USD. Valor histórico del abono: 1000.00 VES. Aplicado a la tasa del pago: 1200.00 VES. Diferencial: 200.00 VES."
+  },
+  {
+    "width": 390,
+    "invoiceCurrency": "VES",
+    "inside": true,
+    "overflow": false,
+    "preview": "Este abono cubre 10.00 USD. Saldo por cubrir: 20.00 USD. Valor histórico del abono: 1000.00 VES. Aplicado a la tasa del pago: 1200.00 VES. Diferencial: 200.00 VES."
+  },
+  {
+    "width": 1440,
+    "invoiceCurrency": "USD",
+    "inside": true,
+    "overflow": false,
+    "preview": "Este abono cubre 10.00 USD. Saldo por cubrir: 20.00 USD. Valor histórico del abono: 1000.00 VES. Aplicado a la tasa del pago: 1200.00 VES. Diferencial: 200.00 VES."
+  },
+  {
+    "width": 1440,
+    "invoiceCurrency": "VES",
+    "inside": true,
+    "overflow": false,
+    "preview": "Este abono cubre 10.00 USD. Saldo por cubrir: 20.00 USD. Valor histórico del abono: 1000.00 VES. Aplicado a la tasa del pago: 1200.00 VES. Diferencial: 200.00 VES."
+  }
+]

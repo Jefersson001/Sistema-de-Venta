@@ -32,6 +32,10 @@ function renderAccountingInvoices(): void
                 renderPaymentProof($db,'payment',(int)$proofPayment,$proof);
             }
         }
+        if (isset($_GET['payment_rate_date'])) {
+            if (!$page['available'] || !$id) authStop(404, 'La factura no existe.', true);
+            renderPaymentRateLookup($db, accountingCurrencies($db));return;
+        }
         if ($_SERVER['REQUEST_METHOD'] === 'POST' && $page['available']) {
             if (! is_string($_POST['csrf'] ?? null) || ! hash_equals($page['csrf'], $_POST['csrf'])) { http_response_code(403); $page['errors'][] = 'La sesión del formulario no es válida.'; }
             elseif (! $id || ! in_array($_POST['action'] ?? '', ['save_invoice', 'confirm_invoice', 'cancel_invoice', 'mark_invoice_sent', 'register_payment', 'settle_payment', 'cancel_payment', 'reverse_invoice', 'create_credit','apply_existing_payment'], true)) { http_response_code(400); $page['errors'][] = 'La operación no es válida.'; }
@@ -85,6 +89,7 @@ function renderAccountingInvoices(): void
                         $snapshot=invoiceExchangeSnapshot($db,$current,$data['invoice_date']);
                         if($status==='posted'&&!$snapshot['exchange_rate'])throw new InvalidArgumentException('No hay una tasa vigente para la fecha de factura. Registra la tasa histórica antes de confirmar.');
                         $db->prepare('UPDATE accounting_invoices SET invoice_date = ?, due_date = ?, status = ?, exchange_rate=?,exchange_rate_date=?,exchange_rate_source=?, version = version + 1 WHERE id = ?')->execute([$data['invoice_date'], $data['due_date'], $status,$snapshot['exchange_rate'],$snapshot['exchange_rate_date'],$snapshot['exchange_rate_source'], $id]);
+                        $fresh=$db->prepare('SELECT * FROM accounting_invoices WHERE id=?');$fresh->execute([$id]);invoiceFreezeUsdDebt($db,$fresh->fetch());
                         if ($status === 'posted') {
                             $fresh=$db->prepare('SELECT * FROM accounting_invoices WHERE id=?');$fresh->execute([$id]);invoiceRecomputePaymentState($db,$fresh->fetch());
                             if ($current['reversal_of_id']) { $fresh->execute([$current['reversal_of_id']]);invoiceRecomputePaymentState($db,$fresh->fetch()); }
@@ -108,7 +113,7 @@ function renderAccountingInvoices(): void
             }
             $page['documentKind'] = $type === 'customer' ? 'sale' : 'purchase';
             $page['links'] = commerceLinks($db, $page['documentKind'], (int) $page['record'][$type === 'customer' ? 'sale_id' : 'purchase_id']);
-            $page['paymentDetails'] = invoicePaymentDetails($db, $id);
+            $page['paymentDetails'] = invoicePaymentDetails($db, $id);$page['debt']=paymentDebtPosition($db,$page['record'],$page['paymentDetails']);
             $page['proofs']=[];
             foreach($page['paymentDetails']['payments'] as $payment)if(!empty($payment['payment_id']))$page['proofs']=array_merge($page['proofs'],loadPaymentProofs($db,'payment',(int)$payment['payment_id']));
             $page['settings']=accountingCurrencies($db);$page['paymentAccounts']=$db->query('SELECT * FROM accounting_payment_accounts ORDER BY name,id')->fetchAll();$page['paymentMethods']=$db->query('SELECT * FROM accounting_payment_methods ORDER BY name,id')->fetchAll();$page['availablePayments']=[];
@@ -117,7 +122,7 @@ function renderAccountingInvoices(): void
             if(permissionHas(permissionPaymentResource($type),'allocate')&&permissionHas(permissionInvoiceResource($type),'register_payment')&&$page['record']['status']==='posted'&&$page['record']['payment_state']!=='reversed'){
                 $inbound=($type==='customer')===($page['record']['document_type']==='invoice');$q=$db->prepare("SELECT id FROM accounting_payments WHERE contact_id=? AND partner_type=? AND direction=? AND status IN('pending','settled') ORDER BY payment_date,id");$q->execute([$page['record']['contact_id'],$type,$inbound?'inbound':'outbound']);
                 $d=$page['paymentDetails'];$balance=bcsub(paymentInvoiceAmount($db,$page['record']),bcadd($d['pending'],$d['settled'],2),2);
-                foreach($q->fetchAll(PDO::FETCH_COLUMN) as $paymentId){$p=loadAccountingPayment($db,(int)$paymentId);if(bccomp($p['available'],'0',2)<=0)continue;try{$p['maximum']=paymentApplicableAmount($p['available'],$balance,$p['currency_code'],$page['record']['currency_code'],$p);}catch(InvalidArgumentException $e){continue;}if(bccomp($p['maximum'],'0',2)>0&&bccomp(accountingConvert($p['maximum'],$p['currency_code'],$page['record']['currency_code'],$p),'0',2)>0)$page['availablePayments'][]=$p;}
+                foreach($q->fetchAll(PDO::FETCH_COLUMN) as $paymentId){$p=loadAccountingPayment($db,(int)$paymentId);if(bccomp($p['available'],'0',2)<=0)continue;try{$p['maximum']=paymentApplicableToInvoice($db,$p['available'],$page['record'],$p,$d);}catch(InvalidArgumentException $e){continue;}if(bccomp($p['maximum'],'0',2)>0&&bccomp(accountingConvert($p['maximum'],$p['currency_code'],paymentDebtPosition($db,$page['record'],$d)['currency'],$p),'0',2)>0)$page['availablePayments'][]=$p;}
             }
             $page['paymentDetails']['effective_amount']=$page['record']['document_type']==='credit'?creditRefundAmount($db,$page['record']):bcsub($page['record']['total_amount'],$page['paymentDetails']['credited'],2);
         } elseif ($page['available']) {

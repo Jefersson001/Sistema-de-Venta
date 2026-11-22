@@ -25,6 +25,7 @@ function invoiceRecomputePaymentState(PDO $db, array $invoice): void
     $details = invoicePaymentDetails($db, (int) $invoice['id']);
     $state = 'not_paid';
     $amount = $invoice['document_type']==='credit' ? creditRefundAmount($db,$invoice) : bcsub($invoice['total_amount'],$details['credited'],2);
+    if(invoiceHasUsdDebt($invoice)){$debt=paymentDebtPosition($db,$invoice,$details);$amount=$debt['total'];$details['settled']=$debt['settled'];$details['pending']=$debt['pending'];}
     if ($details['reversal'] && !$details['credits']) $state='reversed';
     elseif ($invoice['document_type'] === 'invoice' && bccomp($details['credited'], $invoice['total_amount'],2)>=0 && bccomp($details['credited'],'0',2)>0) $state = 'reversed';
     elseif (bccomp($details['settled'], $amount, 2) >= 0) $state = 'paid';

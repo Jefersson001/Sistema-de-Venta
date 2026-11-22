@@ -2,6 +2,7 @@
 declare(strict_types=1);
 require_once __DIR__ . '/workflow-repository.php';
 require_once __DIR__ . '/currency-repository.php';
+require_once __DIR__.'/payment-exchange.php';
 
 function invoiceExchangeSnapshot(PDO $db,array $invoice,string $date): array
 {
@@ -13,6 +14,7 @@ function invoiceExchangeSnapshot(PDO $db,array $invoice,string $date): array
 
 function invoiceCurrencyReference(array $invoice): ?array
 {
+    if(invoiceHasUsdDebt($invoice))return ['code'=>'USD','amount'=>$invoice['usd_reference_amount']];
     if(empty($invoice['exchange_rate']))return null;
     $settings=['primary_code'=>$invoice['currency_primary_code'],'alternate_code'=>$invoice['currency_alternate_code'],'exchange_rate'=>$invoice['exchange_rate']];
     $to=$invoice['currency_code']===$settings['primary_code']?$settings['alternate_code']:$settings['primary_code'];
@@ -47,6 +49,7 @@ function workflowCreateInvoice(PDO $db,string $kind,int $id): int
         $db->prepare('UPDATE accounting_invoices SET delivery_latitude=?,delivery_longitude=? WHERE id=?')->execute([$sale?($order['customer_latitude']??null):null,$sale?($order['customer_longitude']??null):null,$invoice]);
         $q=$db->prepare('INSERT INTO accounting_invoice_lines (invoice_id,position,product_id,product_name,quantity,unit_price,tax_id,tax_name,tax_rate,base_amount,tax_amount,total_amount,unit_cost,sale_line_id,purchase_line_id,commission_reference_price,commission_unit_amount) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)');
         foreach($lines as $pos=>$l)$q->execute([$invoice,$pos,$l['product_id'],$l['product_name'],$l['to_invoice'],$l['unit_price'],$l['tax_id'],$l['tax_name'],$l['tax_rate'],$l['base_amount'],$l['tax_amount'],$l['total_amount'],$l['unit_cost'],$sale?$l['id']:null,$sale?null:$l['id'],$sale?($l['commission_reference_price']??null):null,$sale?($l['commission_unit_amount']??null):null]);
+        $fresh=$db->prepare('SELECT * FROM accounting_invoices WHERE id=?');$fresh->execute([$invoice]);invoiceFreezeUsdDebt($db,$fresh->fetch());
         $db->commit();return $invoice;
     }catch(Throwable $e){$db->rollBack();throw $e;}
 }
@@ -98,6 +101,7 @@ function createCreditNote(PDO $db,int $id,?int $version,string $reason): int
         $db->prepare('UPDATE accounting_invoices SET delivery_latitude=?,delivery_longitude=? WHERE id=?')->execute([$i['delivery_latitude']??null,$i['delivery_longitude']??null,$new]);
         $db->prepare('UPDATE accounting_invoices SET credit_reason=?,currency_code=?,currency_primary_code=?,currency_alternate_code=?,exchange_rate=? WHERE id=?')->execute([$reason,$i['currency_code'],$i['currency_primary_code'],$i['currency_alternate_code'],$i['exchange_rate'],$new]);
         $db->prepare('UPDATE accounting_invoices SET exchange_rate_date=?,exchange_rate_source=? WHERE id=?')->execute([$i['exchange_rate_date']??null,$i['exchange_rate_source']??null,$new]);
+        $fresh=$db->prepare('SELECT * FROM accounting_invoices WHERE id=?');$fresh->execute([$new]);invoiceFreezeUsdDebt($db,$fresh->fetch());
         $q=$db->prepare('INSERT INTO accounting_invoice_lines (invoice_id,position,product_id,product_name,quantity,unit_price,tax_id,tax_name,tax_rate,base_amount,tax_amount,total_amount,unit_cost,sale_line_id,purchase_line_id,original_line_id,commission_reference_price,commission_unit_amount) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)');
         foreach($lines as $pos=>$l)$q->execute([$new,$pos,$l['product_id'],$l['product_name'],$l['quantity'],$l['unit_price'],$l['tax_id'],$l['tax_name'],$l['tax_rate'],$l['base_amount'],$l['tax_amount'],$l['total_amount'],$l['unit_cost'],$l['sale_line_id'],$l['purchase_line_id'],$l['id'],$l['commission_reference_price']??null,$l['commission_unit_amount']??null]);
         $db->commit();return $new;

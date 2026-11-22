@@ -3,6 +3,7 @@ declare(strict_types=1);
 require_once __DIR__.'/invoice-status-repository.php';
 require_once __DIR__.'/currency-repository.php';
 require_once __DIR__.'/treasury-repository.php';
+require_once __DIR__.'/payment-exchange.php';
 
 function paymentStatuses(): array {return ['draft'=>'Borrador','pending'=>'En proceso de pago','settled'=>'Pagado','cancel'=>'Cancelado','reversed'=>'Revertido'];}
 function loadAccountingPayment(PDO $db,int $id): ?array
@@ -26,6 +27,7 @@ function validateAccountingPayment(PDO $db,array $input,?array $existing=null,?a
     $amount=bcsub($received,$change,2);
     $date=$input['payment_date']??'';$parsed=is_string($date)?DateTimeImmutable::createFromFormat('!Y-m-d',$date):false;
     if(!$parsed||$parsed->format('Y-m-d')!==$date||$date<'1000-01-01'||$date>'9999-12-31')throw new InvalidArgumentException('Selecciona una fecha de pago válida.');
+    $settings=accountingCurrencies($db,$date);
     $reference=is_string($input['reference']??null)?trim($input['reference']):'';if(mb_strlen($reference)>160)throw new InvalidArgumentException('La referencia admite hasta 160 caracteres.');
     $currency=$input['currency_code']??$existing['currency_code']??$invoice['currency_code']??$settings['primary_code'];
     if(!is_string($currency)||!in_array($currency,array_merge(accountingCurrencyCodes($settings),[$existing['currency_code']??null,$invoice['currency_code']??null]),true))throw new InvalidArgumentException('Selecciona una moneda configurada.');
@@ -40,9 +42,14 @@ function validateAccountingPayment(PDO $db,array $input,?array $existing=null,?a
     if(bccomp($change,'0',2)>0&&!$changeEnabled)throw new InvalidArgumentException('El vuelto requiere un cobro entrante, un método con Permitir vuelto y una cuenta de tipo Caja.');
     $concept=treasuryConcept($db,salesId($input['concept_id']??null)??treasuryDefaultConcept($db,$type,$direction),$direction,salesId($existing['concept_id']??null));
     $pair=$existing?['primary_code'=>$existing['primary_code'],'alternate_code'=>$existing['alternate_code'],'exchange_rate'=>$existing['exchange_rate']]:$settings;
-    $rate=accountingExchangeRate($input['exchange_rate']??$pair['exchange_rate']);
+    $snapshot=currencyRateSnapshot($db,$pair['primary_code'],$pair['alternate_code'],$date);
+    $fallback=$existing&&$date===$existing['payment_date']?$existing['exchange_rate']:($snapshot['rate']??null);
+    $rate=accountingExchangeRate($input['exchange_rate']??$fallback);
+    $rateDate=$rate===null?null:$date;$rateSource=$rate===null?null:'manual';
+    if($rate!==null&&$snapshot&&bccomp($rate,$snapshot['rate'],2)===0){$rateDate=$snapshot['rate_date'];$rateSource=$snapshot['source'];}
+    if($existing&&$date===$existing['payment_date']&&$rate===$existing['exchange_rate']){$rateDate=$existing['exchange_rate_date']??$rateDate;$rateSource=$existing['exchange_rate_source']??$rateSource;}
     if($currency!==$pair['primary_code']&&$currency===$pair['alternate_code']&&!$rate)throw new InvalidArgumentException('Indica la tasa de cambio utilizada para registrar el pago en moneda alterna.');
-    return ['partner_type'=>$type,'direction'=>$direction,'contact_id'=>$contact,'amount'=>$amount,'received_amount'=>$received,'change_amount'=>$change,'change_enabled'=>(int)$changeEnabled,'currency_code'=>$currency,'primary_code'=>$pair['primary_code'],'alternate_code'=>$pair['alternate_code'],'exchange_rate'=>$rate,'payment_date'=>$date,'reference'=>$reference,'account_id'=>$account,'method_id'=>$method,'concept_id'=>$concept];
+    return ['partner_type'=>$type,'direction'=>$direction,'contact_id'=>$contact,'amount'=>$amount,'received_amount'=>$received,'change_amount'=>$change,'change_enabled'=>(int)$changeEnabled,'currency_code'=>$currency,'primary_code'=>$pair['primary_code'],'alternate_code'=>$pair['alternate_code'],'exchange_rate'=>$rate,'exchange_rate_date'=>$rateDate,'exchange_rate_source'=>$rateSource,'payment_date'=>$date,'reference'=>$reference,'account_id'=>$account,'method_id'=>$method,'concept_id'=>$concept];
 }
 function insertAccountingPayment(PDO $db,array $data,string $status='draft',?string $key=null): int
 {
@@ -82,6 +89,11 @@ function paymentValidateInvoice(array $payment,array $invoice): void
     $inbound=($invoice['invoice_type']==='customer')===($invoice['document_type']==='invoice');
     if($invoice['status']!=='posted'||$invoice['payment_state']==='reversed')throw new InvalidArgumentException('La acción requiere una factura registrada y no revertida.');
     if((int)$payment['contact_id']!==(int)$invoice['contact_id']||$payment['partner_type']!==$invoice['invoice_type']||$payment['direction']!==($inbound?'inbound':'outbound'))throw new InvalidArgumentException('El pago debe corresponder al mismo contacto y al sentido de la factura o reembolso.');
+    if($invoice['currency_code']==='VES'){
+        if(!invoiceHasUsdDebt($invoice))throw new InvalidArgumentException('La factura en Bs no tiene una referencia USD válida. Revisa su tasa original antes de aplicar un pago.');
+        try{accountingConvert('1.00','USD','VES',$payment);}
+        catch(InvalidArgumentException){throw new InvalidArgumentException('Indica una tasa USD/VES válida para valorar este pago, aunque recibas o entregues dólares.');}
+    }
 }
 function paymentApplicableAmount(string $available, string $balance, string $paymentCurrency, string $invoiceCurrency, array $pair): string
 {
@@ -96,12 +108,23 @@ function paymentApplyLocked(PDO $db,array $payment,array $invoice,string $paymen
 {
     paymentValidateInvoice($payment,$invoice);if(!in_array($payment['status'],['pending','settled'],true))throw new InvalidArgumentException('Registra el pago antes de aplicarlo a una factura.');
     $p=loadAccountingPayment($db,(int)$payment['id']);if(bccomp($paymentAmount,'0',2)<=0||bccomp($paymentAmount,$p['available'],2)>0)throw new InvalidArgumentException('El importe supera el saldo disponible del pago.');
-    $amount=accountingConvert($paymentAmount,$payment['currency_code'],$invoice['currency_code'],$payment);$details=invoicePaymentDetails($db,(int)$invoice['id']);
+    $details=invoicePaymentDetails($db,(int)$invoice['id']);$debt=paymentDebtPosition($db,$invoice,$details);
+    $covered=accountingConvert($paymentAmount,$payment['currency_code'],$debt['currency'],$payment);
+    if(bccomp($covered,'0',2)<=0||bccomp($covered,$debt['balance'],2)>0)throw new InvalidArgumentException('El pago supera el saldo de referencia pendiente de la factura.');
     $remaining=bcsub(paymentInvoiceAmount($db,$invoice),bcadd($details['settled'],$details['pending'],2),2);
-    if(bccomp($amount,'0',2)<=0||bccomp($amount,$remaining,2)>0)throw new InvalidArgumentException('El pago supera el saldo pendiente de la factura o su conversión es menor a un céntimo.');
+    $amount=$covered;
+    if($debt['indexed']){
+        $used=bcadd($debt['settled'],$debt['pending'],2);
+        $amount=bccomp($covered,$debt['balance'],2)===0?$remaining:bcsub(paymentProportion(bcadd($used,$covered,2),$invoice['usd_reference_amount'],$invoice['total_amount']),bcadd($details['settled'],$details['pending'],2),2);
+    }
+    if(bccomp($amount,'0',2)<0||(!$debt['indexed']&&bccomp($amount,'0',2)===0)||bccomp($amount,$remaining,2)>0)throw new InvalidArgumentException('El pago supera el saldo pendiente de la factura o su conversión es menor a un céntimo.');
     $q=$db->prepare('SELECT * FROM accounting_invoice_payments WHERE payment_id=? AND invoice_id=?');$q->execute([$payment['id'],$invoice['id']]);$old=$q->fetch();
-    if($old&&$old['status']!=='cancel'){$amount=bcadd($amount,$old['amount'],2);$paymentAmount=bcadd($paymentAmount,$old['payment_amount'],2);}
+    $reference=$debt['indexed']?$covered:null;
+    if($old&&$old['status']!=='cancel'){$amount=bcadd($amount,$old['amount'],2);$paymentAmount=bcadd($paymentAmount,$old['payment_amount'],2);if($reference!==null)$reference=bcadd($reference,$old['usd_reference_amount']??paymentProportion($old['amount'],$invoice['total_amount'],$invoice['usd_reference_amount']),2);}
     $db->prepare('INSERT INTO accounting_invoice_payments(payment_id,invoice_id,amount,payment_amount,payment_date,reference,status) VALUES(?,?,?,?,?,?,?) ON DUPLICATE KEY UPDATE amount=VALUES(amount),payment_amount=VALUES(payment_amount),status=VALUES(status),payment_date=VALUES(payment_date),reference=VALUES(reference)')->execute([$payment['id'],$invoice['id'],$amount,$paymentAmount,$payment['payment_date'],$payment['reference'],$payment['status']]);
+    $q=$db->prepare('SELECT id FROM accounting_invoice_payments WHERE payment_id=? AND invoice_id=?');$q->execute([$payment['id'],$invoice['id']]);$allocation=(int)$q->fetchColumn();
+    $db->prepare('UPDATE accounting_invoice_payments SET usd_reference_amount=? WHERE id=?')->execute([$reference,$allocation]);
+    paymentStoreExchangeSnapshot($db,$allocation,paymentExchangeSnapshot($invoice,$payment,$amount,$paymentAmount));
 }
 function paymentRecomputeInvoices(PDO $db,array $invoices): void
 {
@@ -124,7 +147,7 @@ function transitionAccountingPayment(PDO $db,int $id,?int $version,string $actio
         }elseif($action==='settle_payment'){
             if($p['status']!=='pending')throw new InvalidArgumentException('Solo puedes confirmar un pago en proceso.');
             foreach(loadAccountingPayment($db,$id)['allocations'] as $a)if($a['status']!=='cancel'){
-                $i=$invoices[(int)$a['invoice_id']];paymentValidateInvoice($p,$i);$d=invoicePaymentDetails($db,(int)$i['id']);if(bccomp(bcadd($d['settled'],$a['amount'],2),paymentInvoiceAmount($db,$i),2)>0)throw new InvalidArgumentException('Una aplicación supera el saldo actual de su factura.');
+                $i=$invoices[(int)$a['invoice_id']];paymentValidateInvoice($p,$i);$d=invoicePaymentDetails($db,(int)$i['id']);$position=paymentDebtPosition($db,$i,$d);$part=$position['indexed']?$a['usd_reference_amount']:$a['amount'];if(bccomp(bcadd($position['settled'],$part,2),$position['total'],2)>0)throw new InvalidArgumentException('Una aplicación supera el saldo actual de su factura.');
             }
             $db->prepare("UPDATE accounting_payments SET status='settled' WHERE id=?")->execute([$id]);$db->prepare("UPDATE accounting_invoice_payments SET status='settled' WHERE payment_id=? AND status='pending'")->execute([$id]);
             treasuryPostPayment($db,$p);
@@ -155,9 +178,10 @@ function paymentFromInvoice(PDO $db,int $invoiceId,?int $version,string $action,
             paymentValidateInvoice($data, $i);
             $details = invoicePaymentDetails($db, $invoiceId);
             $balance = bcsub(paymentInvoiceAmount($db, $i), bcadd($details['settled'], $details['pending'], 2), 2);
-            if (bccomp($balance, '0', 2) <= 0) throw new InvalidArgumentException('La factura ya está cubierta por sus pagos. El importe adicional se puede registrar desde Pagos.');
-            $applied = paymentApplicableAmount($data['amount'], $balance, $data['currency_code'], $i['currency_code'], $data);
-            if ($i['document_type'] === 'credit' && bccomp(accountingConvert($data['amount'], $data['currency_code'], $i['currency_code'], $data), $balance, 2) > 0) throw new InvalidArgumentException('El reembolso supera el importe pendiente de devolver.');
+            if (bccomp(paymentDebtPosition($db,$i,$details)['balance'], '0', 2) <= 0) throw new InvalidArgumentException('La factura ya está cubierta por sus pagos. El importe adicional se puede registrar desde Pagos.');
+            $applied = paymentApplicableToInvoice($db,$data['amount'],$i,$data,$details);
+            $debt=paymentDebtPosition($db,$i,$details);
+            if ($i['document_type'] === 'credit' && bccomp(accountingConvert($data['amount'], $data['currency_code'], $debt['currency'], $data), $debt['balance'], 2) > 0) throw new InvalidArgumentException('El reembolso supera el importe pendiente de devolver.');
             $id=insertAccountingPayment($db,$data,'pending');$p=loadAccountingPayment($db,$id);paymentApplyLocked($db,$p,$i,$applied);paymentRecomputeInvoices($db,$invoices);
             paymentProofBatch($input)?->attach($db,'payment',$id);
             $db->commit();paymentProofBatch($input)?->commit();

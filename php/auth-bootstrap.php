@@ -6,6 +6,7 @@ if(PHP_SAPI!=='cli') {
     $route=str_replace('\\','/',$_SERVER['SCRIPT_NAME']??'');
     $json=in_array($route,[authBasePath().'/modules/dashboard/resumen.php',authBasePath().'/modules/dashboard/ingresos-egresos.php',authBasePath().'/modules/ventas/producto.php',authBasePath().'/modules/contactos/direcciones.php'],true)
         ||($route===authBasePath().'/modules/restaurante/cuenta.php'&&str_contains($_SERVER['HTTP_ACCEPT']??'','application/json'));
+    $json=$json||(isset($_GET['payment_rate_date'])&&in_array($route,[authBasePath().'/modules/contabilidad/index.php',authBasePath().'/modules/contabilidad/pagos.php'],true));
     try {permissionGuard($json);}catch(Throwable $exception){error_log('Permisos: '.$exception->getMessage());authStop(503,'No se pudo comprobar tu acceso. Intenta nuevamente.',$json);}
     // Un token de sesión compartido por formularios de negocio y el menú de usuario.
     foreach(['contacts_csrf','inventory_csrf','sales_csrf','purchase_csrf','accounting_csrf','commission_csrf','settings_csrf','taxes_csrf'] as $key) {

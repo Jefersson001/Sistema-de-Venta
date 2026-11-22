@@ -555,3 +555,10 @@ html[data-konta-theme=dark] .module-workspace {
     .module-workspace .konta-empty-message { padding:20px 12px; }
     .module-workspace :is(.restaurant-quick-setup,.restaurant-toolbar) :is(input,select) { min-height:44px; font-size:16px; }
 }
+/* Payment exchange details remain compact within the existing responsive tables. */
+.payment-exchange-detail { margin-top:.45rem; max-width:30rem; font-size:.85rem; white-space:normal; }
+.payment-exchange-detail summary { cursor:pointer; font-weight:600; }
+.payment-exchange-detail dl { display:grid; gap:.4rem; margin:.65rem 0; }
+.payment-exchange-detail dl div { display:flex; justify-content:space-between; gap:1rem; flex-wrap:wrap; }
+.payment-exchange-detail dd { margin:0; font-variant-numeric:tabular-nums; }
+[data-payment-fx-preview] { white-space:normal; overflow-wrap:anywhere; line-height:1.6; }

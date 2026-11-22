@@ -12,6 +12,10 @@ function renderAccountingPayments(): void
         if($valid && $existing && $existing['partner_type']===$type && isset($_GET['proof'])) renderPaymentProof($db,'payment',$id,accountingId($_GET['proof'])??0);
         if(!$valid||(isset($_GET['id'])&&(!$id||!$existing||$existing['partner_type']!==$type))){http_response_code(404);$page['available']=false;$page['errors'][]='El pago solicitado no existe.';}
         $page['record']=$existing??['name'=>'Nuevo','partner_type'=>$type,'direction'=>$type==='customer'?'inbound':'outbound','status'=>'draft','version'=>0,'amount'=>'0.00','currency_code'=>$page['settings']['primary_code'],'primary_code'=>$page['settings']['primary_code'],'alternate_code'=>$page['settings']['alternate_code'],'exchange_rate'=>$page['settings']['exchange_rate'],'payment_date'=>commerceToday(),'reference'=>'','allocated'=>'0.00','available'=>'0.00','allocations'=>[]];
+        if(isset($_GET['payment_rate_date'])){
+            if(!$page['available'])authStop(404,'El pago no existe.',true);
+            renderPaymentRateLookup($db,$existing??$page['settings']);return;
+        }
         if(!$id){$key=is_string($_POST['creation_key']??null)?$_POST['creation_key']:bin2hex(random_bytes(32));if($_SERVER['REQUEST_METHOD']!=='POST'){$_SESSION['payment_form_keys'][$key]=true;$_SESSION['payment_form_keys']=array_slice($_SESSION['payment_form_keys'], -50,null,true);}$page['creationKey']=$key;}
         if($_SERVER['REQUEST_METHOD']==='POST'&&$page['available']){
             if(!is_string($_POST['csrf']??null)||!hash_equals($page['csrf'],$_POST['csrf'])){http_response_code(403);$page['errors'][]='La sesión del formulario no es válida.';}
@@ -36,10 +40,10 @@ function renderAccountingPayments(): void
             $page['concepts']=treasuryConcepts($db);$page['record']['concept_id']??=treasuryDefaultConcept($db,$type,$page['record']['direction']);
             if($existing&&in_array($existing['status'],['pending','settled'],true)&&bccomp($existing['available'],'0',2)>0){
                 $q=$db->prepare("SELECT * FROM accounting_invoices WHERE contact_id=? AND invoice_type=? AND status='posted' AND payment_state!='reversed' ORDER BY invoice_date,id");$q->execute([$existing['contact_id'],$type]);
-                foreach($q->fetchAll() as $i){if(!permissionRecord(permissionInvoiceResource($type),(int)$i['id']))continue;$inbound=($i['invoice_type']==='customer')===($i['document_type']==='invoice');if(($inbound?'inbound':'outbound')!==$existing['direction'])continue;$details=invoicePaymentDetails($db,(int)$i['id']);$balance=bcsub(paymentInvoiceAmount($db,$i),bcadd($details['settled'],$details['pending'],2),2);if(bccomp($balance,'0',2)<=0)continue;
-                    try{$maximum=paymentApplicableAmount($existing['available'],$balance,$existing['currency_code'],$i['currency_code'],$existing);}catch(InvalidArgumentException $e){continue;}
-                    if(bccomp($maximum,'0',2)<=0||bccomp(accountingConvert($maximum,$existing['currency_code'],$i['currency_code'],$existing),'0',2)<=0)continue;
-                    $i['balance']=$balance;$i['maximum']=$maximum;$page['candidates'][]=$i;
+                foreach($q->fetchAll() as $i){if(!permissionRecord(permissionInvoiceResource($type),(int)$i['id']))continue;$inbound=($i['invoice_type']==='customer')===($i['document_type']==='invoice');if(($inbound?'inbound':'outbound')!==$existing['direction'])continue;$details=invoicePaymentDetails($db,(int)$i['id']);$balance=paymentDebtPosition($db,$i,$details)['balance'];if(bccomp($balance,'0',2)<=0)continue;
+                    try{$maximum=paymentApplicableToInvoice($db,$existing['available'],$i,$existing,$details);}catch(InvalidArgumentException $e){continue;}
+                    if(bccomp($maximum,'0',2)<=0||bccomp(accountingConvert($maximum,$existing['currency_code'],paymentDebtPosition($db,$i,$details)['currency'],$existing),'0',2)<=0)continue;
+                    $debt=paymentDebtPosition($db,$i,$details);$i['balance']=$debt['balance'];$i['currency_code']=$debt['currency'];$i['maximum']=$maximum;$page['candidates'][]=$i;
                 }
             }
         }elseif($page['available']){

@@ -3,7 +3,7 @@ $record = $page['record']; $posted = $record['status'] !== 'draft';
 $credit = $record['document_type']==='credit';
 $details = $page['paymentDetails'];
 $available = bcsub($details['effective_amount'], bcadd($details['settled'], $details['pending'], 2), 2);
-$canRegisterPayment = $record['status'] === 'posted' && $record['payment_state'] !== 'reversed' && bccomp($available, '0', 2) > 0;
+$canRegisterPayment = $record['status'] === 'posted' && $record['payment_state'] !== 'reversed' && bccomp($page['debt']['balance'], '0', 2) > 0;
 $canCreateCredit = $record['status'] === 'posted' && !$credit && $record['payment_state'] !== 'reversed';
 $statusLabels = invoiceFilterStates();
 $paymentTone=match($record['payment_state']){'paid'=>'success','not_paid','in_payment','partial'=>'warning','reversed'=>'danger',default=>'neutral'};
@@ -23,8 +23,8 @@ $invoiceCompletedOperations=count(array_filter($invoiceOperations,static fn(arra
     </div>
     <dl class="workspace-balance-summary" aria-label="Resumen de la factura">
         <div><dt>Total de la factura</dt><dd><?= accountingEscape($record['total_amount'].' '.$record['currency_code']) ?></dd></div>
-        <div class="workspace-balance-paid"><dt>Pagado</dt><dd><?= accountingEscape($details['settled'].' '.$record['currency_code']) ?></dd></div>
-        <div class="workspace-balance-due"><dt>Saldo sin pagar</dt><dd><?= accountingEscape(($record['payment_state']==='reversed'?'0.00':bcsub($details['effective_amount'],$details['settled'],2)).' '.$record['currency_code']) ?></dd></div>
+        <div class="workspace-balance-paid"><dt>Pagado<?= $page['debt']['indexed']?' · referencia USD':'' ?></dt><dd><?= accountingEscape($page['debt']['settled'].' '.$page['debt']['currency']) ?></dd></div>
+        <div class="workspace-balance-due"><dt>Saldo sin pagar<?= $page['debt']['indexed']?' · referencia USD':'' ?></dt><dd><?= accountingEscape(($record['payment_state']==='reversed'?'0.00':$page['debt']['unpaid']).' '.$page['debt']['currency']) ?></dd></div>
     </dl>
     <div class="contact-sheet quotation-sheet"><form id="invoice-details" method="post" action="index.php?type=<?= $page['type'] ?>&amp;id=<?= (int) $record['id'] ?>" data-invoice-rate-form data-rate-endpoint="<?= accountingEscape(authBasePath().'/tasa.php?invoice_id='.(int)$record['id']) ?>">
         <input type="hidden" name="csrf" value="<?= accountingEscape($page['csrf']) ?>"><input type="hidden" name="version" value="<?= (int) $record['version'] ?>">

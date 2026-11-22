@@ -63,7 +63,7 @@ function renderDirectSales(bool $requests=false,bool $warehouseStock=false): voi
                 $q->execute([$id]);$page['detail']=$q->fetch();
                 if(!$page['detail'])authStop(404,'La venta no está disponible.');
                 $q=$db->prepare('SELECT id,product_name,quantity,unit_price,total_amount FROM accounting_invoice_lines WHERE invoice_id=? ORDER BY position,id');$q->execute([$page['detail']['invoice_id']]);$page['lines']=$q->fetchAll();
-                $page['sale_record']=directSaleRecord($db,$id);$page['payment_details']=invoicePaymentDetails($db,(int)$page['detail']['invoice_id']);
+                $page['sale_record']=directSaleRecord($db,$id);$page['payment_details']=invoicePaymentDetails($db,(int)$page['detail']['invoice_id']);$nativeInvoice=$page['sale_record']+['document_type'=>'invoice'];$nativeInvoice['id']=$page['detail']['invoice_id'];$page['payment_debt']=paymentDebtPosition($db,$nativeInvoice,$page['payment_details']);
                 $page['accounts']=$db->query('SELECT id,name,currency_code FROM accounting_payment_accounts WHERE company_id='.(int)companyActiveId().' ORDER BY name')->fetchAll();
                 $page['methods']=$db->query('SELECT id,name FROM accounting_payment_methods WHERE company_id='.(int)companyActiveId().' ORDER BY name')->fetchAll();
             }

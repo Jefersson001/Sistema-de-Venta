@@ -17,7 +17,7 @@ function directText(mixed $value,int $max,bool $required=false): string {
 function directSaleRecord(PDO $db,int $id,string $action='read',bool $lock=false): array {
     permissionRequire('venta_directa.sales',$action,$id);
     if($lock){$q=$db->prepare('SELECT sale_id FROM direct_sale_checkouts WHERE id=? AND company_id=?');$q->execute([$id,companyActiveId()]);$order=$q->fetchColumn();if(!$order)throw new InvalidArgumentException('Venta no disponible.',403);workflowLockOrder($db,['quotation_id'=>(int)$order]);}
-    $q=$db->prepare('SELECT d.*,i.version AS invoice_version,i.status AS invoice_status,i.contact_id,i.currency_code,i.invoice_date,i.due_date,i.total_amount,i.payment_state FROM direct_sale_checkouts d JOIN accounting_invoices i ON i.id=d.invoice_id WHERE d.id=? AND d.company_id=?'.($lock?' FOR UPDATE':''));$q->execute([$id,companyActiveId()]);$row=$q->fetch();
+    $q=$db->prepare('SELECT d.*,i.version AS invoice_version,i.status AS invoice_status,i.contact_id,i.currency_code,i.invoice_date,i.due_date,i.total_amount,i.payment_state,i.usd_reference_amount,i.currency_primary_code,i.currency_alternate_code,i.exchange_rate FROM direct_sale_checkouts d JOIN accounting_invoices i ON i.id=d.invoice_id WHERE d.id=? AND d.company_id=?'.($lock?' FOR UPDATE':''));$q->execute([$id,companyActiveId()]);$row=$q->fetch();
     if(!$row)throw new InvalidArgumentException('La venta no está disponible en la empresa activa.',403);return $row;
 }
 function directCredit(PDO $db,int $customer): array {
@@ -25,9 +25,9 @@ function directCredit(PDO $db,int $customer): array {
     $q=$db->prepare('SELECT * FROM direct_customer_credit WHERE contact_id=? AND company_id=?');$q->execute([$customer,companyActiveId()]);$policy=$q->fetch();
     $limit=$policy&&$policy['credit_limit']!==null?accountingConvert($policy['credit_limit'],$policy['currency_code'],$primary,$settings):null;
     $debt='0.00';$overdue='0.00';
-    $q=$db->prepare("SELECT id,total_amount,currency_code,due_date FROM accounting_invoices WHERE contact_id=? AND company_id=? AND invoice_type='customer' AND document_type='invoice' AND status='posted'");$q->execute([$customer,companyActiveId()]);
-    foreach($q->fetchAll() as $invoice){$details=invoicePaymentDetails($db,(int)$invoice['id']);$balance=bcsub(bcsub($invoice['total_amount'],$details['credited'],2),$details['settled'],2);if(bccomp($balance,'0',2)<=0)continue;
-        $balance=accountingConvert($balance,$invoice['currency_code'],$primary,$settings);$debt=bcadd($debt,$balance,2);
+    $q=$db->prepare("SELECT * FROM accounting_invoices WHERE contact_id=? AND company_id=? AND invoice_type='customer' AND document_type='invoice' AND status='posted'");$q->execute([$customer,companyActiveId()]);
+    foreach($q->fetchAll() as $invoice){$details=invoicePaymentDetails($db,(int)$invoice['id']);$position=paymentDebtPosition($db,$invoice,$details);if(bccomp($position['unpaid'],'0',2)<=0)continue;
+        $balance=accountingConvert($position['unpaid'],$position['currency'],$primary,$settings);$debt=bcadd($debt,$balance,2);
         if($invoice['due_date']&&$invoice['due_date']<commerceToday())$overdue=bcadd($overdue,$balance,2);
     }
     return ['debt'=>$debt,'overdue'=>$overdue,'limit'=>$limit,'currency'=>$primary,'policy'=>$policy['policy']??'warn'];
@@ -64,8 +64,8 @@ function directRegisterPayment(CompanyConnection $db,int $saleId,array $input,ar
         // Keep every selected catalog inside the active company, even with multiple companies selected.
         foreach(['account_id'=>'accounting_payment_accounts','method_id'=>'accounting_payment_methods'] as $field=>$table){$q=$db->prepare('SELECT id FROM '.$table.' WHERE id=? AND company_id=?');$q->execute([accessId($data[$field]),companyActiveId()]);if(!$q->fetchColumn())throw new InvalidArgumentException('Selecciona una cuenta y un medio de pago de la empresa activa.');}
         $details=invoicePaymentDetails($db,(int)$sale['invoice_id']);$remaining=bcsub(bcsub(bcsub($sale['total_amount'],$details['credited'],2),$details['settled'],2),$details['pending'],2);
-        $normalized=validateAccountingPayment($db,$data+['contact_id'=>$sale['contact_id']],null,$sale+['invoice_type'=>'customer','document_type'=>'invoice']);
-        if(bccomp(accountingConvert($normalized['amount'],$normalized['currency_code'],$sale['currency_code'],$normalized),$remaining,2)>0)throw new InvalidArgumentException('El cobro supera el saldo por cubrir. Puedes registrar un cobro parcial.');
+        $normalized=validateAccountingPayment($db,$data+['contact_id'=>$sale['contact_id']],null,$sale+['invoice_type'=>'customer','document_type'=>'invoice']);$nativeInvoice=$sale+['document_type'=>'invoice'];$nativeInvoice['id']=$sale['invoice_id'];$debt=paymentDebtPosition($db,$nativeInvoice,$details);
+        if(bccomp(accountingConvert($normalized['amount'],$normalized['currency_code'],$debt['currency'],$normalized),$debt['balance'],2)>0)throw new InvalidArgumentException('El cobro supera el saldo por cubrir. Puedes registrar un cobro parcial.');
         $q=$db->prepare('SELECT COALESCE(MAX(id),0) FROM accounting_invoice_payments WHERE invoice_id=?');$q->execute([$sale['invoice_id']]);$previous=(int)$q->fetchColumn();
         transitionInvoiceStatus($db,(int)$sale['invoice_id'],accessId($input['version']??null),'register_payment',$data);
         $q=$db->prepare('SELECT payment_id FROM accounting_invoice_payments WHERE invoice_id=? AND id>? ORDER BY id DESC LIMIT 1');$q->execute([$sale['invoice_id'],$previous]);$payment=$q->fetchColumn();if(!$payment)throw new RuntimeException('No se vinculó el cobro.');
