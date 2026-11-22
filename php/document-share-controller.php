@@ -33,7 +33,7 @@ function renderDocumentShare(string $kind='invoice'): void {
         header('Location: compartir.php?'.http_build_query(['type'=>$type,'id'=>$id]+($shareId?['share'=>$shareId]:[])+($embedded?['embedded'=>'1']:[])),true,303);return;
     }catch(InvalidArgumentException $e){http_response_code($e->getCode()===409?409:422);$errors[]=$e->getMessage();$input=$_POST;}
     catch(Throwable $e){http_response_code(503);$errors[]=documentShareFailure($e instanceof PDOException?new DocumentSharePreparationException('storage',$e):$e);$input=$_POST;}
-    $q=$db->prepare("SELECT COALESCE(NULLIF(TRIM(mobile),''),phone) FROM contacts WHERE id=? AND company_id=?");$q->execute([$record['contact_id'],$company]);$phone=$q->fetchColumn()?:'';
+    $q=$db->prepare('SELECT phone FROM contacts WHERE id=? AND company_id=?');$q->execute([$record['contact_id'],$company]);$phone=$q->fetchColumn()?:'';
     $q=$db->prepare('SELECT * FROM document_share_links WHERE company_id=? AND origin_kind=? AND origin_id=? ORDER BY id DESC LIMIT 20');$q->execute([$company,$kind,$id]);$links=$q->fetchAll();$prepared=null;$urls=null;
     foreach($links as &$link){$link['active']=!$link['revoked_at']&&$link['expires_at']>(new DateTimeImmutable('now',new DateTimeZone('America/Caracas')))->format('Y-m-d H:i:s');if($link['active']&&(string)$link['id']===($_GET['share']??''))$prepared=$link;}unset($link);
     if($prepared)try{$urls=whatsappShareUrls($prepared);}catch(Throwable $e){$errors[]=documentShareFailure(new DocumentSharePreparationException('recovery',$e));}
