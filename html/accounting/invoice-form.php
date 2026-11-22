@@ -16,7 +16,7 @@ $invoiceCompletedOperations=count(array_filter($invoiceOperations,static fn(arra
     <?php if($credit): ?><p class="notice">Nota de crédito · <?= accountingEscape($record['credit_reason']) ?> · <a href="index.php?type=<?= $page['type'] ?>&amp;id=<?= (int)$record['reversal_of_id'] ?>">Factura original</a></p><?php endif; ?>
     <?php foreach($page['paymentDetails']['credits'] as $creditDocument): ?><p class="notice"><a href="index.php?type=<?= $page['type'] ?>&amp;id=<?= (int)$creditDocument['id'] ?>">Nota de crédito <?= accountingEscape($creditDocument['name']) ?></a> · <?= invoiceStatuses()[$creditDocument['status']] ?></p><?php endforeach; ?>
     <div class="document-actions invoice-document-actions" role="group" aria-label="Acciones de la factura">
-        <?php if(permissionHas(permissionInvoiceResource($page['type']),'send')): ?><a class="contact-button" data-open-invoice-email href="enviar.php?type=<?= $page['type'] ?>&amp;id=<?= (int)$record['id'] ?>">Enviar por correo</a><?php endif; ?>
+        <?php if(permissionHas(permissionInvoiceResource($page['type']),'send')): ?><a class="contact-button" data-open-invoice-email href="enviar.php?type=<?= $page['type'] ?>&amp;id=<?= (int)$record['id'] ?>">Enviar por correo</a><a class="contact-button" data-open-document-share href="compartir.php?type=<?= $page['type'] ?>&amp;id=<?= (int)$record['id'] ?>">WhatsApp</a><?php endif; ?>
         <?php $documentView = 'invoice'; require dirname(__DIR__) . '/commerce/links.php'; ?>
         <?php if(!$credit && $page['type']==='customer' && !empty($record['salesperson_id']) && array_filter($page['lines'],static fn($line)=>isset($line['commission_unit_amount']) ? bccomp($line['commission_unit_amount'],'0',2)>0 : (isset($line['commission_reference_price']) && bccomp($line['unit_price'],$line['commission_reference_price'],2)>0))): ?><a class="contact-button" href="../ventas/comisiones.php?id=<?= (int)$record['id'] ?>">Comisión del vendedor</a><?php endif; ?>
         <?php require __DIR__ . '/invoice-status-actions.php'; ?>
@@ -79,5 +79,6 @@ $invoiceCompletedOperations=count(array_filter($invoiceOperations,static fn(arra
     <script src="../../js/invoice-rate.js?v=<?= filemtime(dirname(__DIR__,2).'/js/invoice-rate.js') ?>" defer></script>
     <?php if(permissionHas(permissionInvoiceResource($page['type']),'send')): ?>
     <?php require dirname(__DIR__).'/partials/document-email-dialog.php'; ?>
+    <?php require dirname(__DIR__).'/partials/document-share-dialog.php'; ?>
     <?php endif; ?>
 </section>

@@ -98,6 +98,10 @@ function permissionRoute(string $path,array $query): ?string
     if($file==='configuracion.php')return $module==='dashboard'?null:$module.'.configuration';
     return match($module.'/'.$file){
         'ajustes/correo.php'=>'ajustes.mail',
+        'ajustes/whatsapp.php'=>'ajustes.whatsapp',
+        'ventas/compartir.php'=>'ventas.orders',
+        'inventario/compartir.php'=>'inventario.deliveries',
+        'contabilidad/compartir.php'=>permissionInvoiceResource(($query['type']??'customer')==='supplier'?'supplier':'customer'),
         'contabilidad/enviar.php'=>permissionInvoiceResource(($query['type']??'customer')==='supplier'?'supplier':'customer'),
         'ventas/enviar.php'=>'ventas.orders',
         'inventario/enviar.php'=>'inventario.deliveries',
@@ -130,6 +134,8 @@ function permissionRoute(string $path,array $query): ?string
 function permissionAction(string $resource,mixed $action,?int $id): ?string
 {
     if($resource==='ajustes.mail')return 'configure';
+    if($resource==='ajustes.whatsapp')return 'configure';
+    if(in_array($action,['prepare_whatsapp','revoke_whatsapp'],true))return 'send';
     if($action==='send_documents')return 'send';
     if($resource==='compra_directa.purchases'&&$action==='direct_purchase')return 'create';
     if(!is_string($action))return null;

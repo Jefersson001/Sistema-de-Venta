@@ -7,6 +7,10 @@
 .module-workspace .email-main input[type=checkbox] { width:18px; height:18px; min-width:18px; min-height:18px; padding:0; margin:0; flex:0 0 18px; }
 .email-log { padding:12px 0; border-bottom:1px solid var(--k-line); overflow-wrap:anywhere; }
 .email-log small { display:block; }
+.module-workspace .email-main .share-actions { position:static; display:flex; flex-wrap:wrap; align-items:center; padding:0; border:0; box-shadow:none; background:transparent; }
+.module-workspace .email-main .share-actions>.contact-button { flex:1 1 140px; justify-content:center; white-space:nowrap; margin:0; }
+.share-actions [data-copy-status] { flex-basis:100%; }
+.share-actions [data-copy-status]:empty { display:none; }
 .invoice-email-dialog { padding:0; width:min(1000px,96vw); height:90vh; max-height:90dvh; border:1px solid var(--k-line); border-radius:14px; background:var(--k-surface); color:var(--k-text); }
 .invoice-email-dialog::backdrop { background:#0f172a99; }
 .invoice-email-dialog>header { display:flex; align-items:center; justify-content:space-between; padding:12px 18px; }
