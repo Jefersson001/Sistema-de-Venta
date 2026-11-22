@@ -6,7 +6,7 @@ require_once __DIR__.'/module-page.php';
 function whatsappWizardResult(PDO $db,string $kind,int $id,string $type,int $share,bool $embedded): array {
     $q=$db->prepare('SELECT * FROM document_share_links WHERE id=? AND company_id=? AND origin_kind=? AND origin_id=?');$q->execute([$share,companyActiveId(),$kind,$id]);$row=$q->fetch();if(!$row)throw new InvalidArgumentException('Mensaje preparado no disponible.');
     $urls=whatsappShareUrls($row);$q=$db->prepare('SELECT COUNT(*) FROM document_share_links WHERE company_id=? AND origin_kind=? AND origin_id=?');$q->execute([companyActiveId(),$kind,$id]);
-    return ['ok'=>true,'share_id'=>(int)$row['id'],'phone'=>$row['recipient_phone'],'message_only'=>(bool)$row['message_only'],'expires_at'=>$row['expires_at'],'urls'=>$urls,'history_count'=>(int)$q->fetchColumn(),
+    return ['ok'=>true,'share_id'=>(int)$row['id'],'phone'=>$row['recipient_phone'],'message_only'=>(bool)$row['message_only'],'expires_at'=>$row['expires_at'],'urls'=>$urls,'history_count'=>(int)$q->fetchColumn(),'marked_sent_at'=>$row['marked_sent_at'],'marked_sent_action'=>$row['marked_sent_action'],
         'previous_share_id'=>(string)whatsappPreviousPreparation($db,$kind,$id,companyActiveId())['id'],'next_request_key'=>bin2hex(random_bytes(32)),
         'view_url'=>'compartir.php?'.http_build_query(['type'=>$type,'id'=>$id,'share'=>$share]+($embedded?['embedded'=>'1']:[]))];
 }
@@ -33,10 +33,14 @@ function renderDocumentShare(string $kind='invoice'): void {
     $db=createDatabaseConnection();$company=companyActiveId();$errors=[];$input=[];$repeatConfirmation=false;$embedded=($_GET['embedded']??'')==='1';
     try{$record=emailSource($db,$kind,$id,$type);}catch(InvalidArgumentException $e){authStop(404,$e->getMessage());}
     $choices=emailSourceChoices($db,$record,$kind);$settings=loadWhatsappSettings($db,$company);
-    $json=$_SERVER['REQUEST_METHOD']==='POST'&&($_POST['action']??'')==='prepare_whatsapp'&&str_contains($_SERVER['HTTP_ACCEPT']??'','application/json');
+    $json=$_SERVER['REQUEST_METHOD']==='POST'&&in_array($_POST['action']??'',['prepare_whatsapp','mark_whatsapp_sent'],true)&&str_contains($_SERVER['HTTP_ACCEPT']??'','application/json');
     if($_SERVER['REQUEST_METHOD']==='POST')try{
         $action=$_POST['action']??'';$shareId=0;
         if($action==='prepare_whatsapp')$shareId=prepareWhatsappShare($db,$kind,$id,$type,$_POST);
+        elseif($action==='mark_whatsapp_sent'){
+            $shareId=accessId($_POST['share_id']??null);$interaction=$_POST['interaction']??null;if(!$shareId||!is_string($interaction))throw new InvalidArgumentException('Acción de WhatsApp no válida.');$marked=markWhatsappSent($db,$kind,$id,$type,$shareId,$interaction);
+            if($json){header('Content-Type: application/json; charset=UTF-8');echo json_encode(['ok'=>true,'share_id'=>(int)$marked['id'],'marked_sent_at'=>$marked['marked_sent_at'],'marked_sent_action'=>$marked['marked_sent_action']],JSON_THROW_ON_ERROR);return;}
+        }
         elseif($action==='revoke_whatsapp'){$revokeId=accessId($_POST['share_id']??null);if(!$revokeId)throw new InvalidArgumentException('Enlace no válido.');revokeWhatsappShare($db,$kind,$id,$type,$revokeId);}
         else throw new InvalidArgumentException('Acción no válida.');
         if($json){header('Content-Type: application/json; charset=UTF-8');echo json_encode(whatsappWizardResult($db,$kind,$id,$type,$shareId,$embedded),JSON_THROW_ON_ERROR);return;}

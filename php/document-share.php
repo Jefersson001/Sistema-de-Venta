@@ -71,3 +71,8 @@ function revokeWhatsappShare(CompanyConnection $db,string $kind,int $id,string $
 function whatsappShareUrls(array $share): array {
     $url='';if(empty($share['message_only'])){$token=companyMailDecrypt($share['token_cipher'],(int)$share['company_id']);$url=$share['base_url'].'/documentos.php?token='.$token;}$message=str_replace('{enlace}',$url,$share['message_text']);return ['public'=>$url,'message'=>$message,'whatsapp'=>'https://wa.me/'.$share['recipient_phone'].'?text='.rawurlencode($message)];
 }
+function markWhatsappSent(CompanyConnection $db,string $kind,int $id,string $type,int $share,string $action): array {
+    emailSource($db,$kind,$id,$type);if(!in_array($action,['open','copy'],true))throw new InvalidArgumentException('Acción de WhatsApp no válida.');
+    $q=$db->prepare('UPDATE document_share_links SET marked_sent_action=IF(marked_sent_at IS NULL,?,marked_sent_action),marked_sent_at=COALESCE(marked_sent_at,CURRENT_TIMESTAMP) WHERE id=? AND company_id=? AND origin_kind=? AND origin_id=?');$q->execute([$action,$share,companyActiveId(),$kind,$id]);
+    $q=$db->prepare('SELECT id,marked_sent_at,marked_sent_action FROM document_share_links WHERE id=? AND company_id=? AND origin_kind=? AND origin_id=?');$q->execute([$share,companyActiveId(),$kind,$id]);$row=$q->fetch();if(!$row)throw new InvalidArgumentException('Mensaje preparado no disponible.',404);return $row;
+}

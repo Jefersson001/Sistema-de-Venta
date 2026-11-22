@@ -135,7 +135,7 @@ function permissionAction(string $resource,mixed $action,?int $id): ?string
 {
     if($resource==='ajustes.mail')return 'configure';
     if($resource==='ajustes.whatsapp')return 'configure';
-    if(in_array($action,['prepare_whatsapp','revoke_whatsapp'],true))return 'send';
+    if(in_array($action,['prepare_whatsapp','revoke_whatsapp','mark_whatsapp_sent'],true))return 'send';
     if($action==='send_documents')return 'send';
     if($resource==='compra_directa.purchases'&&$action==='direct_purchase')return 'create';
     if(!is_string($action))return null;
