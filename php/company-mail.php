@@ -55,7 +55,7 @@ function saveCompanyMail(PDO $db,int $company,array $input): void {
 function companyMailer(array $settings,int $company): \PHPMailer\PHPMailer\PHPMailer {
     require_once dirname(__DIR__).'/vendor/autoload.php';
     if(!$settings['enabled']||empty($settings['password_cipher']))throw new InvalidArgumentException('Configura y habilita el correo de esta empresa en Ajustes → Correo saliente.');
-    $mail=new \PHPMailer\PHPMailer\PHPMailer(true);$mail->isSMTP();$mail->Host=$settings['smtp_host'];$mail->Port=(int)$settings['smtp_port'];$mail->SMTPSecure=$settings['encryption']==='ssl'?'ssl':'tls';$mail->SMTPAuth=true;$mail->Username=$settings['smtp_user'];$mail->Password=companyMailDecrypt($settings['password_cipher'],$company);$mail->CharSet='UTF-8';$mail->Timeout=20;$mail->Timelimit=30;$mail->SMTPDebug=0;
+    $mail=new \PHPMailer\PHPMailer\PHPMailer(true);$mail->isSMTP();$mail->Host=$settings['smtp_host'];$mail->Port=(int)$settings['smtp_port'];$mail->SMTPSecure=$settings['encryption']==='ssl'?'ssl':'tls';$mail->SMTPAuth=true;$mail->Username=$settings['smtp_user'];$mail->Password=companyMailDecrypt($settings['password_cipher'],$company);$mail->CharSet='UTF-8';$mail->Timeout=20;$mail->getSMTPInstance()->Timelimit=30;$mail->SMTPDebug=0;
     $tls=['verify_peer'=>true,'verify_peer_name'=>true,'allow_self_signed'=>false];if($ca=getenv('NEXO_SMTP_CA_FILE'))$tls['cafile']=$ca;$mail->SMTPOptions=['ssl'=>$tls];
     $mail->setFrom($settings['from_email'],$settings['from_name']);if($settings['reply_to']!=='')$mail->addReplyTo($settings['reply_to']);return $mail;
 }
