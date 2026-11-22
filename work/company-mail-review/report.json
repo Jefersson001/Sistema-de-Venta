@@ -1,0 +1,81 @@
+{
+  "checks": [
+    {
+      "width": 390,
+      "theme": "light",
+      "inside": true,
+      "overflow": false,
+      "checked": [
+        "invoice:594"
+      ],
+      "recipient": "cliente@example.test"
+    },
+    {
+      "width": 390,
+      "theme": "dark",
+      "inside": true,
+      "overflow": false,
+      "checked": [
+        "invoice:594"
+      ],
+      "recipient": "cliente@example.test"
+    },
+    {
+      "width": 1440,
+      "theme": "light",
+      "inside": true,
+      "overflow": false,
+      "checked": [
+        "invoice:594"
+      ],
+      "recipient": "cliente@example.test"
+    },
+    {
+      "width": 1440,
+      "theme": "dark",
+      "inside": true,
+      "overflow": false,
+      "checked": [
+        "invoice:594"
+      ],
+      "recipient": "cliente@example.test"
+    },
+    {
+      "route": "/modules/ventas/index.php?id=365",
+      "width": 390,
+      "checked": [
+        "order:365"
+      ],
+      "overflow": false,
+      "recipient": "cliente@example.test"
+    },
+    {
+      "route": "/modules/ventas/index.php?id=365",
+      "width": 1440,
+      "checked": [
+        "order:365"
+      ],
+      "overflow": false,
+      "recipient": "cliente@example.test"
+    },
+    {
+      "route": "/modules/inventario/operaciones.php?type=delivery&id=563",
+      "width": 390,
+      "checked": [
+        "operation:563"
+      ],
+      "overflow": false,
+      "recipient": "cliente@example.test"
+    },
+    {
+      "route": "/modules/inventario/operaciones.php?type=delivery&id=563",
+      "width": 1440,
+      "checked": [
+        "operation:563"
+      ],
+      "overflow": false,
+      "recipient": "cliente@example.test"
+    }
+  ],
+  "errors": []
+}

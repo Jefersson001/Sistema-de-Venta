@@ -26,7 +26,6 @@
         <?php $homeHref = '../../index.php'; $isHomePage = false; require __DIR__ . '/partials/top-navigation.php'; ?>
         <main class="main-area">
             <div class="page-content module-page">
-                <?php if (empty($modulePageData['salesWizard'])) require __DIR__.'/partials/module-context.php'; ?>
                 <?php if ($moduleKey !== 'dashboard'): ?><nav class="module-navigation" aria-label="Secciones de <?= htmlspecialchars($module['name'], ENT_QUOTES, 'UTF-8') ?>">
                     <?php if ($moduleKey === 'restaurante'): ?>
                         <a class="module-navigation-link <?= ($modulePageData['area']??'')==='map'?'module-navigation-active':'' ?>" href="index.php">Mapa de mesas</a>
@@ -59,6 +58,7 @@
                     <?php endif; ?>
                     <?php if (!in_array($moduleKey,['dashboard','ajustes'],true)): ?><a class="module-navigation-link <?= $isConfiguration ? 'module-navigation-active' : '' ?>" href="configuracion.php" <?= $isConfiguration ? 'aria-current="page"' : '' ?>><span aria-hidden="true">⚙</span> Configuración</a><?php endif; ?>
                 </nav><?php endif; ?>
+                <?php if (empty($modulePageData['salesWizard'])) require __DIR__.'/partials/module-context.php'; ?>
                 <?php if ($moduleKey === 'restaurante' && $modulePageData !== null): ?>
                     <?php require __DIR__.'/restaurant/page.php'; ?>
                 <?php elseif ($moduleKey === 'ajustes' && $modulePageData !== null): ?>

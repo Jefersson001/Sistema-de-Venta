@@ -10,6 +10,7 @@ function navigationSearchCatalog(): array
         $entries[]=['module'=>$module,'segments'=>$path,'route'=>$route,'keywords'=>$keywords];
     };
     $add('dashboard',['Resumen general'],'index.php','panel indicadores negocio');
+    $add('ajustes',['Correo saliente'],'correo.php','smtp correo remitente empresa Gmail');
     $add('contactos',['Contactos'],'index.php','clientes proveedores vendedores personas empresas');
     $add('contactos',['Contactos archivados'],'index.php?status=archived','inactivos');
     foreach(['countries'=>'Países','states'=>'Estados','municipalities'=>'Municipios','cities'=>'Ciudades','types'=>'Tipos de contacto','document_types'=>'Tipos de documento'] as $section=>$label)$add('contactos',['Configuración',$label],'configuracion.php?section='.$section);

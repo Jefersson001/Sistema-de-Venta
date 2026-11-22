@@ -12,17 +12,11 @@ $invoiceCompletedOperations=count(array_filter($invoiceOperations,static fn(arra
 ?>
 <section aria-labelledby="invoice-title">
     <div class="contact-toolbar invoice-toolbar">
-        <div><a class="overview-link" href="index.php?type=<?= $page['type'] ?>">← Facturas</a><h1 id="invoice-title"><?= accountingEscape($record['name']) ?></h1></div>
-        <div class="document-state-groups" role="region" aria-label="Estados de la factura">
-            <div class="document-state-group"><span class="document-state-label">Documento</span><span class="workspace-status" data-tone="<?= $record['status']==='posted'?'success':($record['status']==='cancel'?'danger':'neutral') ?>"><?= accountingEscape($statusLabels[$record['status']]) ?></span></div>
-            <?php if($record['status']==='posted'): ?><div class="document-state-group"><span class="document-state-label"><?= $credit?'Reembolso':($page['type']==='customer'?'Cobro':'Pago') ?></span><span class="workspace-status" data-tone="<?= $paymentTone ?>"><?= accountingEscape($statusLabels[$record['payment_state']]) ?></span></div><?php endif; ?>
-            <?php if($invoiceOperations): ?><div class="document-state-group"><span class="document-state-label"><?= $page['type']==='customer'?'Entregas':'Recepciones' ?></span><span class="workspace-status" data-tone="<?= $invoiceCompletedOperations===count($invoiceOperations)?'success':'warning' ?>"><?= $invoiceCompletedOperations ?> de <?= count($invoiceOperations) ?> realizadas</span></div><?php endif; ?>
-            <?php if($record['sent_at']): ?><div class="document-state-group"><span class="document-state-label">Envío</span><span class="workspace-status" data-tone="info">Enviada</span></div><?php endif; ?>
-        </div>
     </div>
     <?php if($credit): ?><p class="notice">Nota de crédito · <?= accountingEscape($record['credit_reason']) ?> · <a href="index.php?type=<?= $page['type'] ?>&amp;id=<?= (int)$record['reversal_of_id'] ?>">Factura original</a></p><?php endif; ?>
     <?php foreach($page['paymentDetails']['credits'] as $creditDocument): ?><p class="notice"><a href="index.php?type=<?= $page['type'] ?>&amp;id=<?= (int)$creditDocument['id'] ?>">Nota de crédito <?= accountingEscape($creditDocument['name']) ?></a> · <?= invoiceStatuses()[$creditDocument['status']] ?></p><?php endforeach; ?>
-    <div class="document-actions" role="group" aria-label="Acciones de la factura">
+    <div class="document-actions invoice-document-actions" role="group" aria-label="Acciones de la factura">
+        <?php if(permissionHas(permissionInvoiceResource($page['type']),'send')): ?><a class="contact-button" data-open-invoice-email href="enviar.php?type=<?= $page['type'] ?>&amp;id=<?= (int)$record['id'] ?>">Enviar por correo</a><?php endif; ?>
         <?php $documentView = 'invoice'; require dirname(__DIR__) . '/commerce/links.php'; ?>
         <?php if(!$credit && $page['type']==='customer' && !empty($record['salesperson_id']) && array_filter($page['lines'],static fn($line)=>isset($line['commission_unit_amount']) ? bccomp($line['commission_unit_amount'],'0',2)>0 : (isset($line['commission_reference_price']) && bccomp($line['unit_price'],$line['commission_reference_price'],2)>0))): ?><a class="contact-button" href="../ventas/comisiones.php?id=<?= (int)$record['id'] ?>">Comisión del vendedor</a><?php endif; ?>
         <?php require __DIR__ . '/invoice-status-actions.php'; ?>
@@ -35,7 +29,14 @@ $invoiceCompletedOperations=count(array_filter($invoiceOperations,static fn(arra
     <div class="contact-sheet quotation-sheet"><form id="invoice-details" method="post" action="index.php?type=<?= $page['type'] ?>&amp;id=<?= (int) $record['id'] ?>" data-invoice-rate-form data-rate-endpoint="<?= accountingEscape(authBasePath().'/tasa.php?invoice_id='.(int)$record['id']) ?>">
         <input type="hidden" name="csrf" value="<?= accountingEscape($page['csrf']) ?>"><input type="hidden" name="version" value="<?= (int) $record['version'] ?>">
         <fieldset <?= $posted ? 'disabled' : '' ?> class="quotation-fields">
-<section class="workspace-form-section" aria-labelledby="invoice-section-0"><h2 id="invoice-section-0" class="workspace-section-title">Datos de facturación</h2><div class="contact-form-grid">
+<section class="workspace-form-section" aria-labelledby="invoice-title"><header class="invoice-record-heading"><h1 id="invoice-title"><?= accountingEscape($record['name']) ?></h1>
+        <div class="document-state-groups" role="region" aria-label="Estados de la factura">
+            <div class="document-state-group"><span class="document-state-label">Documento</span><span class="workspace-status" data-tone="<?= $record['status']==='posted'?'success':($record['status']==='cancel'?'danger':'neutral') ?>"><?= accountingEscape($statusLabels[$record['status']]) ?></span></div>
+            <?php if($record['status']==='posted'): ?><div class="document-state-group"><span class="document-state-label"><?= $credit?'Reembolso':($page['type']==='customer'?'Cobro':'Pago') ?></span><span class="workspace-status" data-tone="<?= $paymentTone ?>"><?= accountingEscape($statusLabels[$record['payment_state']]) ?></span></div><?php endif; ?>
+            <?php if($invoiceOperations): ?><div class="document-state-group"><span class="document-state-label"><?= $page['type']==='customer'?'Entregas':'Recepciones' ?></span><span class="workspace-status" data-tone="<?= $invoiceCompletedOperations===count($invoiceOperations)?'success':'warning' ?>"><?= $invoiceCompletedOperations ?> de <?= count($invoiceOperations) ?> realizadas</span></div><?php endif; ?>
+            <?php if($record['sent_at']): ?><div class="document-state-group"><span class="document-state-label">Envío</span><span class="workspace-status" data-tone="info">Enviada</span></div><?php endif; ?>
+        </div>
+</header><div class="contact-form-grid">
 <label><?= $page['type'] === 'customer' ? 'Cliente' : 'Proveedor' ?><input readonly value="<?= accountingEscape($record['contact_name']) ?>"></label>
 <label>Teléfono<input type="tel" readonly value="<?= accountingEscape($record['contact_phone'] ?? '') ?>" placeholder="Sin teléfono registrado"></label>
 <label>Dirección de factura<textarea readonly rows="3"><?= accountingEscape($record['invoice_address']) ?></textarea></label>
@@ -76,4 +77,7 @@ $invoiceCompletedOperations=count(array_filter($invoiceOperations,static fn(arra
     <?php if(!empty($record['delivery_address'])): ?><details class="workspace-details"><summary>Dirección de entrega conservada</summary><p><?= nl2br(accountingEscape($record['delivery_address'])) ?></p></details><?php endif; ?>
     <?php require __DIR__ . '/invoice-payment-wizard.php'; ?>
     <script src="../../js/invoice-rate.js?v=<?= filemtime(dirname(__DIR__,2).'/js/invoice-rate.js') ?>" defer></script>
+    <?php if(permissionHas(permissionInvoiceResource($page['type']),'send')): ?>
+    <?php require dirname(__DIR__).'/partials/document-email-dialog.php'; ?>
+    <?php endif; ?>
 </section>

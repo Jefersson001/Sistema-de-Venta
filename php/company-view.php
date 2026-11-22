@@ -23,18 +23,11 @@ function companyDecorateView(DOMDocument $dom,DOMXPath $xpath,string $current): 
     foreach($GLOBALS['company_context']['companies'] as $c)$names[(int)$c['id']]=$c['name']?:'Empresa '.$c['id'];
     $id=accessId($_GET['id']??null);$table=companyViewTable($current);
     if($id&&$table) {
-        $q=$db->prepare('SELECT r.company_id,r.created_at,r.updated_at,c.name AS creator,u.name AS editor FROM '.$table.' r LEFT JOIN auth_users c ON c.id=r.created_by LEFT JOIN auth_users u ON u.id=r.updated_by WHERE r.id=?');$q->execute([$id]);$audit=$q->fetch();
-        if($audit) {
-            $box=$dom->createElement('details');$box->setAttribute('class','company-record-info');$box->setAttribute('aria-label','Control del registro');
-            $summary=$dom->createElement('summary');$summary->appendChild($dom->createTextNode('Información del registro'));$box->appendChild($summary);
-            $text='Empresa: '.($names[(int)$audit['company_id']]??'').' · Creado: '.($audit['created_at']??'Sin fecha histórica').' · Por: '.($audit['creator']??'Sin usuario histórico').' · Modificado: '.($audit['updated_at']??'Sin fecha histórica').' · Por: '.($audit['editor']??'Sin usuario histórico');
-            $auditText=$dom->createElement('p');$auditText->appendChild($dom->createTextNode($text));$box->appendChild($auditText);
-            $main=$xpath->query('//main//div[contains(@class,"page-content")]')->item(0);$main?->insertBefore($box,$main->firstChild);
-            if((int)$audit['company_id']!==companyActiveId()) {
-                $box->setAttribute('open','open');
-                $warning=$dom->createElement('p');$warning->setAttribute('class','notice notice-warning');$warning->appendChild($dom->createTextNode('Activa esta empresa en el selector para modificar el registro.'));$box->appendChild($warning);
+        $q=$db->prepare('SELECT company_id FROM '.$table.' WHERE id=?');$q->execute([$id]);$owner=$q->fetchColumn();
+        if($owner&&(int)$owner!==companyActiveId()) {
+                $warning=$dom->createElement('p');$warning->setAttribute('class','notice notice-warning');$warning->appendChild($dom->createTextNode('Activa esta empresa en el selector para modificar el registro.'));
+                $main=$xpath->query('//main//div[contains(@class,"page-content")]')->item(0);$main?->insertBefore($warning,$main->firstChild);
                 foreach($xpath->query('//main//form[translate(@method,"POST","post")="post"]//input|//main//form[translate(@method,"POST","post")="post"]//select|//main//form[translate(@method,"POST","post")="post"]//textarea|//main//form[translate(@method,"POST","post")="post"]//button') as $control)$control->setAttribute('disabled','disabled');
-            }
         }
     }
     $report=in_array(basename(parse_url($current,PHP_URL_PATH)??''),['informes.php','ingresos-egresos.php'],true);

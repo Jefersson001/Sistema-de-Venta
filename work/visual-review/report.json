@@ -1,5 +1,5 @@
 {
-  "date": "2026-11-15T22:30:16.407Z",
+  "date": "2026-11-22T02:38:45.232Z",
   "widths": [
     390,
     768,
@@ -201,7 +201,7 @@
     },
     {
       "role": "admin",
-      "route": "/modules/contactos/index.php?id=447",
+      "route": "/modules/contactos/index.php?id=448",
       "checks": [
         {
           "theme": "light",
@@ -516,7 +516,7 @@
     },
     {
       "role": "admin",
-      "route": "/modules/ventas/index.php?id=362",
+      "route": "/modules/ventas/index.php?id=364",
       "checks": [
         {
           "theme": "light",
@@ -642,7 +642,7 @@
     },
     {
       "role": "admin",
-      "route": "/modules/contabilidad/index.php?type=customer&id=592",
+      "route": "/modules/contabilidad/index.php?type=customer&id=594",
       "checks": [
         {
           "theme": "light",
@@ -888,7 +888,7 @@
           "outside": []
         }
       ],
-      "tabs": 9,
+      "tabs": 10,
       "title": "Ajustes | Konta",
       "menus": 3
     },
@@ -1020,7 +1020,7 @@
     },
     {
       "role": "seller",
-      "route": "/modules/venta_directa/index.php?id=7",
+      "route": "/modules/venta_directa/index.php?id=8",
       "checks": [
         {
           "theme": "light",

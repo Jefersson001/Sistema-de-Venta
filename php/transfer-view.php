@@ -20,5 +20,32 @@ function transferDecorateView(DOMDocument $dom,DOMXPath $xpath,string $current):
         $link=$dom->createElement('a',$label);$link->setAttribute('href',authBasePath().'/datos.php?'.http_build_query(['model'=>$model['key'],'action'=>$action,'source'=>$current]));$options->appendChild($link);
     }
     recordDecorateView($dom,$xpath,$current,$model,$options,$toolbar);
-    $menu->appendChild($options);$toolbar->appendChild($menu);
+    $menu->appendChild($options);
+    $pager=$xpath->query('./nav[contains(concat(" ",normalize-space(@class)," ")," record-pagination ")]',$toolbar)->item(0);
+    $context=$xpath->query('//main//div[contains(concat(" ",normalize-space(@class)," ")," module-context ")]')->item(0);
+    if($pager||$context){
+        $controls=$dom->createElement('div');$controls->setAttribute('class','record-toolbar-controls');
+        if($pager)$controls->appendChild($pager);$controls->appendChild($menu);
+        if($context){$context->appendChild($controls);}else{$toolbar->appendChild($controls);}
+    }else{$toolbar->appendChild($menu);}
+    if(!$context)return; // Embedded contact wizards keep their existing compact form.
+    parse_str(parse_url($current,PHP_URL_QUERY)??'',$query);
+    if(isset($query['id'])||isset($query['new'])){
+        foreach(iterator_to_array($xpath->query('./div/a[contains(concat(" ",normalize-space(@class)," ")," overview-link ")]',$toolbar)) as $back)$back->parentNode->removeChild($back);
+        if(in_array($model['save'],['sale_orders','purchase_orders','operations','payments','treasury'],true)){
+            $title=$xpath->query('.//h1',$toolbar)->item(0);
+            $sheet=$xpath->query('//main//*[contains(concat(" ",normalize-space(@class)," ")," contact-sheet ") and not(ancestor::dialog)]')->item(0);
+            if($title&&$sheet){
+                $heading=$dom->createElement('header');$heading->setAttribute('class','record-heading');$heading->appendChild($title);
+                foreach(iterator_to_array($xpath->query('.//*[contains(concat(" ",normalize-space(@class)," ")," quotation-status ") or contains(concat(" ",normalize-space(@class)," ")," document-state-groups ")]',$toolbar)) as $states)$heading->appendChild($states);
+                $sheet->insertBefore($heading,$sheet->firstChild);
+                if(in_array($model['save'],['sale_orders','purchase_orders'],true)&&$title->hasAttribute('id')){
+                    $section=$xpath->query('.//section[contains(concat(" ",normalize-space(@class)," ")," workspace-form-section ")]',$sheet)->item(0);
+                    if($section){$caption=$xpath->query('./h2[contains(concat(" ",normalize-space(@class)," ")," workspace-section-title ")]',$section)->item(0);if($caption){$section->setAttribute('aria-labelledby',$title->getAttribute('id'));$section->removeChild($caption);}}
+                }
+            }
+        }
+        foreach(iterator_to_array($xpath->query('./div[not(*) and not(normalize-space())]',$toolbar)) as $empty)$toolbar->removeChild($empty);
+        if(!$xpath->query('./*',$toolbar)->length)$toolbar->parentNode->removeChild($toolbar);
+    }
 }

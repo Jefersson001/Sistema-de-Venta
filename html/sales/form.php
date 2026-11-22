@@ -10,6 +10,7 @@ $storageDisplay = $locked ? ($record['storage_label'] ?? '') : ($selectedSeller[
         <ol class="quotation-status" aria-label="Estado de la orden de venta"><?php foreach (salesStatuses() as $key => $label): ?><li <?= $record['status'] === $key ? 'aria-current="step"' : '' ?>><?= $label ?></li><?php endforeach; ?></ol>
     </div>
     <?php if ($editing): ?><div class="document-actions">
+    <?php if(permissionHas('ventas.orders','send')): ?><a class="contact-button" data-open-invoice-email href="enviar.php?id=<?= (int)$record['id'] ?>">Enviar por correo</a><?php endif; ?>
     <?php if ($editing && $locked): ?>
         <?php $documentView = 'order'; require dirname(__DIR__) . '/commerce/links.php'; ?>
     <?php endif; ?>
@@ -85,3 +86,4 @@ $storageDisplay = $locked ? ($record['storage_label'] ?? '') : ($selectedSeller[
 <script type="application/json" data-currency-settings><?= json_encode($page['catalogs']['settings'],JSON_HEX_TAG|JSON_HEX_AMP|JSON_HEX_APOS|JSON_HEX_QUOT) ?></script><script src="../../js/product-commissions.js?v=<?= filemtime(dirname(__DIR__,2).'/js/product-commissions.js') ?>" defer></script><script src="../../js/currency.js" defer></script><script src="../../js/sales.js?v=<?= filemtime(dirname(__DIR__,2).'/js/sales.js') ?>" defer></script>
 
 <script type="application/json" data-order-address-catalog><?= json_encode($page['catalogs']['addresses']??[],JSON_HEX_TAG|JSON_HEX_AMP|JSON_HEX_APOS|JSON_HEX_QUOT) ?></script><script src="../../js/order-addresses.js?v=<?= filemtime(dirname(__DIR__,2).'/js/order-addresses.js') ?>" defer></script>
+<?php if($editing&&permissionHas('ventas.orders','send'))require dirname(__DIR__).'/partials/document-email-dialog.php'; ?>

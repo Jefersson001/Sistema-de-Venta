@@ -11,6 +11,9 @@
         "ext-dom": "*",
         "ext-curl": "*",
         "ext-fileinfo": "*",
-        "ext-zip": "*"
+        "ext-zip": "*",
+        "phpmailer/phpmailer": "^7.2",
+        "dompdf/dompdf": "^3.1",
+        "ext-openssl": "*"
     }
 }

@@ -1,5 +1,5 @@
 {
-  "date": "2026-11-16T11:37:22.279Z",
+  "date": "2026-11-22T02:39:11.855Z",
   "widths": [
     320,
     390,
@@ -260,6 +260,69 @@
       ],
       "tabs": 6,
       "title": "Dashboard | Konta",
+      "menus": 2
+    },
+    {
+      "role": "admin",
+      "route": "/modules/ajustes/correo.php",
+      "checks": [
+        {
+          "theme": "light",
+          "width": 320,
+          "overflow": false,
+          "scrollWidth": 320,
+          "undersized": [],
+          "smallFields": [],
+          "outside": []
+        },
+        {
+          "theme": "light",
+          "width": 390,
+          "overflow": false,
+          "scrollWidth": 390,
+          "undersized": [],
+          "smallFields": [],
+          "outside": []
+        },
+        {
+          "theme": "light",
+          "width": 430,
+          "overflow": false,
+          "scrollWidth": 430,
+          "undersized": [],
+          "smallFields": [],
+          "outside": []
+        },
+        {
+          "theme": "dark",
+          "width": 320,
+          "overflow": false,
+          "scrollWidth": 320,
+          "undersized": [],
+          "smallFields": [],
+          "outside": []
+        },
+        {
+          "theme": "dark",
+          "width": 390,
+          "overflow": false,
+          "scrollWidth": 390,
+          "undersized": [],
+          "smallFields": [],
+          "outside": []
+        },
+        {
+          "theme": "dark",
+          "width": 430,
+          "overflow": false,
+          "scrollWidth": 430,
+          "undersized": [],
+          "smallFields": [],
+          "outside": []
+        }
+      ],
+      "tabs": 0,
+      "title": "Correo saliente | Konta",
       "menus": 2
     },
     {
@@ -1524,6 +1587,132 @@
     },
     {
       "role": "admin",
+      "route": "/modules/compra_directa/index.php",
+      "checks": [
+        {
+          "theme": "light",
+          "width": 320,
+          "overflow": false,
+          "scrollWidth": 320,
+          "undersized": [],
+          "smallFields": [],
+          "outside": []
+        },
+        {
+          "theme": "light",
+          "width": 390,
+          "overflow": false,
+          "scrollWidth": 390,
+          "undersized": [],
+          "smallFields": [],
+          "outside": []
+        },
+        {
+          "theme": "light",
+          "width": 430,
+          "overflow": false,
+          "scrollWidth": 430,
+          "undersized": [],
+          "smallFields": [],
+          "outside": []
+        },
+        {
+          "theme": "dark",
+          "width": 320,
+          "overflow": false,
+          "scrollWidth": 320,
+          "undersized": [],
+          "smallFields": [],
+          "outside": []
+        },
+        {
+          "theme": "dark",
+          "width": 390,
+          "overflow": false,
+          "scrollWidth": 390,
+          "undersized": [],
+          "smallFields": [],
+          "outside": []
+        },
+        {
+          "theme": "dark",
+          "width": 430,
+          "overflow": false,
+          "scrollWidth": 430,
+          "undersized": [],
+          "smallFields": [],
+          "outside": []
+        }
+      ],
+      "tabs": 0,
+      "title": "Compras Directas | Konta",
+      "menus": 2
+    },
+    {
+      "role": "admin",
+      "route": "/modules/compra_directa/index.php?view=history",
+      "checks": [
+        {
+          "theme": "light",
+          "width": 320,
+          "overflow": false,
+          "scrollWidth": 320,
+          "undersized": [],
+          "smallFields": [],
+          "outside": []
+        },
+        {
+          "theme": "light",
+          "width": 390,
+          "overflow": false,
+          "scrollWidth": 390,
+          "undersized": [],
+          "smallFields": [],
+          "outside": []
+        },
+        {
+          "theme": "light",
+          "width": 430,
+          "overflow": false,
+          "scrollWidth": 430,
+          "undersized": [],
+          "smallFields": [],
+          "outside": []
+        },
+        {
+          "theme": "dark",
+          "width": 320,
+          "overflow": false,
+          "scrollWidth": 320,
+          "undersized": [],
+          "smallFields": [],
+          "outside": []
+        },
+        {
+          "theme": "dark",
+          "width": 390,
+          "overflow": false,
+          "scrollWidth": 390,
+          "undersized": [],
+          "smallFields": [],
+          "outside": []
+        },
+        {
+          "theme": "dark",
+          "width": 430,
+          "overflow": false,
+          "scrollWidth": 430,
+          "undersized": [],
+          "smallFields": [],
+          "outside": []
+        }
+      ],
+      "tabs": 0,
+      "title": "Compras Directas | Konta",
+      "menus": 2
+    },
+    {
+      "role": "admin",
       "route": "/modules/compras/configuracion.php?section=taxes",
       "checks": [
         {
@@ -1898,69 +2087,6 @@
       ],
       "tabs": 0,
       "title": "Devoluciones de clientes | Konta",
-      "menus": 2
-    },
-    {
-      "role": "admin",
-      "route": "/modules/venta_directa/cierre.php",
-      "checks": [
-        {
-          "theme": "light",
-          "width": 320,
-          "overflow": false,
-          "scrollWidth": 320,
-          "undersized": [],
-          "smallFields": [],
-          "outside": []
-        },
-        {
-          "theme": "light",
-          "width": 390,
-          "overflow": false,
-          "scrollWidth": 390,
-          "undersized": [],
-          "smallFields": [],
-          "outside": []
-        },
-        {
-          "theme": "light",
-          "width": 430,
-          "overflow": false,
-          "scrollWidth": 430,
-          "undersized": [],
-          "smallFields": [],
-          "outside": []
-        },
-        {
-          "theme": "dark",
-          "width": 320,
-          "overflow": false,
-          "scrollWidth": 320,
-          "undersized": [],
-          "smallFields": [],
-          "outside": []
-        },
-        {
-          "theme": "dark",
-          "width": 390,
-          "overflow": false,
-          "scrollWidth": 390,
-          "undersized": [],
-          "smallFields": [],
-          "outside": []
-        },
-        {
-          "theme": "dark",
-          "width": 430,
-          "overflow": false,
-          "scrollWidth": 430,
-          "undersized": [],
-          "smallFields": [],
-          "outside": []
-        }
-      ],
-      "tabs": 0,
-      "title": "Cierre del vendedor | Konta",
       "menus": 2
     },
     {
@@ -4353,7 +4479,7 @@
           "outside": []
         }
       ],
-      "tabs": 9,
+      "tabs": 10,
       "title": "Ajustes | Konta",
       "menus": 3
     },
@@ -6249,7 +6375,7 @@
     },
     {
       "role": "admin",
-      "route": "/modules/inventario/operaciones.php?type=delivery&id=561",
+      "route": "/modules/inventario/operaciones.php?type=delivery&id=562",
       "checks": [
         {
           "theme": "light",
@@ -6312,7 +6438,7 @@
     },
     {
       "role": "admin",
-      "route": "/modules/contabilidad/index.php?type=customer&id=593",
+      "route": "/modules/contabilidad/index.php?type=customer&id=594",
       "checks": [
         {
           "theme": "light",
@@ -6874,7 +7000,7 @@
         }
       ],
       "tabs": 0,
-      "title": "Cierre del vendedor | Konta",
+      "title": "Ventas Directas | Konta",
       "menus": 2
     },
     {

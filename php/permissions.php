@@ -97,6 +97,10 @@ function permissionRoute(string $path,array $query): ?string
     }
     if($file==='configuracion.php')return $module==='dashboard'?null:$module.'.configuration';
     return match($module.'/'.$file){
+        'ajustes/correo.php'=>'ajustes.mail',
+        'contabilidad/enviar.php'=>permissionInvoiceResource(($query['type']??'customer')==='supplier'?'supplier':'customer'),
+        'ventas/enviar.php'=>'ventas.orders',
+        'inventario/enviar.php'=>'inventario.deliveries',
         'compra_directa/index.php'=>'compra_directa.purchases',
         'venta_directa/index.php'=>'venta_directa.sales',
         'venta_directa/inventario.php'=>'venta_directa.stock',
@@ -125,6 +129,8 @@ function permissionRoute(string $path,array $query): ?string
 }
 function permissionAction(string $resource,mixed $action,?int $id): ?string
 {
+    if($resource==='ajustes.mail')return 'configure';
+    if($action==='send_documents')return 'send';
     if($resource==='compra_directa.purchases'&&$action==='direct_purchase')return 'create';
     if(!is_string($action))return null;
     if(str_ends_with($resource,'.configuration'))return 'configure';

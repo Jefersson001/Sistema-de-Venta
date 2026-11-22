@@ -47,7 +47,7 @@ function accessResources(): array
         ['compra_directa','purchases','Compras directas','read,create',false],
         ['inventario','products','Productos y variantes','read,create,edit,view_cost,set_commission',false],
         ['inventario','lots','Lotes y números de serie','read,create,edit',false],
-        ['inventario','deliveries','Entregas','read,create,edit,confirm,reserve,validate,cancel,return,create_invoice',true],
+        ['inventario','deliveries','Entregas','read,create,edit,confirm,reserve,validate,cancel,return,create_invoice,send',true],
         ['inventario','receipts','Recepciones','read,create,edit,confirm,reserve,validate,cancel,return,create_invoice',false],
         ['inventario','internal','Movimientos internos','read,create,edit,confirm,reserve,validate,cancel',false],
         ['inventario','stock','Existencias por ubicación','read',false],
@@ -65,6 +65,7 @@ function accessResources(): array
         ['contabilidad','configuration','Monedas, cuentas, medios, conceptos y términos de pago','read,configure',false],
         ['ajustes','general','Ajustes generales','read',false],
         ['ajustes','company','Empresa','read,edit',false],
+        ['ajustes','mail','Correo saliente por empresa','read,configure',false],
         ['ajustes','groups','Grupos de acceso','read,create,edit,archive',false],
         ['ajustes','users','Usuarios','read,create,edit,archive,password,assign_groups',false],
     ];
@@ -80,6 +81,7 @@ function accessResources(): array
 
 function accessActionLabel(string $resource,string $action): string
 {
+    if($resource==='inventario.deliveries'&&$action==='send')return 'Enviar por correo';
     if($resource==='venta_directa.requests')return match($action){'confirm'=>'Aprobar solicitud','validate'=>'Entregar o recibir mercancía','cancel'=>'Rechazar o cancelar',default=>accessActions()[$action]};
     if($resource==='restaurante.accounts')return match($action){'confirm'=>'Facturar','pay'=>'Cobrar','cancel'=>'Cerrar sin consumo',default=>accessActions()[$action]};
     return accessActions()[$action];
@@ -166,7 +168,7 @@ function accessInitialGroups(): array
             'inventario.configuration'=>['all','read'], 'ventas.configuration'=>['all','read'],
             'ventas.orders'=>['own','read,create,edit,send,confirm,cancel,create_delivery,create_invoice'],
             'ventas.commissions'=>['own','read'],'ventas.commission_payments'=>['own','read'],
-            'inventario.deliveries'=>['own','read'],'contabilidad.customer_invoices'=>['own','read'],
+            'inventario.deliveries'=>['own','read,send'],'contabilidad.customer_invoices'=>['own','read'],
         ]],
         'purchases'=>['Compras','Compras y proveedores; generación de recepciones y facturas de proveedor.',[
             'compra_directa.purchases'=>['all','read,create'],
@@ -179,7 +181,7 @@ function accessInitialGroups(): array
         'inventory'=>['Inventario','Productos, existencias, operaciones y configuración de almacenes.',[
             'dashboard.inventory'=>['all','read'],'dashboard.tasks'=>['all','read'],
             'contactos.contacts'=>['all','read'], 'inventario.products'=>['all','read,create,edit'],
-            'inventario.deliveries'=>['all','read,create,edit,confirm,reserve,validate,cancel,return'],
+            'inventario.deliveries'=>['all','read,create,edit,confirm,reserve,validate,cancel,return,send'],
             'inventario.receipts'=>['all','read,create,edit,confirm,reserve,validate,cancel,return'],
             'inventario.internal'=>['all','*'],'inventario.stock'=>['all','read'],
             'inventario.movements'=>['all','read'],'inventario.configuration'=>['all','read,configure'],

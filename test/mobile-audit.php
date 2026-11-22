@@ -16,6 +16,10 @@ try{
     $token=prepareFirstAdministrator($db);$admin=createFirstAdministrator($db,['name'=>'Administrador QA móvil','login'=>$login,'password'=>$password,'password_confirmation'=>$password],hash('sha256',$token));
     foreach(['20261113131544_ventas_directas.php','20261113161546_separar_supervision_ventas_directas.php','20261113171011_completar_operacion_venta_directa.php'] as $file){$migration=require dirname(__DIR__).'/php/migrations/versioned/'.$file;$migration($db);}
     $db->exec('SET @nexo_company_id=1, @nexo_actor_id='.$admin);
+    // Visual fixtures must not depend on the business company's current setup.
+    if(!$db->query('SELECT id FROM accounting_currency_settings WHERE company_id=1 AND id=1')->fetchColumn())$db->exec("INSERT INTO accounting_currency_settings(id,primary_code,alternate_code) VALUES(1,'USD','VES')");
+    foreach(['USD'=>['Dólar','$'],'VES'=>['Bolívar','Bs.']] as $code=>$labels){$q=$db->prepare('SELECT id FROM accounting_currencies WHERE company_id=1 AND code=?');$q->execute([$code]);if(!$q->fetchColumn())$db->prepare('INSERT INTO accounting_currencies(code,name,symbol) VALUES(?,?,?)')->execute([$code,...$labels]);}
+    foreach(['customer'=>'Clientes','supplier'=>'Proveedores'] as $kind=>$label){$q=$db->prepare('SELECT id FROM inventory_locations WHERE company_id=1 AND system_key=?');$q->execute(['default_'.$kind]);if(!$q->fetchColumn())$db->prepare('INSERT INTO inventory_locations(name,location_type,system_key) VALUES(?,?,?)')->execute([$label,$kind,'default_'.$kind]);}
     $types=$db->query('SELECT system_key,id FROM contact_types WHERE system_key IS NOT NULL')->fetchAll(PDO::FETCH_KEY_PAIR);
     $db->exec("INSERT INTO inventory_warehouses(name) VALUES('Almacén QA móvil')");$warehouse=(int)$db->lastInsertId();
     $db->prepare("INSERT INTO inventory_locations(name,warehouse_id,location_type) VALUES(?,?,'internal')")->execute(['Ubicación QA móvil',$warehouse]);$location=(int)$db->lastInsertId();
@@ -25,7 +29,7 @@ try{
     $db->prepare('INSERT INTO inventory_stock(product_id,location_id,quantity) VALUES(?,?,50)')->execute([$product,$location]);
     $db->exec("INSERT INTO accounting_payment_terms(name,days) VALUES('QA 15 días',15)");$term=(int)$db->lastInsertId();
     $db->exec("INSERT INTO accounting_payment_accounts(name,account_type,currency_code) VALUES('Caja QA móvil','cash','USD')");
-    require_once dirname(__DIR__).'/php/bcv-sync.php';bcvApplyPublication($db,['rate'=>'100.00','effective_date'=>date('Y-m-d'),'source'=>'bcv']);
+    require_once dirname(__DIR__).'/php/bcv-sync.php';bcvApplyPublication($db,['rate'=>'100.00','effective_date'=>commerceToday(),'source'=>'bcv']);
     $group=(int)$db->query("SELECT id FROM access_groups WHERE system_key='direct_sales' LIMIT 1")->fetchColumn();
     $sellerLogin=$login.'.seller';$sellerUser=saveAuthUser($db,['name'=>'Vendedor QA móvil','login'=>$sellerLogin,'active'=>'1','groups'=>[$group],'company_ids'=>[1],'contact_id'=>$seller,'password'=>$password,'password_confirmation'=>$password],null,null,$admin,bin2hex(random_bytes(32)));
     $db->prepare('UPDATE auth_users SET must_change_password=0 WHERE id=?')->execute([$sellerUser]);
@@ -44,7 +48,7 @@ try{
     }
     $path='/modules/venta_directa/index.php';[, $html]=authTestRequest($server,$path,$cookies['seller']);
     $response=authTestRequest($server,$path,$cookies['seller'],['csrf'=>authTestToken($html),'action'=>'direct_checkout','request_key'=>bin2hex(random_bytes(32)),'seller_id'=>$seller,'customer_id'=>$customer,'payment_term_id'=>$term,'lines_json'=>json_encode($saleLines)]);
-    if($response[0]!==303||!preg_match('/[?&]id=(\d+)/',$response[2],$match))throw new RuntimeException('No se creó la venta aislada: '.mb_substr(strip_tags($response[1]),-900));
+    if($response[0]!==303||!preg_match('/[?&]id=(\d+)/',$response[2],$match))throw new RuntimeException('No se creó la venta aislada: '.(preg_match_all('~<p[^>]*class="[^"]*(?:notice|error)[^"]*"[^>]*>(.*?)</p>~s',$response[1],$failures)?implode(' ',array_map('strip_tags',$failures[1])):mb_substr(strip_tags($response[1]),0,900)));
     $checkout=(int)$match[1];$row=$db->query('SELECT * FROM direct_sale_checkouts WHERE id='.$checkout)->fetch();
     if($contactsPurchases){
         $db->exec('SET @nexo_company_id=1, @nexo_actor_id='.$admin);

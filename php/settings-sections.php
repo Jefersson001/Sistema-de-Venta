@@ -6,6 +6,7 @@ function businessSettingsSections(): array
     return [
         'general'=>['name'=>'General','description'=>'Identidad y monedas del negocio.','links'=>[
             ['Empresa','Nombre, documento, dirección y logo del negocio.','empresa.php'],
+            ['Correo saliente','Remitente y conexión SMTP independientes para cada empresa.','correo.php'],
             ['Monedas del negocio','Moneda principal, alterna y su tasa vigente.','../contabilidad/configuracion.php?section=currency_settings'],
             ['Catálogo de monedas','Nombres, símbolos y tasas por fecha.','../contabilidad/configuracion.php?section=currencies'],
         ]],

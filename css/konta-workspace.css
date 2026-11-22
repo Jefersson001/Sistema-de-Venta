@@ -36,6 +36,15 @@
 .module-workspace .konta-header .user-menu-options button:hover { background:var(--k-green-soft); }
 .module-workspace .konta-header .avatar { color:var(--k-green-dark); background:var(--k-green-soft); border-color:var(--k-line); }
 .module-workspace .module-context { gap:10px; margin-bottom:12px; }
+.module-workspace .module-context:has(>.record-toolbar-controls) { display:flex; align-items:center; flex-wrap:wrap; }
+.module-workspace .module-context:has(>.record-toolbar-controls)>.module-context-copy { flex:1; min-width:0; }
+@media(max-width:720px){
+    .module-workspace .module-context:has(>.record-toolbar-controls) { display:grid; grid-template-columns:auto minmax(0,1fr); align-items:start; gap:10px; }
+    .module-workspace .module-context:has(>.record-toolbar-controls)>.module-context-copy { min-width:0; }
+    .module-workspace .module-context:has(>.record-toolbar-controls)>.record-toolbar-controls { grid-column:1/-1; width:100%; margin:0; }
+    .module-workspace .module-context:has(>.record-toolbar-controls) .module-breadcrumb ol { display:flex; flex-wrap:wrap; column-gap:5px; row-gap:3px; }
+}
+.module-workspace .invoice-toolbar:not(:has(>*)) { display:none; }
 .module-workspace .konta-context-icon { display:grid; place-items:center; flex:0 0 34px; width:34px; height:34px; border-radius:10px; color:var(--k-green-dark); background:var(--k-green-soft); }
 .module-workspace .konta-context-icon svg { width:19px; height:19px; }
 .module-workspace .module-context-copy>strong { color:var(--k-text); font-size:13px; }
@@ -99,6 +108,20 @@
 .module-workspace .workspace-form-section+.workspace-form-section { padding-top:18px; border-color:var(--k-line); }
 .module-workspace .contact-form-actions { bottom:12px; gap:8px; margin-top:20px; padding:12px; border-color:var(--k-line); border-radius:10px; background:var(--k-surface); box-shadow:0 4px 14px #101c310a; }
 .module-workspace .document-actions { padding:10px 12px; gap:8px; border-color:var(--k-line); border-radius:10px; background:var(--k-surface); }
+.module-workspace .record-toolbar-controls { display:flex; align-items:center; justify-content:flex-end; gap:8px; margin-inline-start:auto; max-width:100%; flex:0 0 auto; }
+.module-workspace .record-toolbar-controls>.record-pagination { margin:0; flex-wrap:nowrap; }
+.module-workspace .record-toolbar-controls>.transfer-menu { margin:0; flex-shrink:0; }
+@media(max-width:720px){
+    .module-workspace .record-toolbar-controls { gap:6px; flex-wrap:wrap; }
+    .module-workspace .record-toolbar-controls .contact-button { min-height:44px; padding:8px; font-size:12px; }
+}
+@media(min-width:721px){
+    .module-workspace .document-actions { justify-content:flex-start; align-items:center; }
+    .module-workspace .document-actions>div.quotation-state-actions { display:contents; }
+    .module-workspace .document-actions form { display:inline-flex; flex:0 0 auto; margin:0; }
+    .module-workspace .document-actions .contact-button { flex:0 0 auto; width:auto; white-space:nowrap; }
+    .module-workspace .document-actions :is(.workspace-danger,.workspace-danger-form) { margin-inline-start:0; }
+}
 .module-workspace .quotation-status { flex-wrap:wrap; gap:5px; }
 .module-workspace .quotation-status li { padding:5px 9px; border-radius:6px; font-size:11px; }
 .module-workspace .quotation-status li:not([aria-current]):not(.is-active) { border-color:var(--k-line); color:var(--k-muted); background:var(--k-surface); }
@@ -108,6 +131,13 @@
 .module-workspace .konta-rate .connection-offline [data-daily-rate-label] { color:#875c16; }
 .module-workspace .document-state-groups { display:flex; flex-wrap:wrap; gap:8px 16px; align-items:center; }
 .module-workspace .document-state-group { display:flex; flex-wrap:wrap; gap:6px; align-items:center; }
+.module-workspace .invoice-record-heading { display:flex; flex-wrap:wrap; align-items:center; justify-content:space-between; gap:10px 20px; margin-bottom:16px; padding-bottom:12px; border-bottom:1px solid var(--k-line); }
+.module-workspace .invoice-record-heading h1 { margin:0; font-size:24px; line-height:1.25; overflow-wrap:anywhere; }
+.module-workspace .invoice-record-heading .document-state-groups { gap:8px 12px; }
+.module-workspace .record-heading { display:flex; flex-wrap:wrap; align-items:center; justify-content:space-between; gap:10px 20px; margin-bottom:16px; padding-bottom:12px; border-bottom:1px solid var(--k-line); }
+.module-workspace .record-heading h1 { margin:0; font-size:24px; line-height:1.25; overflow-wrap:anywhere; }
+.module-workspace .record-heading .quotation-status { margin:0; max-width:100%; }
+.module-workspace .invoice-toolbar { margin-bottom:10px; }
 .module-workspace .document-state-label { color:var(--k-muted); font-size:11px; }
 .module-workspace :is(.quotation-totals,.invoice-outstanding,.workspace-balance-summary>div) { border-color:var(--k-line); border-radius:11px; background:var(--k-surface); }
 .module-workspace .quotation-totals { padding:8px 16px; }
