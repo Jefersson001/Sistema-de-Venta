@@ -67,6 +67,7 @@ try{
     balanceCheck($commissionOwn['payables']===['USD'=>'7.50','VES'=>'50.00']&&$commissionOwn['balances']['customer']===null&&!$commissionOwn['balances']['supplier']['includes_suppliers'],'Las comisiones propias incluyen otros vendedores o deuda de proveedores.');
     [, $html]=authTestRequest($s,'/modules/dashboard/index.php',$commissionCookie);
     balanceCheck(str_contains($html,'id="dashboard-tab-balances"')&&str_contains($html,'Comisiones pendientes')&&!str_contains($html,'>Proveedores</dt>'),'El usuario de comisiones no puede ver su resumen o ve deudas de proveedores.');
+    require __DIR__.'/outstanding-seller-cases.php';
     [$status]=authTestRequest($s,$path.'?due=invalid',$cookie);balanceCheck($status===422,'Se aceptaron filtros inválidos.');
     echo "PASS: cuentas por cobrar arriba/pagar abajo, pagos parciales y en proceso, notas de crédito, vencidos, monedas, empresas, permisos propios, dashboard y exportación.\n";
 }finally{foreach($cookies as $cookie)if(is_file($cookie))unlink($cookie);stopAuthTestServer($s);}

@@ -1,14 +1,21 @@
 <?php
 declare(strict_types=1);
 require_once __DIR__.'/payments-repository.php';
+require_once __DIR__.'/commission-repository.php';
 
 /** Current balances: only confirmed allocations reduce the debt. Pending payments remain visible. */
 function outstandingInvoiceRows(PDO $db,string $type,string $condition,array $filters=[],array $flags=[]): array
 {
     if(!in_array($type,['customer','supplier'],true))throw new InvalidArgumentException('Tipo de cuenta inválido.');
     $where=["i.invoice_type=?","i.status='posted'","i.document_type='invoice'","i.payment_state!='reversed'",'('.$condition.')'];$args=[$type];
+    foreach(['date_from'=>'>=','date_to'=>'<='] as $field=>$operator)if(($filters[$field]??'')!==''){$where[]='i.invoice_date '.$operator.' ?';$args[]=$filters[$field];}
     if(($filters['q']??'')!==''){$where[]='(c.name LIKE ? OR i.name LIKE ?)';$term='%'.$filters['q'].'%';array_push($args,$term,$term);}
     if($id=accessId($filters['contact_id']??null)){$where[]='i.contact_id=?';$args[]=$id;}
+    if($type==='supplier'&&($id=accessId($filters['supplier_id']??null))){$where[]='i.contact_id=?';$args[]=$id;}
+    if($type==='customer'&&($filters['salesperson_id']??'')!==''){
+        if($filters['salesperson_id']==='none')$where[]='i.salesperson_id IS NULL';
+        else{$where[]='i.salesperson_id=?';$args[]=(int)$filters['salesperson_id'];}
+    }
     $extra='';foreach($flags as $name=>$expression){if(!in_array($name,['show_business','show_task'],true))throw new LogicException('Indicador inválido.');$extra.=',('.$expression.') AS '.$name;}
     $q=$db->prepare("SELECT i.*,
         c.name AS contact_name,b.name AS company_name,
@@ -43,9 +50,52 @@ function outstandingSummarize(array $rows): array
 
 function outstandingFilters(array $input): array
 {
-    $q=$input['q']??'';$due=$input['due']??'all';$contact=$input['contact_id']??null;
+    $q=$input['q']??'';$due=$input['due']??'all';$contact=$input['contact_id']??null;$seller=$input['salesperson_id']??'';
+    $supplier=$input['supplier_id']??'';
+    $dates=[];
+    foreach(['date_from','date_to'] as $field){
+        $value=$input[$field]??'';
+        if(!is_string($value))throw new InvalidArgumentException('Selecciona fechas válidas para el informe.');
+        if($value!==''){$parsed=DateTimeImmutable::createFromFormat('!Y-m-d',$value);if(!$parsed||$parsed->format('Y-m-d')!==$value||$value<'1000-01-01'||$value>'9999-12-31')throw new InvalidArgumentException('Selecciona fechas válidas para el informe.');}
+        $dates[$field]=$value;
+    }
+    if($dates['date_from']!==''&&$dates['date_to']!==''&&$dates['date_from']>$dates['date_to'])throw new InvalidArgumentException('La fecha Desde no puede ser posterior a Hasta.');
+    if(!is_string($supplier)||($supplier!==''&&!accessId($supplier)))throw new InvalidArgumentException('Selecciona un proveedor válido.');
+    if(!is_string($seller)||($seller!==''&&$seller!=='none'&&!accessId($seller)))throw new InvalidArgumentException('Selecciona un vendedor válido.');
     if(!is_string($q)||!is_string($due)||!in_array($due,['all','overdue'],true)||($contact!==null&&!accessId($contact)))throw new InvalidArgumentException('Revisa los filtros del informe.');
-    return ['q'=>mb_substr(trim($q),0,160),'due'=>$due,'contact_id'=>accessId($contact)];
+    return ['q'=>mb_substr(trim($q),0,160),'due'=>$due,'contact_id'=>accessId($contact),'salesperson_id'=>$seller,'supplier_id'=>$supplier]+$dates;
+}
+
+function outstandingSupplierOptions(PDO $db): array
+{
+    if(!permissionHas('contabilidad.supplier_invoices'))return [];
+    return $db->query("SELECT s.id,s.name FROM contacts s WHERE EXISTS(SELECT 1 FROM accounting_invoices i WHERE i.contact_id=s.id AND i.invoice_type='supplier' AND i.document_type='invoice' AND i.status='posted' AND ".permissionWhere('contabilidad.supplier_invoices','i').') ORDER BY s.name,s.id')->fetchAll();
+}
+
+function outstandingSellerOptions(PDO $db): array
+{
+    $conditions=[];
+    if(permissionHas('contabilidad.customer_invoices'))$conditions[]=permissionWhere('contabilidad.customer_invoices','i');
+    if(permissionHas('ventas.commissions'))$conditions[]=permissionWhere('ventas.commissions','i');
+    if(!$conditions)return [];
+    return $db->query("SELECT s.id,s.name FROM contacts s WHERE EXISTS(SELECT 1 FROM accounting_invoices i WHERE i.salesperson_id=s.id AND i.invoice_type='customer' AND i.document_type='invoice' AND i.status='posted' AND (".implode(' OR ',$conditions).')) ORDER BY s.name,s.id')->fetchAll();
+}
+
+/** Seller commissions remain separate from supplier debts and use their native permission scope. */
+function outstandingCommissionReport(PDO $db,array $filters): ?array
+{
+    if(!permissionHas('ventas.commissions'))return null;
+    $seller=$filters['salesperson_id']??'';$rows=[];$currencies=[];
+    if($seller!=='none')foreach(loadSalesCommissions($db,null,$seller===''?null:(int)$seller) as $row){
+        if(bccomp($row['commission_pending'],'0',2)<=0)continue;
+        if(($filters['date_from']??'')!==''&&$row['invoice_date']<$filters['date_from'])continue;
+        if(($filters['date_to']??'')!==''&&$row['invoice_date']>$filters['date_to'])continue;
+        if(!empty($filters['contact_id'])&&(int)$filters['contact_id']!==(int)$row['contact_id'])continue;
+        $search=$filters['q']??'';
+        if($search!==''&&mb_stripos($row['name'].' '.$row['customer_name'].' '.$row['seller_name'],$search)===false)continue;
+        $rows[]=$row;$code=$row['currency_code'];$currencies[$code]=bcadd($currencies[$code]??'0.00',$row['commission_pending'],2);
+    }
+    ksort($currencies);return ['rows'=>$rows,'currencies'=>$currencies,'count'=>count($rows)];
 }
 
 function loadOutstandingReport(PDO $db,array $filters=[],bool $dashboard=false): array
