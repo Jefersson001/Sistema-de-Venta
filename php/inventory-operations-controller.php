@@ -1,5 +1,6 @@
 <?php
 declare(strict_types=1);
+require_once __DIR__.'/seller-list-filter.php';
 require_once __DIR__ . '/inventory-controller.php';
 require_once __DIR__ . '/inventory-operations-repository.php';
 require_once __DIR__ . '/commerce-repository.php';
@@ -134,6 +135,11 @@ function renderInventoryOperations(): void
         if ($page['view'] === 'list' && $page['available']) {
             $page['search'] = is_string($_GET['q'] ?? null) ? mb_substr(trim($_GET['q']), 0, 160) : '';
             $params = ['type' => $type]; $where = ' WHERE o.operation_type = :type AND '.permissionWhere(permissionOperationResource($type),'o');
+            if($type==='delivery'){
+                $sellerColumn='(SELECT seller_order.salesperson_id FROM sales_quotations seller_order WHERE seller_order.id=o.quotation_id)';
+                $page['sellerFilter']=sellerListFilter($db,permissionOperationResource($type),'inventory_operations','o',$sellerColumn,"o.operation_type='delivery'");
+                $where.=sellerListCondition($page['sellerFilter'],$sellerColumn,$params);
+            }
             foreach(['sale_id'=>'quotation_id','purchase_id'=>'purchase_order_id'] as $key=>$column) if($filterId=inventoryId($_GET[$key]??null)) { $where.=' AND o.'.$column.' = :'.$key; $params[$key]=$filterId; }
             if ($page['search'] !== '') { $where .= ' AND (o.name LIKE :reference OR c.name LIKE :contact)'; $params['reference'] = $params['contact'] = '%' . $page['search'] . '%'; }
             $from = ' FROM inventory_operations o LEFT JOIN contacts c ON c.id = o.contact_id';

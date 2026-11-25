@@ -1,5 +1,6 @@
 <?php
 declare(strict_types=1);
+require_once __DIR__.'/seller-list-filter.php';
 require_once __DIR__ . '/connection.php';
 require_once __DIR__ . '/sales-repository.php';
 require_once __DIR__ . '/sales-delivery-repository.php';
@@ -72,6 +73,8 @@ function renderSalesQuotations(): void
             $status = $_GET['status'] ?? 'all';
             $page['statusFilter'] = is_string($status) && in_array($status, ['quotations', 'all', 'draft', 'sent', 'sale', 'cancel'], true) ? $status : 'all';
             $where = [permissionWhere('ventas.orders','q')]; $params = [];
+            $page['sellerFilter']=sellerListFilter($db,'ventas.orders','sales_quotations','q','q.salesperson_id');
+            $sellerCondition=sellerListCondition($page['sellerFilter'],'q.salesperson_id',$params);if($sellerCondition!=='')$where[]=substr($sellerCondition,5);
             if ($page['statusFilter'] === 'quotations') { $where[] = "q.status IN ('draft', 'sent')"; }
             elseif ($page['statusFilter'] !== 'all') { $where[] = 'q.status = :status'; $params['status'] = $page['statusFilter']; }
             if ($page['search'] !== '') { $where[] = '(q.name LIKE :reference OR c.name LIKE :customer)'; $params['reference'] = '%' . $page['search'] . '%'; $params['customer'] = $params['reference']; }

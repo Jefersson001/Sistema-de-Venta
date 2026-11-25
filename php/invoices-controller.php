@@ -1,5 +1,6 @@
 <?php
 declare(strict_types=1);
+require_once __DIR__.'/seller-list-filter.php';
 require_once __DIR__ . '/accounting-controller.php';
 require_once __DIR__ . '/commerce-repository.php';
 require_once __DIR__ . '/invoice-status-repository.php';
@@ -129,6 +130,10 @@ function renderAccountingInvoices(): void
             $page['search'] = is_string($_GET['q'] ?? null) ? mb_substr(trim($_GET['q']), 0, 160) : '';
             $page['statusFilter'] = is_string($_GET['status'] ?? null) && isset(invoiceFilterStates()[$_GET['status']]) ? $_GET['status'] : 'all';
             $params = ['type' => $type]; $where = ' WHERE i.invoice_type = :type AND '.permissionWhere(permissionInvoiceResource($type),'i');
+            if($type==='customer'){
+                $page['sellerFilter']=sellerListFilter($db,permissionInvoiceResource($type),'accounting_invoices','i','i.salesperson_id',"i.invoice_type='customer'");
+                $where.=sellerListCondition($page['sellerFilter'],'i.salesperson_id',$params);
+            }
             foreach(['sale_id','purchase_id'] as $key) if($filterId=salesId($_GET[$key]??null)) { $where.=' AND i.'.$key.' = :'.$key; $params[$key]=$filterId; }
             if ($page['search'] !== '') { $where .= ' AND (i.name LIKE :reference OR c.name LIKE :contact)'; $params['reference'] = $params['contact'] = '%' . $page['search'] . '%'; }
             if (isset(invoiceStatuses()[$page['statusFilter']])) { $where .= ' AND i.status = :status'; $params['status'] = $page['statusFilter']; }
