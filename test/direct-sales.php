@@ -171,7 +171,7 @@ try{
             $db->prepare("INSERT INTO inventory_products(name,sale_enabled,product_type,sale_price,currency_code) VALUES(?,1,'goods',1,'USD')")->execute(['ZZ '.$prefix.' catalog '.str_pad((string)$n,3,'0',STR_PAD_LEFT)]);$catalogProduct=(int)$db->lastInsertId();
             $db->prepare('INSERT INTO inventory_stock(product_id,location_id,quantity) VALUES(?,?,2)')->execute([$catalogProduct,$locations['seller']]);
         }
-        $env=getenv();$env['NEXO_TEST_BASE_URL']=$server['url'];$env['NEXO_TEST_LOGIN']=$logins['seller'];$env['NEXO_TEST_PASSWORD']=$password;$env['NEXO_DIRECT_CUSTOMER']=(string)$customer;$env['NEXO_DIRECT_PRODUCT']=(string)$product;$env['NEXO_DIRECT_SERIAL_PRODUCT']=(string)$serialProduct;
+        $env=getenv();$env['NEXO_TEST_BASE_URL']=$server['url'];$env['NEXO_TEST_LOGIN']=$logins['seller'];$env['NEXO_TEST_PASSWORD']=$password;$env['NEXO_DIRECT_CUSTOMER']=(string)$customer;$env['NEXO_DIRECT_PRODUCT']=(string)$product;$env['NEXO_DIRECT_SERIAL_PRODUCT']=(string)$serialProduct;$env['NEXO_DIRECT_USED_KEY']=$salePost['request_key'];
         $process=proc_open(['node',__DIR__.'/direct-sales-ui.js'],[0=>['pipe','r'],1=>STDOUT,2=>STDERR],$pipes,dirname(__DIR__),$env,['bypass_shell'=>true,'create_new_console'=>false]);fclose($pipes[0]);if(proc_close($process)!==0)throw new RuntimeException('Falló la revisión del navegador.');
     }
     echo "PASS: venta directa de contado/crédito, documentos nativos, impuestos/comisiones, stock, pagos separados, reintentos, permisos, solicitud y transferencia parcial idempotente; migración conserva datos.\n";
