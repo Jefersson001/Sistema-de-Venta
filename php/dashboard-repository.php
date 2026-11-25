@@ -47,7 +47,7 @@ function loadDashboard(PDO $db): array
         foreach(loadSalesCommissions($db,null,null,null,"($commissionBusiness) AND ($commissionAccess)") as $commission) {
             if(bccomp($commission['commission_pending'],'0',2)<=0)continue;
             $code=$commission['currency_code'];
-            $amounts[$code]??=['code'=>$code,'balance'=>'0.00','supplier_balance'=>'0.00','commission_pending'=>'0.00','commission_count'=>0,'overdue'=>'0.00','pending'=>'0.00','count'=>0];
+            $amounts[$code]??=['code'=>$code,'balance'=>'0.00','supplier_balance'=>'0.00','commission_pending'=>'0.00','commission_count'=>0,'overdue'=>'0.00','not_due'=>'0.00','pending'=>'0.00','count'=>0];
             $amounts[$code]['commission_pending']=bcadd($amounts[$code]['commission_pending'],$commission['commission_pending'],2);
             $amounts[$code]['balance']=bcadd($amounts[$code]['balance'],$commission['commission_pending'],2);
             $amounts[$code]['commission_count']++;

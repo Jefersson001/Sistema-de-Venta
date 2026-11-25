@@ -37,9 +37,10 @@ function outstandingSummarize(array $rows): array
     $currencies=[];$groups=[];
     foreach($rows as $row){
         $code=$row['currency_code'];$key=$row['company_id'].':'.$row['contact_id'].':'.$code;
-        $currencies[$code]??=['code'=>$code,'balance'=>'0.00','overdue'=>'0.00','pending'=>'0.00','count'=>0];
-        $groups[$key]??=['company_id'=>(int)$row['company_id'],'company_name'=>$row['company_name'],'contact_id'=>(int)$row['contact_id'],'contact_name'=>$row['contact_name'],'code'=>$code,'balance'=>'0.00','overdue'=>'0.00','pending'=>'0.00','count'=>0,'invoices'=>[]];
+        $currencies[$code]??=['code'=>$code,'balance'=>'0.00','overdue'=>'0.00','not_due'=>'0.00','pending'=>'0.00','count'=>0];
+        $groups[$key]??=['company_id'=>(int)$row['company_id'],'company_name'=>$row['company_name'],'contact_id'=>(int)$row['contact_id'],'contact_name'=>$row['contact_name'],'code'=>$code,'balance'=>'0.00','overdue'=>'0.00','not_due'=>'0.00','pending'=>'0.00','count'=>0,'invoices'=>[]];
         foreach(['balance','pending'] as $amount){$currencies[$code][$amount]=bcadd($currencies[$code][$amount],$row[$amount],2);$groups[$key][$amount]=bcadd($groups[$key][$amount],$row[$amount],2);}
+        if(!$row['overdue']){$currencies[$code]['not_due']=bcadd($currencies[$code]['not_due'],$row['balance'],2);$groups[$key]['not_due']=bcadd($groups[$key]['not_due'],$row['balance'],2);}
         if($row['overdue']){$currencies[$code]['overdue']=bcadd($currencies[$code]['overdue'],$row['balance'],2);$groups[$key]['overdue']=bcadd($groups[$key]['overdue'],$row['balance'],2);}
         $currencies[$code]['count']++;$groups[$key]['count']++;$groups[$key]['invoices'][]=$row;
     }

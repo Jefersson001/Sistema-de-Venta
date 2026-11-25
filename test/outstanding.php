@@ -24,6 +24,8 @@ try{
     $one=balanceDb($s,[1],$admin);$filters=outstandingFilters(['q'=>$prefix]);$report=loadOutstandingReport($one,$filters);$customer=array_column($report['customer']['currencies'],null,'code');
     balanceCheck($customer['USD']['balance']==='85.00'&&$customer['USD']['overdue']==='50.00'&&$customer['USD']['pending']==='10.00'&&$customer['VES']['balance']==='1000.00','El saldo no descuenta pagos/notas, mezcla monedas o incluye borradores/reversiones.');
     balanceCheck($report['supplier']['currencies'][0]['balance']==='70.00','Saldo por pagar incorrecto.');
+    balanceCheck($customer['USD']['not_due']==='35.00'&&$customer['VES']['not_due']==='1000.00'&&$report['supplier']['currencies'][0]['not_due']==='70.00','Por vencer debe incluir el saldo no vencido, separado de los pagos en proceso.');
+    foreach([$report['customer'],$report['supplier']] as $section)foreach($section['currencies'] as $amount)balanceCheck(bcadd($amount['overdue'],$amount['not_due'],2)===$amount['balance'],'Vencido y por vencer no suman el saldo pendiente.');
     $overdue=loadOutstandingReport($one,outstandingFilters(['q'=>$prefix,'due'=>'overdue']));balanceCheck($overdue['customer']['count']===1&&$overdue['supplier']['count']===0,'El filtro de vencidas incluye documentos no vencidos.');
     $db->exec('SET @nexo_company_id='.$second);$db->prepare('INSERT INTO contacts(name,type_id) VALUES(?,?)')->execute([$prefix.' empresa 2',$types['client']]);$otherContact=(int)$db->lastInsertId();
     $db->prepare("INSERT INTO accounting_invoices(name,invoice_type,contact_id,invoice_address,invoice_date,base_amount,total_amount,status,currency_code) VALUES(?,'customer',?,'',?,200,200,'posted','USD')")->execute([$prefix.'OTHER',$otherContact,$today]);
@@ -52,6 +54,7 @@ try{
     [, $body]=authTestRequest($s,'/modules/dashboard/resumen.php?period=today',$cookie);$withCommissions=json_decode($body,true)['dashboard'];
     balanceCheck($withCommissions['payables']['USD']===bcadd($baselinePayables['USD']??'0.00','17.50',2)&&$withCommissions['payables']['VES']===bcadd($baselinePayables['VES']??'0.00','50.00',2),'Las comisiones pendientes no se suman por moneda o se limitan por fecha.');
     $totals=array_column($withCommissions['balances']['supplier']['currencies'],null,'code');
+    balanceCheck(bcadd($totals['USD']['overdue'],$totals['USD']['not_due'],2)===$totals['USD']['supplier_balance'],'Por vencer de proveedores incluyó las comisiones.');
     balanceCheck($totals['USD']['balance']===bcadd($totals['USD']['supplier_balance'],$totals['USD']['commission_pending'],2),'El total no coincide con proveedores más comisiones.');
     [, $dashboardHtml]=authTestRequest($s,'/modules/dashboard/index.php',$cookie);
     balanceCheck(str_contains($dashboardHtml,'data-outstanding-totals="customer"')&&!str_contains($dashboardHtml,'data-outstanding-partner=')&&!str_contains($dashboardHtml,'data-outstanding-invoice='),'El dashboard muestra el detalle de las cuentas.');
