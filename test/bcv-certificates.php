@@ -16,10 +16,11 @@ try {
     $pem=file_get_contents($path);
     certificateCheck(!str_contains($pem,'PRIVATE KEY'),'El bundle contiene una clave privada.');
     preg_match_all('/-----BEGIN CERTIFICATE-----.*?-----END CERTIFICATE-----/s',$pem,$matches);
-    certificateCheck(count($matches[0])===2,'El bundle debe contener dos autoridades, sin certificado final del sitio.');
-    $names=['Sectigo Public Server Authentication CA DV R36','Sectigo Public Server Authentication Root R46'];
+    certificateCheck(count($matches[0])===3,'El bundle debe contener DV R36, OV R36 y la raíz R46, sin certificado final del sitio.');
+    $names=['Sectigo Public Server Authentication CA DV R36','Sectigo Public Server Authentication Root R46','Sectigo Public Server Authentication CA OV R36'];
     $hashes=['8c54c334b66ba4e426772af4a3f9136c19a1aec729fdb28c535c07a5a4ef22e0',
-        '7bb647a62aeeac88bf257aa522d01ffea395e0ab45c73f93f65654ec38f25a06'];
+        '7bb647a62aeeac88bf257aa522d01ffea395e0ab45c73f93f65654ec38f25a06',
+        '6542d176bed50f193c0ce297ae44ecd8a0a86bec2ede682769344059b4e78530'];
     foreach ($matches[0] as $index=>$certificate) {
         $parsed=openssl_x509_parse($certificate);
         certificateCheck($parsed!==false && $parsed['subject']['CN']===$names[$index],'Autoridad inesperada.');
@@ -29,6 +30,7 @@ try {
     }
     $root=openssl_pkey_get_public($matches[0][1]);
     certificateCheck($root!==false && openssl_x509_verify($matches[0][0],$root)===1,'La raíz no verifica la firma del intermedio.');
+    certificateCheck(openssl_x509_verify($matches[0][2],$root)===1,'La raíz no verifica la firma del intermedio OV R36.');
     certificateCheck(openssl_x509_verify($matches[0][1],$root)===1,'No se verifica la firma de la raíz.');
     $temporary=tempnam(sys_get_temp_dir(),'vent-as-bcv-ca-');
     file_put_contents($temporary,$pem);
