@@ -1,6 +1,7 @@
 <?php
 declare(strict_types=1);
 require_once __DIR__.'/commission-controller.php';
+require_once __DIR__.'/commission-general-controller.php';
 
 function renderSalesCommissionPayments(): void
 {
@@ -34,9 +35,11 @@ function renderSalesCommissionPayments(): void
             http_response_code(400); throw new InvalidArgumentException('La moneda de comisión no es válida.');
         }
         $page['commissionCurrency'] = $currency;
+        if($page['view']==='new'&&!salesId($_GET['invoice_id']??null)){renderGeneralCommissionPayment($db,$page);return;}
         if ($page['view']==='form') {
             $page['record'] = salesCommissionPaymentHistory($db,null,null,$id)['rows'][0]??null;
             if (!$page['record']) { http_response_code(404); throw new InvalidArgumentException('El pago de comisión no existe.'); }
+            $page['allocations']=commissionPaymentAllocations($db,(int)$page['record']['treasury_document_id']);
             if(isset($_GET['proof']))renderPaymentProof($db,'treasury',(int)$page['record']['treasury_document_id'],salesId($_GET['proof'])??0);
             $page['proofs']=loadPaymentProofs($db,'treasury',(int)$page['record']['treasury_document_id']);
         } elseif ($page['view']==='list') {
@@ -51,7 +54,7 @@ function renderSalesCommissionPayments(): void
             }
             if ($page['sellerId'] && !$page['errors']) {
                 $all = loadSalesCommissions($db,null,$page['sellerId']);
-                $page['hasAdjustment'] = (bool) array_filter($all,static fn($r)=>bccomp($r['commission_overpaid'],'0',2)>0);
+                $page['hasAdjustment'] = false; // Recoverable advances are already offset against each payable balance.
                 $page['commissions'] = array_values(array_filter($all,static fn($r)=>
                     $r['invoice_date'] >= $page['range']['date_from'] && $r['invoice_date'] <= $page['range']['date_to']
                     && ($currency==='' || $r['currency_code']===$currency)));

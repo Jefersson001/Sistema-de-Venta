@@ -6,7 +6,7 @@ $amounts=array_column($filtered['customer']['currencies'],null,'code');
 balanceCheck($amounts['USD']['balance']==='50.00'&&$amounts['VES']['balance']==='500.00','Seller filter mixed customer invoice balances.');
 balanceCheck($filtered['supplier']['currencies'][0]['balance']==='70.00','Seller filter changed supplier debt.');
 $commissions=outstandingCommissionReport($one,outstandingFilters(['q'=>$prefix,'salesperson_id'=>$sellerA]));
-balanceCheck($commissions['currencies']===['USD'=>'7.50','VES'=>'50.00']&&$commissions['count']===2,'Seller A commission amounts incorrect.');
+balanceCheck($commissions['currencies']===['USD'=>'20.00','VES'=>'100.00']&&$commissions['count']===2,'Seller A commission amounts incorrect.');
 $commissionsB=outstandingCommissionReport($one,outstandingFilters(['q'=>$prefix,'salesperson_id'=>$sellerB]));
 balanceCheck($commissionsB['currencies']===['USD'=>'10.00']&&$commissionsB['count']===1,'Seller B commissions mixed with A.');
 balanceCheck(outstandingCommissionReport($one,outstandingFilters(['salesperson_id'=>'none']))['count']===0,'Unassigned filter must not include seller commissions.');
@@ -38,7 +38,7 @@ $combined=outstandingFilters(['q'=>$prefix,'salesperson_id'=>$sellerA,'supplier_
 $supplierReport=loadOutstandingReport($one,$combined);
 balanceCheck($supplierReport['supplier']['count']===1&&$supplierReport['supplier']['currencies'][0]['balance']==='25.00','Supplier selection did not filter its own invoices.');
 balanceCheck(array_column($supplierReport['customer']['currencies'],null,'code')['VES']['balance']==='500.00','Supplier filter changed receivables.');
-balanceCheck(outstandingCommissionReport($one,$combined)['currencies']===['USD'=>'7.50','VES'=>'50.00'],'Supplier selection changed seller commissions.');
+balanceCheck(outstandingCommissionReport($one,$combined)['currencies']===['USD'=>'20.00','VES'=>'100.00'],'Supplier selection changed seller commissions.');
 [$status,$providerHtml]=authTestRequest($s,$path.'?'.http_build_query($combined),$cookie);
 balanceCheck($status===200&&str_contains($providerHtml,'name="supplier_id"')&&str_contains($providerHtml,'data-outstanding-invoice="'.$supplierBillB.'"')&&!str_contains($providerHtml,'data-outstanding-invoice="'.$supplier.'"')&&str_contains($providerHtml,'data-outstanding-commission="'.$a.'"'),'Combined seller/supplier HTML incorrect.');
 [, $ownProviderHtml]=authTestRequest($s,$path.'?supplier_id='.$supplierB,$commissionCookie);balanceCheck(!str_contains($ownProviderHtml,'name="supplier_id"')&&!str_contains($ownProviderHtml,$prefix.' otro proveedor'),'Supplier control leaked through commission-only permissions.');
@@ -50,7 +50,7 @@ echo "PASS: independent supplier selection, combined seller filter, commission p
 $dated=outstandingFilters(['q'=>$prefix,'salesperson_id'=>$sellerA,'supplier_id'=>(string)$supplierB,'date_from'=>$yesterday,'date_to'=>$yesterday]);
 $datedReport=loadOutstandingReport($one,$dated);$datedCommissions=outstandingCommissionReport($one,$dated);
 balanceCheck($datedReport['customer']['count']===1&&$datedReport['customer']['groups'][0]['invoices'][0]['id']===$a&&$datedReport['supplier']['count']===0,'Inclusive invoice date range mixed dates or ignored supplier selection.');
-balanceCheck($datedCommissions['currencies']===['USD'=>'7.50']&&$datedCommissions['count']===1,'Commission filter did not use source invoice date.');
+balanceCheck($datedCommissions['currencies']===['USD'=>'20.00']&&$datedCommissions['count']===1,'Commission filter did not use source invoice date.');
 $fromOnly=loadOutstandingReport($one,outstandingFilters(['q'=>$prefix,'date_from'=>$today]));
 foreach($fromOnly['customer']['groups'] as $g)foreach($g['invoices'] as $invoice)balanceCheck($invoice['invoice_date']>=$today,'Open-ended From included an older invoice.');
 $toOnly=loadOutstandingReport($one,outstandingFilters(['q'=>$prefix,'salesperson_id'=>$sellerA,'date_to'=>$yesterday]));balanceCheck($toOnly['customer']['count']===1,'Open-ended To did not work.');

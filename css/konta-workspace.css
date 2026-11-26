@@ -562,3 +562,36 @@ html[data-konta-theme=dark] .module-workspace {
 .payment-exchange-detail dl div { display:flex; justify-content:space-between; gap:1rem; flex-wrap:wrap; }
 .payment-exchange-detail dd { margin:0; font-variant-numeric:tabular-nums; }
 [data-payment-fx-preview] { white-space:normal; overflow-wrap:anywhere; line-height:1.6; }
+
+/* General commission payments use the available desktop width; phones retain the stacked totals. */
+@media(min-width:721px) {
+    .module-workspace .quotation-totals.commission-payment-summary {
+        display:grid;
+        grid-template-columns:repeat(2,minmax(0,1fr));
+        gap:8px;
+        width:100%;
+        max-width:none;
+        margin:0 0 24px;
+        padding:8px;
+    }
+    .module-workspace .commission-payment-summary>div,
+    .module-workspace .commission-payment-summary>div:last-child {
+        display:flex;
+        flex-direction:column;
+        justify-content:center;
+        gap:8px;
+        min-width:0;
+        padding:14px 16px;
+        border:0;
+        border-radius:8px;
+        color:var(--k-text);
+        font-size:14px;
+    }
+    .module-workspace .commission-payment-summary dt { color:var(--k-muted); font-size:13px; }
+    .module-workspace .commission-payment-summary dd { font-size:22px; line-height:1.25; overflow-wrap:anywhere; }
+    .module-workspace .commission-payment-summary>.commission-payment-summary-pending { background:var(--k-green-soft); }
+    .module-workspace .commission-payment-summary-pending :is(dt,dd) { color:var(--k-green-dark); }
+}
+@media(min-width:1100px) {
+    .module-workspace .quotation-totals.commission-payment-summary { grid-template-columns:repeat(4,minmax(0,1fr)); }
+}

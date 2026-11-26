@@ -52,7 +52,7 @@ try{
     // An old invoice must still contribute to today's accumulated debt.
     $db->prepare('UPDATE accounting_invoices SET invoice_date=? WHERE id=?')->execute([$yesterday,$a]);
     [, $body]=authTestRequest($s,'/modules/dashboard/resumen.php?period=today',$cookie);$withCommissions=json_decode($body,true)['dashboard'];
-    balanceCheck($withCommissions['payables']['USD']===bcadd($baselinePayables['USD']??'0.00','17.50',2)&&$withCommissions['payables']['VES']===bcadd($baselinePayables['VES']??'0.00','50.00',2),'Las comisiones pendientes no se suman por moneda o se limitan por fecha.');
+    balanceCheck($withCommissions['payables']['USD']===bcadd($baselinePayables['USD']??'0.00','30.00',2)&&$withCommissions['payables']['VES']===bcadd($baselinePayables['VES']??'0.00','100.00',2),'Las comisiones pendientes no se suman por moneda o se limitan por fecha.');
     $totals=array_column($withCommissions['balances']['supplier']['currencies'],null,'code');
     balanceCheck(bcadd($totals['USD']['overdue'],$totals['USD']['not_due'],2)===$totals['USD']['supplier_balance'],'Por vencer de proveedores incluyó las comisiones.');
     balanceCheck($totals['USD']['balance']===bcadd($totals['USD']['supplier_balance'],$totals['USD']['commission_pending'],2),'El total no coincide con proveedores más comisiones.');
@@ -67,7 +67,7 @@ try{
     $commissionLogin=$userLogin;$db->prepare('UPDATE auth_user_groups SET group_id=? WHERE user_id=?')->execute([$commissionGroup,$user]);
     $commissionCookie=tempnam(sys_get_temp_dir(),'balance-commission-');$cookies[]=$commissionCookie;[, $html]=authTestRequest($s,'/login.php',$commissionCookie);authTestRequest($s,'/login.php',$commissionCookie,['csrf'=>authTestToken($html),'login'=>$commissionLogin,'password'=>$password]);
     [, $body]=authTestRequest($s,'/modules/dashboard/resumen.php',$commissionCookie);$commissionOwn=json_decode($body,true)['dashboard'];
-    balanceCheck($commissionOwn['payables']===['USD'=>'7.50','VES'=>'50.00']&&$commissionOwn['balances']['customer']===null&&!$commissionOwn['balances']['supplier']['includes_suppliers'],'Las comisiones propias incluyen otros vendedores o deuda de proveedores.');
+    balanceCheck($commissionOwn['payables']===['USD'=>'20.00','VES'=>'100.00']&&$commissionOwn['balances']['customer']===null&&!$commissionOwn['balances']['supplier']['includes_suppliers'],'Las comisiones propias incluyen otros vendedores o deuda de proveedores.');
     [, $html]=authTestRequest($s,'/modules/dashboard/index.php',$commissionCookie);
     balanceCheck(str_contains($html,'id="dashboard-tab-balances"')&&str_contains($html,'Comisiones pendientes')&&!str_contains($html,'>Proveedores</dt>'),'El usuario de comisiones no puede ver su resumen o ve deudas de proveedores.');
     require __DIR__.'/outstanding-seller-cases.php';

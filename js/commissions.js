@@ -10,7 +10,7 @@ if (commissionPaymentForm) {
         try {
             const amount=convertOrderMoney(form.querySelector('[data-commission-amount]').value,settings.invoice_currency,currency.value,
                 {...orderCurrencySettings,exchange_rate:form.querySelector('[data-commission-rate]').value});
-            preview.textContent='Se registrará un egreso de '+amount+' '+currency.value+' y se aplicará a esta comisión.';
+            preview.textContent='Se registrará un egreso de '+amount+' '+currency.value+' y se descontará del saldo de comisiones del vendedor.';
         } catch(error) { preview.textContent=error.message; }
     }
     account.addEventListener('change',()=>{

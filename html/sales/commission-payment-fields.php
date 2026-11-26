@@ -7,4 +7,4 @@
 <label>Tasa de cambio<input name="exchange_rate" inputmode="decimal" data-commission-rate value="<?= $e($input['exchange_rate']??$page['settings']['exchange_rate']??'') ?>"><small>1 <?= $e($page['settings']['primary_code']) ?> = tasa en <?= $e($page['settings']['alternate_code']) ?>.</small></label>
 <label>Referencia<input name="reference" maxlength="160" value="<?= $e($input['reference']??'') ?>"></label>
 <?php require dirname(__DIR__).'/accounting/proof-input.php'; ?>
-<p class="section-subtitle contact-full" data-commission-preview></p></div>
+<p class="section-subtitle contact-full" data-commission-preview></p><p class="section-subtitle contact-full">El pago descuenta el saldo generado acumulado. No requiere que el cliente haya pagado.</p></div>

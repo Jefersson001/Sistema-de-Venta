@@ -50,7 +50,7 @@ function renderSalesCommissions(): void
             if ($page['sellerId']) { $page['seller']=salesRecord($page['sellers'],$page['sellerId']);if (!$page['seller']) { http_response_code(404);throw new InvalidArgumentException('El vendedor solicitado no existe.'); } }
             if (!$rangeState['cashFlowErrors']) $page['rows']=loadSalesCommissions($db,$page['range'],$page['sellerId']);
             if ($page['saleId']) $page['rows']=array_values(array_filter($page['rows'],static fn($r)=>(int)$r['sale_id']===$page['saleId']));
-            $page['groups']=summarizeSalesCommissions($page['rows']);$page['total']=count($page['rows']);
+            $page['accumulated']=$page['sellerId']?sellerCommissionBalances($db,$page['sellerId']):[];$page['groups']=summarizeSalesCommissions($page['rows']);$page['total']=count($page['rows']);
             $page['pages']=max(1,(int)ceil($page['total']/20));$page['currentPage']=min(salesId($_GET['page']??null)??1,$page['pages']);
             $page['rows']=array_slice($page['rows'],($page['currentPage']-1)*20,20);
         }

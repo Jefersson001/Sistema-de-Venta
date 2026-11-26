@@ -6,7 +6,7 @@ require_once __DIR__.'/treasury-repository.php';
 function salesCommissionStates(): array
 {
     return ['estimated'=>'Estimada','waiting'=>'Pendiente de cobro','pending'=>'Pendiente de pago',
-        'partial'=>'Parcialmente pagada','paid'=>'Pagada','cancel'=>'Cancelada','adjustment'=>'Ajuste por recuperar'];
+        'compensated'=>'Compensada con adelantos','partial'=>'Parcialmente pagada','paid'=>'Pagada','cancel'=>'Cancelada','adjustment'=>'Ajuste por recuperar'];
 }
 
 function invoiceCommissionLinesQuery(PDO $db): PDOStatement
@@ -46,9 +46,7 @@ function loadSalesCommissions(PDO $db, ?array $range = null, ?int $sellerId = nu
     // Additional permission conditions come from the server's permission helpers.
     $where .= ' AND ('.$permissionCondition.')';
     $params = [];
-    if ($range) { $where .= ' AND i.invoice_date BETWEEN ? AND ?'; $params[] = $range['date_from']; $params[] = $range['date_to']; }
     if ($sellerId) { $where .= ' AND i.salesperson_id=?'; $params[] = $sellerId; }
-    if ($invoiceId) { $where .= ' AND i.id=?'; $params[] = $invoiceId; }
     $q = $db->prepare("SELECT i.*,s.name AS seller_name,c.name AS customer_name,o.name AS sale_name,
         COALESCE((SELECT SUM(p.amount) FROM accounting_invoice_payments p WHERE p.invoice_id=i.id AND p.status='settled'),0) AS collected,
         COALESCE((SELECT SUM(n.total_amount) FROM accounting_invoices n WHERE n.reversal_of_id=i.id AND n.status='posted' AND n.document_type='credit'),0) AS credited_total,
@@ -79,7 +77,8 @@ function loadSalesCommissions(PDO $db, ?array $range = null, ?int $sellerId = nu
             $collected = bccomp($row['collected'],$net,2)>0 ? $net : $row['collected'];
             $row['commission_earned'] = bcdiv(bcadd(bcdiv(bcmul($row['commission_generated'],$collected,8),$net,8),'0.005',8),'1',2);
         }
-        $balance = bcsub($row['commission_earned'],$row['commission_paid'],2);
+        $payableGenerated=$row['status']==='posted'?$row['commission_generated']:'0.00';
+        $balance = bcsub($payableGenerated,$row['commission_paid'],2);
         $row['commission_pending'] = bccomp($balance,'0',2)>0 ? $balance : '0.00';
         $row['commission_overpaid'] = bccomp($balance,'0',2)<0 ? bcsub('0',$balance,2) : '0.00';
         $row['commission_waiting'] = bcsub($row['commission_generated'],$row['commission_earned'],2);
@@ -87,14 +86,31 @@ function loadSalesCommissions(PDO $db, ?array $range = null, ?int $sellerId = nu
             bccomp($row['commission_overpaid'],'0',2)>0 => 'adjustment',
             $row['status']==='cancel' || bccomp($net,'0',2)<=0 => 'cancel',
             $row['status']==='draft' => 'estimated',
-            bccomp($row['commission_earned'],'0',2)<=0 => 'waiting',
             bccomp($row['commission_paid'],'0',2)<=0 => 'pending',
-            bccomp($row['commission_pending'],'0',2)>0 || bccomp($row['commission_waiting'],'0',2)>0 => 'partial',
+            bccomp($row['commission_pending'],'0',2)>0 => 'partial',
             default => 'paid'
         };
         $row['commission_state_label'] = salesCommissionStates()[$row['commission_state']];
     }
-    unset($row); return $rows;
+    unset($row);
+    // Returned commissions already paid offset later unpaid commissions, per seller/company/currency.
+    $offsets=[];
+    foreach($rows as $row){$key=$row['company_id'].':'.$row['salesperson_id'].':'.$row['currency_code'];$offsets[$key]=bcadd($offsets[$key]??'0.00',$row['commission_overpaid'],2);}
+    foreach($rows as &$row){
+        $key=$row['company_id'].':'.$row['salesperson_id'].':'.$row['currency_code'];
+        $offset=bccomp($offsets[$key],$row['commission_pending'],2)<0?$offsets[$key]:$row['commission_pending'];
+        $row['commission_offset']=$offset;$row['commission_pending']=bcsub($row['commission_pending'],$offset,2);$offsets[$key]=bcsub($offsets[$key],$offset,2);
+        if(bccomp($offset,'0',2)>0&&bccomp($row['commission_pending'],'0',2)===0)$row['commission_state']='compensated';
+        $row['commission_advance']=bccomp($row['commission_paid'],$row['commission_earned'],2)>0?bcsub($row['commission_paid'],$row['commission_earned'],2):'0.00';
+        $row['commission_state_label']=salesCommissionStates()[$row['commission_state']];
+    }unset($row);
+    foreach($rows as &$row){
+        $key=$row['company_id'].':'.$row['salesperson_id'].':'.$row['currency_code'];
+        $row['commission_recoverable']=bccomp($offsets[$key],$row['commission_overpaid'],2)<0?$offsets[$key]:$row['commission_overpaid'];
+        $offsets[$key]=bcsub($offsets[$key],$row['commission_recoverable'],2);
+    }unset($row);
+    return array_values(array_filter($rows,static fn($row)=>(!$range||($row['invoice_date']>=$range['date_from']&&$row['invoice_date']<=$range['date_to']))&&(!$invoiceId||(int)$row['id']===$invoiceId)));
+
 }
 
 function summarizeSalesCommissions(array $rows): array
@@ -107,7 +123,7 @@ function summarizeSalesCommissions(array $rows): array
             'commission_paid'=>'0.00','commission_pending'=>'0.00','commission_overpaid'=>'0.00','sale_ids'=>[]];
         if ($row['status']!=='cancel' && bccomp($row['commission_generated'],'0',2)>0) $groups[$key]['sale_ids'][$row['sale_id'] ?: 'invoice-'.$row['id']]=true;
         foreach (['sales_amount','commission_generated','commission_earned','commission_waiting','commission_paid','commission_pending','commission_overpaid'] as $field) {
-            $groups[$key][$field]=bcadd($groups[$key][$field],$row[$field],2);
+            $groups[$key][$field]=bcadd($groups[$key][$field],$field==='commission_overpaid'?$row['commission_recoverable']:$row[$field],2);
         }
     }
     foreach ($groups as &$group) { $group['sales_count']=count($group['sale_ids']); unset($group['sale_ids']); }
@@ -116,7 +132,7 @@ function summarizeSalesCommissions(array $rows): array
 
 function salesCommissionPaymentHistory(PDO $db, ?array $range, ?int $sellerId = null, ?int $paymentId = null, int $page = 1): array
 {
-    $where = [permissionWhere('ventas.commission_payments','p')]; $params = [];
+    $where = [permissionWhere('ventas.commission_payments','p'),"(p.payment_scope='invoice' OR p.id=(SELECT MIN(first_payment.id) FROM sales_commission_payments first_payment WHERE first_payment.treasury_document_id=p.treasury_document_id))"]; $params = [];
     if ($paymentId) { $where[] = 'p.id=?'; $params[] = $paymentId; }
     else {
         if ($range) { $where[] = 'd.movement_date BETWEEN ? AND ?'; $params[] = $range['date_from']; $params[] = $range['date_to']; }
@@ -130,7 +146,7 @@ function salesCommissionPaymentHistory(PDO $db, ?array $range, ?int $sellerId = 
     if ($where) $from .= ' WHERE '.implode(' AND ', $where);
     $query = $db->prepare('SELECT COUNT(*)'.$from); $query->execute($params); $total = (int) $query->fetchColumn();
     $pages = max(1, (int) ceil($total/20)); $page = min(max($page,1),$pages);
-    $query = $db->prepare('SELECT p.*,d.name,d.movement_date,d.amount AS payment_amount,d.currency_code,d.exchange_rate,
+    $query = $db->prepare('SELECT p.*,CASE WHEN p.payment_scope=\'seller\' THEN (SELECT SUM(total_payment.amount) FROM sales_commission_payments total_payment WHERE total_payment.treasury_document_id=p.treasury_document_id) ELSE p.amount END AS amount,d.name,d.movement_date,d.amount AS payment_amount,d.currency_code,d.exchange_rate,
         d.reference,d.status,a.name AS account_name,m.name AS method_name,s.name AS seller_name,i.salesperson_id,
         c.name AS customer_name,i.name AS invoice_name,i.currency_code AS invoice_currency,i.sale_id,o.name AS sale_name,
         r.id AS reversed_by_id,r.name AS reversal_name'.$from.' ORDER BY d.movement_date DESC,p.id DESC LIMIT 20 OFFSET '.(($page-1)*20));
@@ -140,7 +156,7 @@ function salesCommissionPaymentHistory(PDO $db, ?array $range, ?int $sellerId = 
 
 function loadSalesCommissionPayments(PDO $db,int $invoiceId): array
 {
-    $q=$db->prepare('SELECT p.*,d.name,d.movement_date,d.amount AS payment_amount,d.currency_code,a.name AS account_name,m.name AS method_name,r.id AS reversed_by_id
+    $q=$db->prepare('SELECT p.*,(SELECT MIN(first_payment.id) FROM sales_commission_payments first_payment WHERE first_payment.treasury_document_id=p.treasury_document_id) AS id,d.name,d.movement_date,d.amount AS payment_amount,d.currency_code,a.name AS account_name,m.name AS method_name,r.id AS reversed_by_id
         FROM sales_commission_payments p JOIN accounting_treasury_documents d ON d.id=p.treasury_document_id
         JOIN accounting_payment_accounts a ON a.id=d.account_id JOIN accounting_payment_methods m ON m.id=d.method_id
         LEFT JOIN accounting_treasury_documents r ON r.reversal_of_id=d.id WHERE p.invoice_id=? ORDER BY d.id');
@@ -149,50 +165,8 @@ function loadSalesCommissionPayments(PDO $db,int $invoiceId): array
 
 function paySalesCommission(PDO $db,int $invoiceId,array $input,string $creationKey): int
 {
-    workflowBegin($db);
-    try {
-        if (!preg_match('/^[a-f0-9]{32,64}$/',$creationKey)) throw new InvalidArgumentException('La solicitud de pago no es válida. Recarga la página.');
-        $q=$db->prepare('SELECT id FROM accounting_treasury_documents WHERE creation_key=?');$q->execute([$creationKey]);
-        if ($existing=$q->fetchColumn()) { $db->commit(); return (int)$existing; }
-        $q=$db->prepare('SELECT sale_id,salesperson_id FROM accounting_invoices WHERE id=?');$q->execute([$invoiceId]);$relation=$q->fetch();
-        if (!$relation || !$relation['salesperson_id']) throw new InvalidArgumentException('La factura no tiene vendedor relacionado.');
-        workflowLockOrder($db,['quotation_id'=>$relation['sale_id'],'purchase_order_id'=>null]);
-        $q=$db->prepare('SELECT id FROM accounting_invoices WHERE id=? FOR UPDATE');$q->execute([$invoiceId]);
-        // Serializar pagos incluso cuando dos ventanas usan distintas claves.
-        $q=$db->prepare('SELECT id FROM accounting_treasury_documents WHERE creation_key=?');$q->execute([$creationKey]);
-        if ($existing=$q->fetchColumn()) { $db->commit(); return (int)$existing; }
-        $commission=loadSalesCommissions($db,null,null,$invoiceId)[0]??null;
-        if (!$commission) throw new InvalidArgumentException('No hay una comisión calculada para esta factura.');
-        $q=$db->prepare('SELECT id FROM contacts WHERE id=? FOR UPDATE');$q->execute([$commission['salesperson_id']]);
-        $amount=salesDecimal($input['amount']??null,16,2);
-        if ($amount===null || bccomp($amount,'0',2)<=0 || bccomp($amount,$commission['commission_pending'],2)>0) {
-            throw new InvalidArgumentException('El importe debe ser positivo y no superar la comisión disponible: '.$commission['commission_pending'].' '.$commission['currency_code'].'.');
-        }
-        // Las diferencias por devoluciones o reversiones ya pagadas deben resolverse primero.
-        foreach (loadSalesCommissions($db,null,(int)$commission['salesperson_id']) as $other) {
-            if (bccomp($other['commission_overpaid'],'0',2)>0) throw new InvalidArgumentException('El vendedor tiene una comisión con ajuste por recuperar. Revisa o revierte su pago antes de pagar otras comisiones.');
-        }
-        $date=treasuryDate($input['movement_date']??null);
-        if ($date<$commission['invoice_date'] || $date>commerceToday()) throw new InvalidArgumentException('La fecha del pago debe estar entre la fecha de factura y hoy.');
-        $q=$db->prepare("SELECT MAX(payment_date) FROM accounting_invoice_payments WHERE invoice_id=? AND status='settled'");$q->execute([$invoiceId]);
-        if ($last=$q->fetchColumn()) if ($date<$last) throw new InvalidArgumentException('El pago de comisión no puede ser anterior al cobro confirmado del cliente.');
-        $settings=accountingCurrencies($db,$date);
-        $settings['exchange_rate']=accountingExchangeRate($input['exchange_rate']??$settings['exchange_rate']);
-        $currency=$input['currency_code']??$commission['currency_code'];
-        if (!is_string($currency)) throw new InvalidArgumentException('Selecciona una moneda válida.');
-        $money=accountingConvert($amount,$commission['currency_code'],$currency,$settings);
-        if (salesDecimal($money,16,2)===null || bccomp($money,'0',2)<=0) throw new InvalidArgumentException('El importe convertido no es válido.');
-        $q=$db->query("SELECT id FROM accounting_cash_concepts WHERE system_key='sales_commission'");$concept=$q->fetchColumn();
-        $data=validateTreasuryDocument($db,['kind'=>'expense','account_id'=>$input['account_id']??null,
-            'currency_code'=>$currency,'amount'=>$money,'movement_date'=>$date,'exchange_rate'=>$settings['exchange_rate'],
-            'concept_id'=>(string)$concept,'contact_id'=>(string)$commission['salesperson_id'],'method_id'=>$input['method_id']??null,
-            'reference'=>'Comisión de '.$commission['name'].(is_string($input['reference']??null)&&trim($input['reference'])!==''?' · '.trim($input['reference']):'')],null,true);
-        if (bccomp(treasuryBalance($db,(int)$data['account_id'],$currency,$date),$money,2)<0) throw new InvalidArgumentException('El saldo de la cuenta de egreso no alcanza para pagar esta comisión.');
-        $id=treasuryInsertDocument($db,$data+['status'=>'done','creation_key'=>$creationKey]);
-        treasuryEntry($db,['account_id'=>$data['account_id'],'currency_code'=>$currency,'movement_date'=>$date,'amount'=>bcsub('0',$money,2),
-            'category'=>'movement','document_id'=>$id,'concept_id'=>$data['concept_id'],'contact_id'=>$data['contact_id'],'method_id'=>$data['method_id']]);
-        $db->prepare('INSERT INTO sales_commission_payments(invoice_id,treasury_document_id,amount) VALUES (?,?,?)')->execute([$invoiceId,$id,$amount]);
-        paymentProofBatch($input)?->attach($db,'treasury',$id);
-        $db->commit(); paymentProofBatch($input)?->commit(); return $id;
-    } catch (Throwable $exception) { if ($db->inTransaction()) $db->rollBack(); throw $exception; }
+    $q=$db->prepare('SELECT salesperson_id,currency_code FROM accounting_invoices WHERE id=?');$q->execute([$invoiceId]);$invoice=$q->fetch();
+    if(!$invoice||!$invoice['salesperson_id'])throw new InvalidArgumentException('La factura no tiene vendedor relacionado.');
+    return paySellerCommission($db,(int)$invoice['salesperson_id'],$invoice['currency_code'],$input,$creationKey,$invoiceId);
 }
+require_once __DIR__.'/commission-seller-payments.php';
