@@ -562,6 +562,10 @@ html[data-konta-theme=dark] .module-workspace {
 .payment-exchange-detail dl div { display:flex; justify-content:space-between; gap:1rem; flex-wrap:wrap; }
 .payment-exchange-detail dd { margin:0; font-variant-numeric:tabular-nums; }
 [data-payment-fx-preview] { white-space:normal; overflow-wrap:anywhere; line-height:1.6; }
+.module-workspace .access-module-picker { max-width:340px; margin:20px 0 14px; }
+@media(min-width:721px) {
+    .module-workspace [data-access-group-form] .notebook-tabs { flex-wrap:wrap; overflow:visible; }
+}
 
 /* General commission payments use the available desktop width; phones retain the stacked totals. */
 @media(min-width:721px) {

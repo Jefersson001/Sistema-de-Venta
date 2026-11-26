@@ -72,6 +72,15 @@ const http = require('node:http');
                     }
                     assert.equal(result.suggested,'Encargado de restaurante','Keep the suggested name consistent with the template.');
                     assert.equal(result.name,'Equipo de servicio','Do not replace a name entered by the user.');
+                    const direct=await evaluate(`(()=>{
+                        const picker=document.querySelector('[data-access-module-picker]');picker.value='compra_directa';picker.dispatchEvent(new Event('change',{bubbles:true}));
+                        const page=document.querySelector('#access-compra_directa');
+                        const create=page.querySelector('[value="compra_directa.purchases.create"]');create.checked=true;create.dispatchEvent(new Event('change',{bubbles:true}));
+                        return {visible:!page.hidden,read:page.querySelector('[value="compra_directa.purchases.read"]').checked,create:create.checked};
+                    })()`);
+                    assert.deepEqual(direct,{visible:true,read:true,create:true},'Module picker must expose configurable direct purchase permissions.');
+                    await evaluate(`document.querySelector('#access-tab-compras').click();new Promise(resolve=>setTimeout(resolve,0))`);
+                    assert.equal(await evaluate(`document.querySelector('[data-access-module-picker]').value`),'compras','Module picker must follow tab selection.');
                 }
                 await evaluate('window.scrollTo(0,0)');
                 const png = await call('Page.captureScreenshot', {format: 'png', captureBeyondViewport: true});

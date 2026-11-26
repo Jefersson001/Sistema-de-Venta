@@ -14,6 +14,12 @@ try{
     }
     settingsAccessCheck(str_contains($views['general'],'Usuarios y accesos')&&str_contains($views['general'],'section=restaurante'),'Faltan secciones actualizadas.');
     settingsAccessCheck(str_contains($views['restaurant'],'Permitir vuelto')&&str_contains($views['group'],'Productos y variantes'),'Faltan las opciones nuevas de cobro o variantes.');
+    settingsAccessCheck(str_contains($views['group'],'id="access-compra_directa"')&&str_contains($views['group'],'value="compra_directa.purchases.read"')&&str_contains($views['group'],'value="compra_directa.purchases.create"')&&str_contains($views['group'],'data-access-module-picker'),'Direct purchase permissions or module picker are missing.');
+    $creationKey=authTestToken($views['group'],'creation_key');
+    $saved=authTestRequest($s,'/modules/ajustes/grupos.php?new=1',$cookie,['csrf'=>authTestToken($views['group']),'action'=>'save_group','version'=>'0','creation_key'=>$creationKey,'name'=>'Compras directas QA '.bin2hex(random_bytes(4)),'active'=>'1','permissions'=>['compra_directa.purchases.read','compra_directa.purchases.create'],'scopes'=>['compra_directa.purchases'=>'all']]);
+    settingsAccessCheck($saved[0]===303,'Could not save direct purchase permissions from the group form.');
+    $q=$db->prepare('SELECT id FROM access_groups WHERE creation_key=?');$q->execute([$creationKey]);$savedGroup=loadAccessGroup($db,(int)$q->fetchColumn());
+    settingsAccessCheck($savedGroup['permissions']===['compra_directa.purchases.create'=>'all','compra_directa.purchases.read'=>'all'],'Saved direct purchase permissions differ from selected permissions.');
     echo "RUN permission-filtered settings and protected direct sections\n";
     $db->prepare('INSERT INTO access_groups(name,description) VALUES(?,?)')->execute(['Consulta de Ajustes '.bin2hex(random_bytes(5)),'Sin accesos operativos']);$group=(int)$db->lastInsertId();
     $db->prepare("INSERT INTO access_group_permissions(group_id,permission_code,record_scope) VALUES(?,'ajustes.general.read','all')")->execute([$group]);

@@ -1,5 +1,17 @@
 for(const form of document.querySelectorAll('[data-access-group-form]')) {
     const rows=[...form.querySelectorAll('[data-access-row]')];
+    const modulePicker=form.querySelector('[data-access-module-picker]');
+    if(modulePicker){
+        const tabs=[...form.querySelectorAll('[data-notebook-tabs] a[id^="access-tab-"]')];
+        modulePicker.addEventListener('change',()=>form.querySelector('#access-tab-'+modulePicker.value)?.click());
+        const syncModule=()=>{
+            const active=tabs.find(tab=>tab.getAttribute('aria-selected')==='true');
+            if(active)modulePicker.value=active.id.slice('access-tab-'.length);
+        };
+        const observer=new MutationObserver(syncModule);
+        for(const tab of tabs)observer.observe(tab,{attributes:true,attributeFilter:['aria-selected']});
+        syncModule();
+    }
     const templateSelect=form.querySelector('[data-access-template]');
     const templateButton=form.querySelector('[data-access-apply-template]');
     if(templateSelect&&templateButton){

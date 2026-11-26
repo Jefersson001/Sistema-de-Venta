@@ -3,8 +3,9 @@ declare(strict_types=1);
 
 function accessModules(): array
 {
-    return ['dashboard'=>'Dashboard','contactos'=>'Contactos','ventas'=>'Ventas','compras'=>'Compras',
-        'inventario'=>'Inventario','contabilidad'=>'Contabilidad','restaurante'=>'Restaurante','ajustes'=>'Ajustes','venta_directa'=>'Ventas Directas','compra_directa'=>'Compras Directas'];
+    return ['dashboard'=>'Dashboard','contactos'=>'Contactos','ventas'=>'Ventas','venta_directa'=>'Ventas Directas',
+        'compras'=>'Compras','compra_directa'=>'Compras Directas','inventario'=>'Inventario',
+        'contabilidad'=>'Contabilidad','restaurante'=>'Restaurante','ajustes'=>'Ajustes'];
 }
 
 function accessActions(): array
