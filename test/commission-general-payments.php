@@ -79,8 +79,22 @@ try{
         cgCheck(authTestRequest($server,$path,$limited)[0]===403,'Read-only user opened the payment form.');
         cgCheck(authTestRequest($server,'/modules/ventas/pagos-comisiones.php',$limited)[0]===200,'Read-only history is inaccessible.');
     }finally{if(is_file($limited))unlink($limited);}
+    $usd=(int)$db->query("SELECT id FROM accounting_currencies WHERE company_id=1 AND code='USD'")->fetchColumn();
+    $ves=(int)$db->query("SELECT id FROM accounting_currencies WHERE company_id=1 AND code='VES'")->fetchColumn();
+    $db->prepare('DELETE FROM accounting_currency_rates WHERE company_id=1 AND rate_date IN (?,?)')->execute([$yesterday,$today]);
+    foreach([$yesterday=>'100.00',$today=>'110.00'] as $date=>$rate)$insert('accounting_currency_rates',['base_currency_id'=>$usd,'currency_id'=>$ves,'rate_date'=>$date,'rate'=>$rate,'source'=>'manual']);
+    foreach([$path,'/modules/ventas/comisiones.php?id='.$b,'/modules/ventas/pagos-comisiones.php?new=1&invoice_id='.$b] as $route){
+        [$code,$body]=authTestRequest($server,$route.'&payment_rate_date='.$yesterday,$cookie);$snapshot=json_decode($body,true,512,JSON_THROW_ON_ERROR);
+        cgCheck($code===200&&$snapshot['exchange_rate']==='100.00'&&$snapshot['rate_date']===$yesterday,'Commission rate lookup ignored the payment date.');
+        cgCheck(authTestRequest($server,$route.'&payment_rate_date=invalid',$cookie)[0]===422,'Commission rate lookup accepted an invalid date.');
+    }
+    $historicalSeller=$insert('contacts',['name'=>'Historico QA','type_id'=>$types['salesperson']]);$historicalInvoice=$invoice('5.00',$yesterday,'USD',$historicalSeller);
+    $historicalInput=array_replace($input,['amount'=>'2.00','movement_date'=>$yesterday,'currency_code'=>'VES']);unset($historicalInput['exchange_rate']);
+    $historic=paySellerCommission($db,$historicalSeller,'USD',$historicalInput,bin2hex(random_bytes(32)));
+    $historicRow=$db->query('SELECT * FROM accounting_treasury_documents WHERE id='.$historic)->fetch();
+    cgCheck($historicRow['amount']==='200.00'&&$historicRow['exchange_rate']==='100.00'&&$historicRow['movement_date']===$yesterday&&substr($historicRow['created_at'],0,10)===$today,'Backdated commission did not preserve payment date, historical rate and actual registration date.');
     if(in_array('--browser',$argv,true)){
-        $env=getenv();$env['NEXO_TEST_BASE_URL']=$server['url'];$env['NEXO_TEST_LOGIN']=$login;$env['NEXO_TEST_PASSWORD']=$password;$env['NEXO_TEST_SELLER']=(string)$seller;
+        $env=getenv();$env['NEXO_TEST_BASE_URL']=$server['url'];$env['NEXO_TEST_LOGIN']=$login;$env['NEXO_TEST_PASSWORD']=$password;$env['NEXO_TEST_SELLER']=(string)$historicalSeller;$env['NEXO_TEST_INVOICE']=(string)$historicalInvoice;$env['NEXO_TEST_PAYMENT_DATE']=$yesterday;
         $browser=proc_open(['node',__DIR__.'/commission-general-ui.js'],[0=>['pipe','r'],1=>STDOUT,2=>STDERR],$pipes,dirname(__DIR__),$env,['bypass_shell'=>true,'create_new_console'=>false]);
         fclose($pipes[0]);cgCheck(proc_close($browser)===0,'General commission browser verification failed.');
     }

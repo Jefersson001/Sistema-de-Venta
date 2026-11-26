@@ -3,6 +3,7 @@ declare(strict_types=1);
 require_once __DIR__.'/module-page.php';
 require_once __DIR__.'/connection.php';
 require_once __DIR__.'/commission-repository.php';
+require_once __DIR__.'/payment-exchange.php';
 require_once __DIR__.'/cash-flow-controller.php';
 
 function renderSalesCommissions(): void
@@ -15,6 +16,7 @@ function renderSalesCommissions(): void
     $page['databaseStatus']=getDatabaseStatus();
     try {
         $db=createDatabaseConnection();$page['settings']=accountingCurrencies($db);
+        if(isset($_GET['payment_rate_date'])){renderPaymentRateLookup($db,$page['settings']);return;}
         foreach (['id','seller_id','sale_id'] as $field) {
             if (isset($_GET[$field])&&($field==='id'||$_GET[$field]!=='')&&!salesId($_GET[$field])) {
                 http_response_code(404);throw new InvalidArgumentException('El registro solicitado no existe.');

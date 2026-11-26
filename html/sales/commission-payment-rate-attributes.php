@@ -1,0 +1,1 @@
+data-commission-payment-form data-payment-rate-endpoint="<?= $e($page['paymentAction']??('comisiones.php?id='.(int)$record['id'])) ?>" data-payment-date-field="movement_date" data-payment-pair="<?= $e(json_encode(['primary_code'=>$page['settings']['primary_code'],'alternate_code'=>$page['settings']['alternate_code']])) ?>"

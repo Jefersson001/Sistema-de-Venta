@@ -15,17 +15,25 @@ const fs=require('node:fs'),os=require('node:os'),path=require('node:path'),asse
   await ev('document.querySelector("[name=login]").value='+JSON.stringify(process.env.NEXO_TEST_LOGIN)+';document.querySelector("[name=password]").value='+JSON.stringify(process.env.NEXO_TEST_PASSWORD)+';document.querySelector("form").requestSubmit()');await until('!!document.querySelector(".konta-module-card")');
 
   const checks=[];
-  for(const width of [390,1440]){
+  const invoice=process.env.NEXO_TEST_INVOICE;
+  const routes=['/modules/ventas/pagos-comisiones.php?new=1&seller_id='+process.env.NEXO_TEST_SELLER+'&commission_currency=USD','/modules/ventas/pagos-comisiones.php?new=1&invoice_id='+invoice+'&period=custom&date_from='+process.env.NEXO_TEST_PAYMENT_DATE+'&date_to='+process.env.NEXO_TEST_PAYMENT_DATE,'/modules/ventas/comisiones.php?id='+invoice];
+  for(const width of [390,1440])for(const [index,route] of routes.entries()){
    await call('Emulation.setDeviceMetricsOverride',{width,height:900,deviceScaleFactor:1,mobile:width<600});
-   await navigate('/modules/ventas/pagos-comisiones.php?new=1&seller_id='+process.env.NEXO_TEST_SELLER+'&commission_currency=USD');
+   await navigate(route);
    await until('!!document.querySelector("[data-commission-payment-form]")');
    await until('!!document.querySelector("[data-commission-preview]").textContent');
-   await ev('document.querySelector("[data-commission-amount]").value="2.00";document.querySelector("[data-commission-currency]").value="VES";document.querySelector("[data-commission-rate]").value="110.00";document.querySelector("[data-commission-rate]").dispatchEvent(new Event("input",{bubbles:true}))');
+   await ev('document.querySelector("[data-open-commission-payment]")?.click();document.querySelector("[data-commission-amount]").value="2.00";document.querySelector("[data-commission-currency]").value="VES";document.querySelector("[data-commission-currency]").dispatchEvent(new Event("change",{bubbles:true}));document.querySelector("[data-commission-rate]").value="110.00";document.querySelector("[data-commission-rate]").dispatchEvent(new Event("input",{bubbles:true}))');
    const preview=await ev('document.querySelector("[data-commission-preview]").textContent');assert.ok(preview.includes('220.00 VES'),preview);
+   const registered=await ev('document.querySelector("[data-commission-payment-form] input[type=date][readonly]").value');
+   await ev('document.querySelector("[name=movement_date]").value='+JSON.stringify(process.env.NEXO_TEST_PAYMENT_DATE)+';document.querySelector("[name=movement_date]").dispatchEvent(new Event("change",{bubbles:true}))');
+   await until('document.querySelector("[name=exchange_rate]").value==="100.00"&&document.querySelector("[data-payment-rate-status]").textContent.includes('+JSON.stringify(process.env.NEXO_TEST_PAYMENT_DATE)+')');
+   assert.equal(await ev('document.querySelector("[data-commission-preview]").textContent.includes("200.00 VES")'),true);
+   assert.equal(await ev('document.querySelector("[data-commission-amount]").value'),'2.00');
+   assert.equal(await ev('document.querySelector("[data-commission-payment-form] input[type=date][readonly]").value'),registered);
    const bounds=await ev('({width:innerWidth,overflow:document.documentElement.scrollWidth>innerWidth+1,fields:[...document.querySelectorAll("[data-commission-payment-form] input:not([type=hidden]),[data-commission-payment-form] select")].every(e=>{const r=e.getBoundingClientRect();return r.left>=0&&r.right<=innerWidth+1})})');
    assert.equal(bounds.overflow,false);assert.equal(bounds.fields,true);checks.push({width,...bounds,preview});
-   const shot=await call('Page.captureScreenshot',{format:'png',captureBeyondViewport:true});fs.writeFileSync(path.join(out,'general-'+width+'.png'),Buffer.from(shot.data,'base64'));
+   const shot=await call('Page.captureScreenshot',{format:'png',captureBeyondViewport:true});fs.writeFileSync(path.join(out,'general-'+index+'-'+width+'.png'),Buffer.from(shot.data,'base64'));
   }
-  assert.deepEqual(errors,[]);fs.writeFileSync(path.join(out,'report.json'),JSON.stringify(checks,null,2));console.log('PASS: desktop/mobile general commission form, conversion preview, controls inside viewport and no browser errors.');
+  assert.deepEqual(errors,[]);fs.writeFileSync(path.join(out,'report.json'),JSON.stringify(checks,null,2));console.log('PASS: desktop/mobile general and invoice commission forms, dated rates, stable registration date and native amount, preview and no browser errors.');
  }finally{if(ws)ws.close();child.kill();await new Promise(resolve=>child.once('exit',resolve));for(let n=0;n<10;n++){try{fs.rmSync(profile,{recursive:true,force:true});break;}catch{await new Promise(r=>setTimeout(r,100));}}}
 })().catch(error=>{console.error(error);process.exitCode=1;});

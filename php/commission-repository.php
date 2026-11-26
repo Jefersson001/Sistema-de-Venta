@@ -147,7 +147,7 @@ function salesCommissionPaymentHistory(PDO $db, ?array $range, ?int $sellerId = 
     $query = $db->prepare('SELECT COUNT(*)'.$from); $query->execute($params); $total = (int) $query->fetchColumn();
     $pages = max(1, (int) ceil($total/20)); $page = min(max($page,1),$pages);
     $query = $db->prepare('SELECT p.*,CASE WHEN p.payment_scope=\'seller\' THEN (SELECT SUM(total_payment.amount) FROM sales_commission_payments total_payment WHERE total_payment.treasury_document_id=p.treasury_document_id) ELSE p.amount END AS amount,d.name,d.movement_date,d.amount AS payment_amount,d.currency_code,d.exchange_rate,
-        d.reference,d.status,a.name AS account_name,m.name AS method_name,s.name AS seller_name,i.salesperson_id,
+        d.reference,d.status,d.created_at AS payment_created_at,a.name AS account_name,m.name AS method_name,s.name AS seller_name,i.salesperson_id,
         c.name AS customer_name,i.name AS invoice_name,i.currency_code AS invoice_currency,i.sale_id,o.name AS sale_name,
         r.id AS reversed_by_id,r.name AS reversal_name'.$from.' ORDER BY d.movement_date DESC,p.id DESC LIMIT 20 OFFSET '.(($page-1)*20));
     $query->execute($params);

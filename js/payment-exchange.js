@@ -1,6 +1,6 @@
 // Compare each applied portion, using the same cent rounding as the PHP repository.
 for (const form of document.querySelectorAll('[data-payment-rate-endpoint]')) {
-    const date=form.querySelector('[name="payment_date"]'), rate=form.querySelector('[name="exchange_rate"]');
+    const date=form.elements.namedItem(form.dataset.paymentDateField||'payment_date'), rate=form.querySelector('[name="exchange_rate"]');
     const currency=form.querySelector('[name="currency_code"]'), amount=form.querySelector('[name="amount"]');
     const status=form.querySelector('[data-payment-rate-status]'), preview=form.querySelector('[data-payment-fx-preview]');
     const pair=JSON.parse(form.dataset.paymentPair), invoice=JSON.parse(form.dataset.paymentFxInvoice||'null');
