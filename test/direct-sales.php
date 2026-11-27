@@ -90,6 +90,32 @@ try{
     $cash=dsId($post('seller',$path,$salePost));
     $q=$db->prepare('SELECT d.*,i.status,i.total_amount,i.due_date,i.invoice_date,i.payment_state FROM direct_sale_checkouts d JOIN accounting_invoices i ON i.id=d.invoice_id WHERE d.id=?');$q->execute([$cash]);$cashRow=$q->fetch();
     dsExpect($cashRow['status']==='posted'&&$cashRow['total_amount']==='15.40'&&$cashRow['payment_state']==='not_paid'&&$cashRow['due_date']===$cashRow['invoice_date'],'Factura de contado, comisión, impuesto o vencimiento incorrectos.');
+    [, $withoutSend]=authTestRequest($server,$path.'?id='.$cash,$cookies['seller']);
+    $printDom=new DOMDocument();@$printDom->loadHTML('<?xml encoding="UTF-8">'.$withoutSend);$printXPath=new DOMXPath($printDom);
+    $printLinks=$printXPath->query('//*[@data-direct-document-print]');
+    dsExpect($printLinks->length===4&&!str_contains($withoutSend,'data-direct-print>'),'Faltan los cuatro formatos o permanece la impresión genérica.');
+    $expectedPrintSources=[
+        'contabilidad.customer_invoices'=>['/modules/contabilidad/index.php?type=customer&id='.$cashRow['invoice_id'],'a4'],
+        'ticket'=>['/modules/contabilidad/index.php?type=customer&id='.$cashRow['invoice_id'],'ticket'],
+        'ventas.orders'=>['/modules/ventas/index.php?id='.$cashRow['sale_id'],'a4'],
+        'inventario.deliveries'=>['/modules/inventario/operaciones.php?type=delivery&id='.$cashRow['operation_id'],'a4'],
+    ];
+    foreach($printLinks as $link){
+        parse_str(parse_url($link->getAttribute('href'),PHP_URL_QUERY),$printQuery);[$expected,$format]=$expectedPrintSources[$link->getAttribute('data-direct-document-print')];
+        dsExpect($printQuery['source']==='/project'.$expected&&$printQuery['action']==='print'&&$printQuery['format']===$format&&$link->getAttribute('target')==='_blank','La impresión no corresponde al documento vinculado.');
+        [$printStatus,$printHtml]=authTestRequest($server,substr($link->getAttribute('href'),strlen('/project')),$cookies['seller']);
+        dsExpect($printStatus===200&&str_contains($printHtml,$format==='ticket'?'class="invoice-ticket"':'class="document-lines"'),'No abre el formato de impresión existente.');
+    }
+    if(in_array('--print-smoke',$argv,true)){echo "PASS: cuatro accesos de impresión desde la venta directa, documentos vinculados y formatos A4/ticket nativos con permisos del vendedor.\n";return;}
+    dsExpect(!str_contains($withoutSend,'data-open-invoice-email')&&!str_contains($withoutSend,'data-open-document-share'),'Los accesos de envío ignoran los permisos de la factura.');
+    foreach(['enviar.php','compartir.php'] as $route)dsExpect(authTestRequest($server,'/modules/contabilidad/'.$route.'?type=customer&id='.$cashRow['invoice_id'].'&embedded=1',$cookies['seller'])[0]===403,'Un vendedor sin permiso abrió el asistente de envío.');
+    $db->prepare("INSERT INTO access_group_permissions(group_id,permission_code,record_scope) VALUES(?,'contabilidad.customer_invoices.send','own')")->execute([$groups['direct_sales']]);
+    [, $withSend]=authTestRequest($server,$path.'?id='.$cash,$cookies['seller']);
+    dsExpect(str_contains($withSend,'data-open-invoice-email')&&str_contains($withSend,'data-open-document-share')&&str_contains($withSend,'data-invoice-email-dialog')&&str_contains($withSend,'data-document-share-dialog'),'Faltan los botones o asistentes de envío en la venta directa.');
+    foreach(['enviar.php'=>'email-documents-form','compartir.php'=>'whatsapp-documents-form'] as $route=>$formId){
+        [$code,$wizard]=authTestRequest($server,'/modules/contabilidad/'.$route.'?type=customer&id='.$cashRow['invoice_id'].'&embedded=1',$cookies['seller']);
+        dsExpect($code===200&&str_contains($wizard,$formId)&&str_contains($wizard,'value="invoice:'.$cashRow['invoice_id'].'"')&&str_contains($wizard,'value="order:'.$cashRow['sale_id'].'"')&&str_contains($wizard,'value="operation:'.$cashRow['operation_id'].'"'),'El asistente no utiliza los documentos nativos de la venta directa.');
+    }
     $q=$db->prepare('SELECT status FROM sales_quotations WHERE id=?');$q->execute([$cashRow['sale_id']]);dsExpect($q->fetchColumn()==='sale','La orden no queda confirmada.');
     $q=$db->prepare('SELECT status,source_location_id FROM inventory_operations WHERE id=?');$q->execute([$cashRow['operation_id']]);$movement=$q->fetch();dsExpect($movement['status']==='done'&&(int)$movement['source_location_id']===$locations['seller'],'La entrega no está realizada desde el vendedor.');
     $q=$db->prepare('SELECT quantity FROM inventory_stock WHERE product_id=? AND location_id=?');$q->execute([$product,$locations['seller']]);dsExpect($q->fetchColumn()==='3.00','La venta no descuenta existencias.');
@@ -171,7 +197,7 @@ try{
             $db->prepare("INSERT INTO inventory_products(name,sale_enabled,product_type,sale_price,currency_code) VALUES(?,1,'goods',1,'USD')")->execute(['ZZ '.$prefix.' catalog '.str_pad((string)$n,3,'0',STR_PAD_LEFT)]);$catalogProduct=(int)$db->lastInsertId();
             $db->prepare('INSERT INTO inventory_stock(product_id,location_id,quantity) VALUES(?,?,2)')->execute([$catalogProduct,$locations['seller']]);
         }
-        $env=getenv();$env['NEXO_TEST_BASE_URL']=$server['url'];$env['NEXO_TEST_LOGIN']=$logins['seller'];$env['NEXO_TEST_PASSWORD']=$password;$env['NEXO_DIRECT_CUSTOMER']=(string)$customer;$env['NEXO_DIRECT_PRODUCT']=(string)$product;$env['NEXO_DIRECT_SERIAL_PRODUCT']=(string)$serialProduct;$env['NEXO_DIRECT_USED_KEY']=$salePost['request_key'];
+        $env=getenv();$env['NEXO_TEST_BASE_URL']=$server['url'];$env['NEXO_TEST_LOGIN']=$logins['seller'];$env['NEXO_TEST_PASSWORD']=$password;$env['NEXO_DIRECT_CUSTOMER']=(string)$customer;$env['NEXO_DIRECT_PRODUCT']=(string)$product;$env['NEXO_DIRECT_SERIAL_PRODUCT']=(string)$serialProduct;$env['NEXO_DIRECT_USED_KEY']=$salePost['request_key'];$env['NEXO_DIRECT_SALE']=(string)$cash;$env['NEXO_DIRECT_INVOICE']=(string)$cashRow['invoice_id'];
         $process=proc_open(['node',__DIR__.'/direct-sales-ui.js'],[0=>['pipe','r'],1=>STDOUT,2=>STDERR],$pipes,dirname(__DIR__),$env,['bypass_shell'=>true,'create_new_console'=>false]);fclose($pipes[0]);if(proc_close($process)!==0)throw new RuntimeException('Falló la revisión del navegador.');
     }
     echo "PASS: venta directa de contado/crédito, documentos nativos, impuestos/comisiones, stock, pagos separados, reintentos, permisos, solicitud y transferencia parcial idempotente; migración conserva datos.\n";

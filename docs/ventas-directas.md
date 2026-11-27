@@ -26,6 +26,18 @@ Desde **Mis ventas → abrir venta → Registrar cobro total o parcial** se regi
 
 El cobro nativo queda aplicado a la factura y pendiente de validación del jefe. La pantalla distingue saldo sin confirmar, cobros en revisión y saldo por cubrir. Las claves de reintento impiden duplicados y los comprobantes se guardan privadamente dentro de la transacción. El cobro no confirma dinero ni liquida comisiones. La conciliación conserva el flujo y permisos de Contabilidad.
 
+## Imprimir documentos desde una venta
+
+El detalle de una venta incluye **Imprimir factura**, **Imprimir ticket de factura**, **Imprimir orden de venta** e **Imprimir entrega**. Cada acceso abre en una pestaña nueva el formato existente del documento relacionado, conservando abierta la venta. Desde la vista de impresión se imprime o se guarda como PDF; el ticket permite elegir papel de 80 o 58 mm. Se requieren los permisos de consulta del documento correspondiente. Se sustituye el botón que imprimía únicamente el resumen de la venta directa.
+
+## Enviar documentos desde una venta
+
+En **Ventas Directas → Mis ventas / Ventas realizadas → abrir una venta** aparecen **Enviar por correo** y **WhatsApp** cuando el usuario puede consultar y enviar la factura de cliente relacionada y está activa la empresa del documento. Ambos abren los mismos asistentes de la factura dentro de una ventana emergente, sin salir de la venta directa.
+
+El destinatario, la plantilla, las tasas, las opciones Mensaje / Factura / Orden de venta / Entrega y el historial provienen de los mecanismos existentes. No se crea otra factura ni otro historial independiente. Correo utiliza el SMTP de la empresa; WhatsApp conserva Preparar mensaje, Abrir WhatsApp y Copiar. Las opciones de documentos también respetan los permisos de consulta de cada módulo.
+
+La incorporación de los botones no concede permisos a grupos existentes. Para autorizar un vendedor, configurar en su grupo la consulta y el envío de **Facturas y notas de crédito de clientes**, con alcance **Propios** cuando corresponda (`contabilidad.customer_invoices.read` y `.send`; el permiso de envío también habilita marcar como enviada). Los asistentes mantienen su propia validación en el servidor.
+
 ## Crédito
 
 Ventas Directas → Crédito permite definir por cliente un límite y **Advertir y permitir** (predeterminado) o **Bloquear**. Límite vacío significa sin límite; cero advierte ante cualquier nuevo crédito. Guarda la moneda del límite y convierte según configuración vigente.

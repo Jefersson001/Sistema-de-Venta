@@ -20,7 +20,9 @@ const {spawn}=require('node:child_process');
         await call('Emulation.setDeviceMetricsOverride',{width:390,height:844,deviceScaleFactor:1,mobile:true});
         await call('Page.navigate',{url:base+'/login.php'});await until('document.readyState==="complete"&&!!document.querySelector("[name=login]")');
         await ev('document.querySelector("[name=login]").value='+JSON.stringify(login)+';document.querySelector("[name=password]").value='+JSON.stringify(password)+';document.querySelector("form").requestSubmit()');
-        await until('!location.pathname.endsWith("/login.php")');await call('Page.navigate',{url:base+'/modules/venta_directa/index.php'});
+        await until('!location.pathname.endsWith("/login.php")');
+        await call('Emulation.setDeviceMetricsOverride',{width:390,height:844,deviceScaleFactor:1,mobile:true});
+        await call('Page.navigate',{url:base+'/modules/venta_directa/index.php'});
         await until('document.readyState==="complete"&&!!document.querySelector(".direct-add")');
         assert.equal(await ev('document.documentElement.scrollWidth<=innerWidth'),true,'Mobile horizontal overflow.');
         assert.equal(await ev('document.querySelectorAll(".direct-product").length'),12,'A large catalog must not render every product on one page.');
@@ -107,6 +109,21 @@ const {spawn}=require('node:child_process');
         await ev('document.querySelector("[data-direct-submit]").click()');await until('!!document.querySelector("[data-direct-completed]")');
         assert.match(await ev('document.querySelector(".direct-request-detail").textContent'),/3\.00/,'Request did not preserve serial units.');
         assert.match(await ev('document.querySelector(".direct-request-detail").textContent'),/1\.25/,'Request did not preserve decimal units.');
+        for(const width of [390,1440]){
+            await call('Emulation.setDeviceMetricsOverride',{width,height:844,deviceScaleFactor:1,mobile:width<600});
+            await call('Page.navigate',{url:base+'/modules/venta_directa/index.php?id='+process.env.NEXO_DIRECT_SALE});
+            await until('document.readyState==="complete"&&!!document.querySelector("[data-open-invoice-email]")');
+            for(const [trigger,dialog,form] of [['[data-open-invoice-email]','[data-invoice-email-dialog]','#email-documents-form'],['[data-open-document-share]','[data-document-share-dialog]','#whatsapp-documents-form']]){
+                assert.ok(await ev(`document.querySelector(${JSON.stringify(trigger)}).href.endsWith('type=customer&id='+${JSON.stringify(process.env.NEXO_DIRECT_INVOICE)})`));
+                await ev(`document.querySelector(${JSON.stringify(trigger)}).click()`);
+                await until(`document.querySelector(${JSON.stringify(dialog)}).open&&!!document.querySelector(${JSON.stringify(dialog+' iframe')}).contentDocument?.querySelector(${JSON.stringify(form)})`);
+                const bounds=await ev(`(()=>{const d=document.querySelector(${JSON.stringify(dialog)}),r=d.getBoundingClientRect(),f=d.querySelector('iframe').contentDocument;return {inside:r.left>=0&&r.right<=innerWidth+1,overflow:f.documentElement.scrollWidth>f.documentElement.clientWidth+1,path:location.pathname}})()`);
+                assert.equal(bounds.inside,true);assert.equal(bounds.overflow,false);assert.ok(bounds.path.endsWith('/venta_directa/index.php'));
+                await ev(`document.querySelector(${JSON.stringify(dialog+' iframe')}).contentDocument.querySelector('[data-dismiss-email-wizard],[data-dismiss-share-wizard]').click()`);
+                await until(`!document.querySelector(${JSON.stringify(dialog)}).open&&document.querySelector(${JSON.stringify(dialog+' iframe')}).getAttribute('src')==='about:blank'`);
+                assert.equal(await ev(`document.querySelector(${JSON.stringify(dialog+' iframe')}).getAttribute('src')`),'about:blank');
+            }
+        }
         assert.deepEqual(errors,[]);
         console.log('PASS: browser mobile/desktop, stock catalog, exact cart totals, credit due date, cart recovery, real confirmation, receipt and request permissions.');
     }finally{

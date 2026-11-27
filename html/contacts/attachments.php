@@ -1,5 +1,6 @@
 <?php $canAttach = permissionHas('contactos.contacts', $editing ? 'edit' : 'create'); ?>
 <h2 class="notebook-page-title">Fotos y documentos</h2>
+<p class="section-subtitle">Máximo 10 MB por archivo y 20 MB en total por guardado, hasta 20 archivos.</p>
 <div class="contact-attachment-list" data-contact-attachments>
     <?php foreach ($page['attachments'] ?? [] as $attachment): ?>
     <?php $fileUrl = 'archivo.php?'.http_build_query(['id'=>$record['id'], 'file'=>$attachment['id']]); ?>

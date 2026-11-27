@@ -1,5 +1,9 @@
 <?php $e=static fn(mixed $v):string=>authEscape($v);$requests=$page['requests'];$detail=$page['detail'];$currency=$page['settings']['primary_code'];$warehouseStock=$page['warehouse_stock'];$canApprove=$requests&&permissionScope('venta_directa.requests','confirm')==='all'&&permissionHas('venta_directa.stock');$states=['pending'=>'Pendiente','approved'=>'Aprobada, pendiente de entrega','transferred'=>'Transferida','rejected'=>'Rechazada','cancelled'=>'Cancelada'];
 $directNav=[];
+$canSendDirectDocuments=$detail&&!$requests&&!$warehouseStock
+    &&(int)$detail['company_id']===companyActiveId()
+    &&permissionRecord('contabilidad.customer_invoices',(int)$detail['invoice_id'],'read')
+    &&permissionRecord('contabilidad.customer_invoices',(int)$detail['invoice_id'],'send');
 $canCreateDirectCustomer=!$requests&&!$warehouseStock&&!$detail&&!isset($_GET['view'])&&!empty($page['can_create'])&&!empty($page['seller'])&&permissionHas('contactos.contacts','read')&&permissionHas('contactos.contacts','create');
 if(permissionHas('venta_directa.sales','create')&&permissionContact()){
     $directNav[]=['index.php','Vender',!$requests&&!$warehouseStock&&!$detail&&!isset($_GET['view'])];
@@ -38,9 +42,11 @@ if(permissionHas('venta_directa.configuration'))$directNav[]=['configuracion.php
 <p class="section-subtitle">Factura: <?= $e(invoiceStatuses()[$detail['invoice_status']]??$detail['invoice_status']) ?> · Cobro: <?= $e(invoicePaymentStates()[$detail['payment_state']]??$detail['payment_state']) ?>. La venta, la entrega y la factura están vinculadas.</p>
 <?php foreach(json_decode($detail['credit_warning_json']??'[]',true)?:[] as $warning): ?><p class="notice"><?= $e($warning) ?> La venta fue permitida según la política del cliente.</p><?php endforeach; ?>
 <div class="direct-receipt-lines"><?php foreach($page['lines'] as $line): ?><div><span><?= $e($line['quantity'].' × '.$line['product_name']) ?></span><strong><?= $e($line['total_amount']) ?></strong></div><?php endforeach; ?></div>
-<div class="direct-actions"><?php if(permissionHas('venta_directa.sales','create')&&permissionContact()): ?><a class="contact-button contact-button-primary" href="index.php">Nueva venta</a><?php endif; ?><a class="contact-button" href="../contabilidad/index.php?type=customer&amp;id=<?= (int)$detail['invoice_id'] ?>">Factura / registrar pago</a><button type="button" class="contact-button" data-direct-print>Imprimir</button></div>
-<div class="direct-actions"><a href="../ventas/index.php?id=<?= (int)$detail['sale_id'] ?>">Orden de venta →</a><a href="../inventario/operaciones.php?type=delivery&amp;id=<?= (int)$detail['operation_id'] ?>">Entrega →</a></div></section>
+<div class="direct-actions"><?php if(permissionHas('venta_directa.sales','create')&&permissionContact()): ?><a class="contact-button contact-button-primary" href="index.php">Nueva venta</a><?php endif; ?><?php if($canSendDirectDocuments): ?><a class="contact-button" data-open-invoice-email href="../contabilidad/enviar.php?type=customer&amp;id=<?= (int)$detail['invoice_id'] ?>">Enviar por correo</a><a class="contact-button" data-open-document-share href="../contabilidad/compartir.php?type=customer&amp;id=<?= (int)$detail['invoice_id'] ?>">WhatsApp</a><?php endif; ?></div>
+<?php require __DIR__.'/print-actions.php'; ?>
+<div class="direct-actions direct-related-links"><a href="../ventas/index.php?id=<?= (int)$detail['sale_id'] ?>">Orden de venta →</a><a href="../inventario/operaciones.php?type=delivery&amp;id=<?= (int)$detail['operation_id'] ?>">Entrega →</a><a href="../contabilidad/index.php?type=customer&amp;id=<?= (int)$detail['invoice_id'] ?>">Factura →</a></div></section>
 <?php require __DIR__.'/payment.php'; ?>
+<?php if($canSendDirectDocuments): require dirname(__DIR__).'/partials/document-email-dialog.php'; require dirname(__DIR__).'/partials/document-share-dialog.php'; endif; ?>
 <?php if(permissionHas('venta_directa.returns','create')): ?><div class="direct-actions"><a class="contact-button" href="devoluciones.php?sale_id=<?= (int)$detail['id'] ?>">Solicitar devolución del cliente</a></div><?php endif; ?>
 <?php elseif($detail&&$requests): ?>
 <section class="contact-sheet direct-request-detail" data-direct-completed="<?= $e($detail['request_key']) ?>"><a class="overview-link" href="solicitudes.php">← Solicitudes</a><h2>Solicitud #<?= (int)$detail['id'] ?></h2><p><?= $e($detail['seller_name']) ?> · <?= $e($detail['destination_name']) ?> <span class="contact-tag"><?= $e($states[$detail['status']]) ?></span></p><p><?= $e($detail['notes']) ?></p>

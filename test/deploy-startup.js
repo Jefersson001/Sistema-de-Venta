@@ -14,6 +14,8 @@ const base = { ...process.env, START_LOG: slash(log), NIXPACKS_ASSETS_DIR: slash
 delete base.AUTO_MIGRATE;
 delete base.FAIL_MIGRATION;
 delete base.FAIL_STORAGE;
+delete base.FAIL_LIMITS;
+delete base.FAIL_NGINX_CONFIG;
 const pathKey = Object.keys(base).find(key => key.toLowerCase() === 'path') || 'PATH';
 base[pathKey] = path.join(root, 'bin') + path.delimiter + (base[pathKey] || '');
 
@@ -22,11 +24,12 @@ try {
     fs.copyFileSync(source, script);
     fs.writeFileSync(path.join(root, 'php/migrate.php'), '<?php');
     fs.writeFileSync(path.join(root, 'php/prepare-upload-storage.php'), '<?php');
+    fs.writeFileSync(path.join(root, 'php/prepare-upload-request-limits.php'), '<?php');
     const commands = {
-        php: '#!/bin/sh\ncase "$1" in\n*/migrate.php) printf "migrate\\n" >> "$START_LOG"; exit "${FAIL_MIGRATION:-0}" ;;\n*/prepare-upload-storage.php) printf "storage %s\\n" "$2" >> "$START_LOG"; exit "${FAIL_STORAGE:-0}" ;;\n*) exit 99 ;;\nesac\n',
+        php: '#!/bin/sh\ncase "$1" in\n*/migrate.php) printf "migrate\\n" >> "$START_LOG"; exit "${FAIL_MIGRATION:-0}" ;;\n*/prepare-upload-storage.php) printf "storage %s\\n" "$2" >> "$START_LOG"; exit "${FAIL_STORAGE:-0}" ;;\n*/prepare-upload-request-limits.php) printf "limits %s %s\\n" "$2" "$3" >> "$START_LOG"; exit "${FAIL_LIMITS:-0}" ;;\n*) exit 99 ;;\nesac\n',
         node: '#!/bin/sh\nprintf "render %s\\n" "$2" >> "$START_LOG"\n: > "$3"\n',
         'php-fpm': '#!/bin/sh\nprintf "fpm\\n" >> "$START_LOG"\n',
-        nginx: '#!/bin/sh\nprintf "nginx\\n" >> "$START_LOG"\n',
+        nginx: '#!/bin/sh\nif [ "$1" = "-t" ]; then printf "nginx-test\\n" >> "$START_LOG"; exit "${FAIL_NGINX_CONFIG:-0}"; fi\nprintf "nginx\\n" >> "$START_LOG"\n',
     };
     for (const [name, body] of Object.entries(commands)) fs.writeFileSync(path.join(root, 'bin', name), body, { mode: 0o755 });
     const run = extra => {
@@ -41,6 +44,9 @@ try {
     assert.ok(normal.events[1].startsWith('storage ') && normal.events[1].endsWith('/assets/php-fpm.conf'));
     assert.ok(normal.events.some(event => event.startsWith('render ')));
     assert.ok(normal.events.includes('nginx'));
+    const limitsIndex=normal.events.findIndex(event=>event.startsWith('limits '));
+    assert.ok(limitsIndex>normal.events.findIndex(event=>event.startsWith('render ')));
+    assert.ok(limitsIndex<normal.events.indexOf('nginx-test')&&normal.events.indexOf('nginx-test')<normal.events.indexOf('nginx'));
     const failed = run({ FAIL_MIGRATION: '23' });
     assert.equal(failed.status, 23);
     assert.deepEqual(failed.events, ['migrate'], 'Un fallo de migración debe impedir iniciar el servidor.');
@@ -48,6 +54,12 @@ try {
     assert.equal(noStorage.status, 24);
     assert.equal(noStorage.events.length, 2);
     assert.ok(!noStorage.events.includes('nginx') && !noStorage.events.includes('fpm'), 'No iniciar el servidor con almacenamiento sin permisos.');
+    const noLimits=run({FAIL_LIMITS:'25'});
+    assert.equal(noLimits.status,25);
+    assert.ok(!noLimits.events.includes('nginx')&&!noLimits.events.includes('fpm'),'No iniciar con límites sin configurar.');
+    const invalidNginx=run({FAIL_NGINX_CONFIG:'26'});
+    assert.equal(invalidNginx.status,26);
+    assert.ok(!invalidNginx.events.includes('nginx')&&!invalidNginx.events.includes('fpm'),'No iniciar con una configuración Nginx inválida.');
     const skipped = run({ AUTO_MIGRATE: '0' });
     assert.equal(skipped.status, 0, skipped.stderr);
     assert.ok(!skipped.events.includes('migrate') && skipped.events.includes('nginx'));
@@ -59,6 +71,11 @@ try {
     const custom = run({});
     assert.equal(custom.status, 0, custom.stderr);
     assert.ok(custom.events.some(event => event.includes('nginx.template.conf') && !event.includes('/assets/')));
+    fs.writeFileSync(path.join(root,'nginx.conf'),'# complete custom config');
+    const customConfig=run({});
+    assert.equal(customConfig.status,0);
+    assert.ok(!customConfig.events.some(event=>event.startsWith('render ')));
+    assert.ok(customConfig.events.some(event=>event.startsWith('limits ')&&event.includes('/nginx.conf')));
     console.log('PASS: migraciones y almacenamiento antes del servidor, fallos detienen arranque, desactivación explícita y plantilla Nginx personalizada.');
 } finally {
     assert.equal(path.dirname(path.resolve(root)), path.resolve(os.tmpdir()));

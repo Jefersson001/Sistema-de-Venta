@@ -26,6 +26,14 @@ try {
     $rows=$db->query('SELECT * FROM contact_attachments WHERE contact_id='.$id.' ORDER BY id')->fetchAll();
     attachmentExpect(count($rows)===2&&$rows[0]['description']==='Foto de identificación','Rows did not persist.');
     foreach($rows as $row)attachmentExpect(is_file($server['sessions'].'/contact-uploads/'.$row['storage_key'].'.bin'),'Private file missing.');
+    // A mobile photo can exceed Nginx's default 1 MiB even though the app accepts it.
+    $fixtures['large-photo']=tempnam(sys_get_temp_dir(),'attachment-large-');
+    file_put_contents($fixtures['large-photo'],$png.str_repeat("\0",1280*1024));
+    $wizardPath='/modules/contactos/index.php?'.http_build_query(['new'=>'1','sales_wizard'=>'1','wizard_scope'=>$data['company_scope']]);
+    [$status,,$wizardRedirect]=attachmentPost($server,$wizardPath,$cookie,array_replace($data,['name'=>'Cliente wizard con foto grande'])+['contact_files[0]'=>new CURLFile($fixtures['large-photo'],'image/png','foto-telefono.png')]);
+    attachmentExpect($status===303&&str_contains($wizardRedirect,'created=1'),'Large photo failed in the customer wizard.');
+    $q=$db->query("SELECT a.byte_size FROM contact_attachments a JOIN contacts c ON c.id=a.contact_id WHERE c.name='Cliente wizard con foto grande'");
+    attachmentExpect((int)$q->fetchColumn()===filesize($fixtures['large-photo']),'Large wizard photo was not stored in full.');
     $path='/modules/contactos/archivo.php?id='.$id.'&file='.$rows[0]['id'];
     [$status,$bytes,,$headers]=authTestRequest($server,$path,$cookie);
     attachmentExpect($status===200&&$bytes===$png&&str_contains(implode('',$headers),'image/png'),'Photo delivery failed.');

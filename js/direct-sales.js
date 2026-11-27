@@ -3,7 +3,6 @@
     const root=document.querySelector('[data-direct-root]');if(!root)return;
     root.querySelector('[data-direct-payment]')?.addEventListener('submit',event=>{event.target.querySelector('button[type="submit"]').disabled=true;});
     window.addEventListener('pageshow',()=>{const button=root.querySelector('[data-direct-payment] button[type="submit"]');if(button)button.disabled=false;});
-    root.querySelector('[data-direct-print]')?.addEventListener('click',()=>window.print());
     const scope=root.dataset.storageScope;
     const completedKey='konta-direct-completed-'+scope;
     function completedKeys(){try{const keys=JSON.parse(localStorage.getItem(completedKey)||'[]');return Array.isArray(keys)?keys.filter(key=>typeof key==='string'&&/^[a-f0-9]{64}$/.test(key)):[];}catch{return [];}}

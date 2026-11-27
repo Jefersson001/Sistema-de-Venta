@@ -21,5 +21,7 @@ else
     if [ -f "$APP_DIR/nginx.template.conf" ]; then TEMPLATE="$APP_DIR/nginx.template.conf"; fi
     node "$ASSETS_DIR/scripts/prestart.mjs" "$TEMPLATE" "$NGINX_CONFIG"
 fi
+php "$APP_DIR/php/prepare-upload-request-limits.php" "$NGINX_CONFIG" "$ASSETS_DIR/php-fpm.conf"
+nginx -t -c "$NGINX_CONFIG"
 php-fpm -y "$ASSETS_DIR/php-fpm.conf" &
 exec nginx -c "$NGINX_CONFIG"
