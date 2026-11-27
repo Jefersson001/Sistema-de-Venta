@@ -11,3 +11,5 @@
     </tbody></table></div>
     <nav class="contact-pagination" aria-label="Páginas de órdenes de venta"><span>Página <?= $page['currentPage'] ?> de <?= $page['pages'] ?></span><?php foreach (['Anterior' => $page['currentPage'] - 1, 'Siguiente' => $page['currentPage'] + 1] as $label => $number): ?><?php if ($number >= 1 && $number <= $page['pages']): ?><a class="contact-button" href="index.php?<?= salesEscape(http_build_query(['q' => $page['search'], 'status' => $page['statusFilter'], 'page' => $number, 'salesperson_id'=>$page['sellerFilter']['selected']??null,'pending'=>(($_GET['pending']??'')==='1'?'1':null),'unpaid'=>(($_GET['unpaid']??'')==='1'?'1':null),'overdue'=>(($_GET['overdue']??'')==='1'?'1':null)])) ?>"><?= $label ?></a><?php endif; ?><?php endforeach; ?></nav>
 </section>
+
+<?php require dirname(__DIR__).'/partials/record-products-dialog.php'; ?>

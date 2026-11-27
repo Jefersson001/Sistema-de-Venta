@@ -2,6 +2,8 @@
 
 ## Uso
 
+En los listados de **Órdenes de venta** y **Facturas de clientes/proveedores**, la columna **Acciones** incluye **Ver detalles** junto a Editar. Abre una ventana con los productos guardados en ese documento y sus cantidades, sin entrar al formulario ni modificarlo. Está disponible con permiso de consulta, aunque no se pueda editar, y respeta las empresas seleccionadas y el alcance por vendedor. Se cierra con **Cerrar**, Escape o al pulsar fuera de la ventana; conserva los filtros y la posición de la lista.
+
 En la ficha de una cotización, orden, movimiento de inventario, factura o nota de crédito, abrir **Opciones → Imprimir / Guardar PDF**. La vista previa utiliza los datos guardados; para incluir cambios de la ficha, guardarlos primero. El botón abre la impresión del navegador, donde se puede elegir una impresora o Guardar como PDF.
 
 Hay dos variantes de un diseño común de Nexo:

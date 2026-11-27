@@ -80,5 +80,6 @@ try {
     editHttpCheck(authTestRequest($s,'/login.php',$readonlyCookie,['csrf'=>authTestToken($body),'login'=>$readonlyLogin,'password'=>$password])[0]===303,'No inició sesión el usuario de consulta.');
     [$status,$html]=authTestRequest($s,'/modules/contactos/index.php',$readonlyCookie);
     editHttpCheck($status===200&&str_contains($html,'data-record-edit-actions')&&!str_contains($html,'record-edit-link'),'Se ofreció Editar a un usuario de solo consulta.');
+    require __DIR__.'/record-products-cases.php';
     echo 'PASS: '.count($routes).' listas con Editar al final, sin duplicados; empresa, filtros, fichas y tablas de líneas conservados.'.PHP_EOL;
 } finally { foreach([$cookie,$readonlyCookie] as $file)if(is_file($file))unlink($file);stopAuthTestServer($s); }

@@ -82,6 +82,16 @@ function editActionsDecorateView(DOMDocument $dom, DOMXPath $xpath, string $curr
                     $link->setAttribute('aria-label', 'Editar registro '.$record['id']);
                     $cell->appendChild($link);
                 }
+                $productResources=['ventas.orders'=>'order','contabilidad.customer_invoices'=>'invoice','contabilidad.supplier_invoices'=>'invoice'];
+                $resource=$record['model']['resource'];
+                if($listing&&isset($productResources[$resource])&&$resource===$currentModel['resource']&&permissionHas($resource)&&permissionRecord($resource,$record['id'])){
+                    $button=$dom->createElement('button','Ver detalles');$button->setAttribute('type','button');
+                    $button->setAttribute('class','contact-button contact-button-link record-products-trigger');
+                    $button->setAttribute('aria-label','Ver productos de '.$record['name']);
+                    $button->setAttribute('aria-haspopup','dialog');$button->setAttribute('aria-controls','record-products-dialog');
+                    $button->setAttribute('data-record-products-url',authBasePath().'/productos-documento.php?'.http_build_query(['kind'=>$productResources[$resource],'id'=>$record['id'],'type'=>$resource==='contabilidad.supplier_invoices'?'supplier':'customer']));
+                    $cell->appendChild($button);
+                }
             }
             if (!$cell->hasChildNodes()) $cell->appendChild($dom->createTextNode('—'));
             $cell->setAttribute('class', trim($cell->getAttribute('class').' record-edit-actions'));
