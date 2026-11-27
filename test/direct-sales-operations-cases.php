@@ -46,5 +46,6 @@ if(PHP_SAPI!=='cli'){http_response_code(404);exit;}
         $curl=curl_init($server['url'].$path.'?id='.$creditId);curl_setopt_array($curl,[CURLOPT_RETURNTRANSFER=>true,CURLOPT_COOKIEFILE=>$cookies['seller'],CURLOPT_POST=>true,CURLOPT_POSTFIELDS=>$upload]);$body=curl_exec($curl);$code=curl_getinfo($curl,CURLINFO_RESPONSE_CODE);curl_close($curl);dsExpect($code===303,'No se registra el cobro con comprobante: '.mb_substr(strip_tags((string)$body),-1200));
         $proof=$db->prepare('SELECT p.storage_key,p.id FROM payment_proofs p JOIN direct_sale_actions a ON a.payment_id=p.payment_id WHERE a.request_key=?');$proof->execute([$upload['request_key']]);$stored=$proof->fetch();dsExpect($stored&&is_file($server['sessions'].'/payment-proofs/'.$stored['storage_key'].'.bin'),'El comprobante no queda asociado al cobro privado.');
     }finally{unlink($proofFile);}
+    require __DIR__.'/direct-sales-return-cases.php';
     echo "PASS: plazo único, crédito configurable, advertencia permitida, abonos idempotentes pendientes, devolución parcial con nota e inventario, retorno de sobrantes y cierre retirado sin crear registros.\n";
 })();

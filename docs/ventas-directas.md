@@ -4,6 +4,8 @@ Módulo integrado de Vent-As para celular y computadora. Usa los documentos nati
 
 ## Instalación y permisos
 
+En **Ventas → Estado de factura** puedes filtrar las últimas 100 ventas autorizadas por estado de factura (borrador, registrado, cancelado o enviado), estado de pago (sin pagar, en proceso, parcialmente pagado, pagado o revertido) o **Vencidas** (facturas registradas con saldo pendiente y fecha de vencimiento anterior a hoy). La lista se actualiza automáticamente al seleccionar un estado. Selecciona **Limpiar** o **Todos los estados** para volver a ver todos. El filtro se aplica antes del límite de 100 registros y conserva las restricciones de empresa y vendedor.
+
 Las migraciones 20261113131544, 20261113161546 y 20261113171011 agregan tablas empresariales mediante registerCompanyTable(), catálogos y permisos. Aplicar con php php/migrate.php o el arranque de Dokploy. No importar respaldos ni reinstalar una base existente.
 
 - **Vendedor de venta directa:** opera con su contacto vendedor propio, vende, solicita mercancía y retornos de sobrantes, registra abonos pendientes, solicita devoluciones del cliente y envía su cierre.
@@ -58,9 +60,9 @@ El servidor revalida almacén central, ubicación del vendedor, cantidades y seg
 
 ## Devoluciones del cliente
 
-Desde una venta se solicitan cantidades y motivo. Solo puede existir una solicitud pendiente por venta. Enviar no cambia stock ni factura, ni permite superar cantidades pendientes de devolver.
+Desde una venta puedes elegir **Devolver toda la venta** o **Devolución parcial** e indicar el motivo. La total incluye automáticamente las cantidades que aún pueden devolverse, calculadas en el servidor según lo entregado y las devoluciones/notas previas; la parcial permite escribir cantidades dentro de ese límite. Solo puede existir una solicitud pendiente por venta. Enviar no cambia stock ni factura.
 
-El supervisor confirma la recepción física. Se generan atómicamente devolución de la entrega original y nota de crédito parcial registrada, conservando precios, impuestos y seguimiento. El saldo y las comisiones se ajustan con las reglas nativas. No hay sobredevoluciones ni duplicación por reintento.
+El supervisor confirma la recepción física. Se generan atómicamente devolución de la entrega original y nota de crédito registrada, conservando precios, impuestos y seguimiento. La devolución total revierte la factura mediante notas de crédito: conserva el documento registrado y marca su cobro como **Revertido**. La parcial ajusta únicamente lo devuelto. La última devolución de cada línea absorbe sus diferencias de redondeo para no dejar centavos pendientes. El saldo y las comisiones se ajustan con las reglas nativas. La venta y la devolución muestran el resultado. No hay sobredevoluciones ni duplicación por reintento.
 
 Deben resolverse antes los cobros pendientes de revisión y otros borradores de devolución/nota. La mercancía vuelve a la ubicación de la entrega original, aunque después se haya cambiado la asignación del vendedor. No se reembolsa dinero automáticamente: se gestiona desde la nota en Contabilidad, con sus permisos. El supervisor puede rechazar con motivo.
 

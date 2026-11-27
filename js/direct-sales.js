@@ -1,6 +1,7 @@
 (() => {
     'use strict';
     const root=document.querySelector('[data-direct-root]');if(!root)return;
+    root.querySelector('.direct-history-filters select[name="status"]')?.addEventListener('change',event=>event.target.form.requestSubmit());
     root.querySelector('[data-direct-payment]')?.addEventListener('submit',event=>{event.target.querySelector('button[type="submit"]').disabled=true;});
     window.addEventListener('pageshow',()=>{const button=root.querySelector('[data-direct-payment] button[type="submit"]');if(button)button.disabled=false;});
     const scope=root.dataset.storageScope;

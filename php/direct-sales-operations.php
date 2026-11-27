@@ -93,20 +93,55 @@ function directDispatchRequest(CompanyConnection $db,int $id,array $input): int 
         $db->prepare("UPDATE direct_stock_requests SET status='transferred',version=version+1,source_location_id=?,destination_location_id=?,operation_id=?,fulfilled_by=?,fulfilled_at=CURRENT_TIMESTAMP WHERE id=?")->execute([$source,$destination,$operation,permissionUser()['id'],$id]);return $operation;
     });
 }
+function directReturnableLines(PDO $db,array $sale): array {
+    $q=$db->prepare("SELECT l.id,l.product_name,l.quantity,p.tracking_mode,
+        l.quantity-COALESCE((SELECT SUM(c.quantity) FROM accounting_invoice_lines c JOIN accounting_invoices i ON i.id=c.invoice_id WHERE c.original_line_id=l.id AND i.status<>'cancel'),0) AS credit_remaining,
+        COALESCE((SELECT SUM(ol.quantity-COALESCE((SELECT SUM(rl.quantity) FROM inventory_operation_lines rl JOIN inventory_operations r ON r.id=rl.operation_id WHERE rl.return_line_id=ol.id AND r.status='done'),0)) FROM inventory_operation_lines ol WHERE ol.operation_id=? AND ol.sale_line_id=l.sale_line_id),0) AS stock_remaining
+        FROM accounting_invoice_lines l JOIN inventory_products p ON p.id=l.product_id WHERE l.invoice_id=? ORDER BY l.position,l.id");
+    $q->execute([$sale['operation_id'],$sale['invoice_id']]);$lines=$q->fetchAll();
+    foreach($lines as &$line){$remaining=bccomp($line['credit_remaining'],$line['stock_remaining'],2)<0?$line['credit_remaining']:$line['stock_remaining'];$line['returnable']=bccomp($remaining,'0',2)>0?$remaining:'0.00';}unset($line);
+    return $lines;
+}
 function directRequestCustomerReturn(CompanyConnection $db,array $input): int {
     permissionRequire('venta_directa.returns','create');$saleId=accessId($input['sale_id']??null);$sale=directSaleRecord($db,$saleId??0);
     if(permissionRuntime()&&!in_array((int)$sale['seller_id'],permissionContacts(),true))throw new InvalidArgumentException('Solo puedes solicitar devoluciones de tus ventas.',403);
-    $key=directKey($input['request_key']??null);$reason=directText($input['reason']??'',255,true);$quantities=$input['quantities']??null;
+    $mode=$input['return_mode']??'partial';if(!is_string($mode)||!in_array($mode,['partial','total'],true))throw new InvalidArgumentException('Selecciona devolución total o parcial.');
+    $key=directKey($input['request_key']??null);$reason=directText($input['reason']??'',255,true);$quantities=$mode==='total'?[]:($input['quantities']??null);
     if(!is_array($quantities)||count($quantities)>100)throw new InvalidArgumentException('Revisa las cantidades a devolver.');
     $lines=[];foreach($quantities as $id=>$qty){$lineId=accessId((string)$id);$qty=inventoryQuantity($qty);if(!$lineId||$qty===null||bccomp($qty,'0',2)<0)throw new InvalidArgumentException('Revisa las cantidades a devolver.');if(bccomp($qty,'0',2)>0)$lines[$lineId]=$qty;}
-    if(!$lines)throw new InvalidArgumentException('Selecciona al menos una cantidad a devolver.');ksort($lines);$payload=['reason'=>$reason,'lines'=>$lines];$hash=hash('sha256',json_encode([$saleId,$payload],JSON_THROW_ON_ERROR));
-    return $db->atomicTransfer(function()use($db,$sale,$saleId,$key,$hash,$payload){
+    if(!$lines&&$mode!=='total')throw new InvalidArgumentException('Selecciona al menos una cantidad a devolver.');ksort($lines);$payload=$mode==='total'?['reason'=>$reason,'mode'=>'total']:['reason'=>$reason,'lines'=>$lines];$hash=hash('sha256',json_encode([$saleId,$payload],JSON_THROW_ON_ERROR));
+    return $db->atomicTransfer(function()use($db,$sale,$saleId,$key,$hash,$payload,$mode){
+        workflowLockOrder($db,['quotation_id'=>$sale['sale_id']]);
         $q=$db->prepare('SELECT id FROM direct_sale_checkouts WHERE id=? FOR UPDATE');$q->execute([$saleId]);
         $q=$db->prepare('SELECT id,payload_hash FROM direct_sale_actions WHERE request_key=? FOR UPDATE');$q->execute([$key]);if($old=$q->fetch()){if(!hash_equals($old['payload_hash'],$hash))throw new InvalidArgumentException('La solicitud ya se envió con otros datos.',409);return (int)$old['id'];}
         $q=$db->prepare("SELECT COUNT(*) FROM direct_sale_actions WHERE sale_id=? AND action_kind='return' AND status='pending'");$q->execute([$saleId]);if($q->fetchColumn())throw new InvalidArgumentException('Esta venta ya tiene una devolución pendiente.');
-        foreach($payload['lines'] as $id=>$qty){$q=$db->prepare("SELECT l.quantity-COALESCE((SELECT SUM(c.quantity) FROM accounting_invoice_lines c JOIN accounting_invoices i ON i.id=c.invoice_id WHERE c.original_line_id=l.id AND i.status<>'cancel'),0) AS quantity,p.tracking_mode FROM accounting_invoice_lines l JOIN inventory_products p ON p.id=l.product_id WHERE l.id=? AND l.invoice_id=?");$q->execute([$id,$sale['invoice_id']]);$line=$q->fetch();if(!$line||bccomp($qty,$line['quantity'],2)>0||($line['tracking_mode']==='serial'&&bccomp($qty,bcdiv($qty,'1',0),2)!==0))throw new InvalidArgumentException('La cantidad supera lo pendiente de devolver o no es válida para el producto.');}
+        $q=$db->prepare('SELECT status FROM accounting_invoices WHERE id=? FOR UPDATE');$q->execute([$sale['invoice_id']]);if($q->fetchColumn()!=='posted')throw new InvalidArgumentException('Solo puedes devolver una venta con factura registrada.');
+        $available=array_column(directReturnableLines($db,$sale),null,'id');
+        if($mode==='total'){
+            foreach($available as $line){
+                if(bccomp($line['credit_remaining'],$line['stock_remaining'],2)>0)throw new InvalidArgumentException('Hay devoluciones de inventario sin su nota de crédito correspondiente. Revisa esos documentos antes de devolver toda la venta.');
+                if(bccomp($line['returnable'],'0',2)>0)$payload['lines'][$line['id']]=$line['returnable'];
+            }
+            if(empty($payload['lines']))throw new InvalidArgumentException('Esta venta ya no tiene productos pendientes de devolver.');
+        }
+        foreach($payload['lines'] as $id=>$qty){$line=$available[$id]??null;if(!$line||bccomp($qty,$line['returnable'],2)>0||($line['tracking_mode']==='serial'&&bccomp($qty,bcdiv($qty,'1',0),2)!==0))throw new InvalidArgumentException('La cantidad supera lo pendiente de devolver o no es válida para el producto.');}
         $db->prepare("INSERT INTO direct_sale_actions(sale_id,seller_id,action_kind,request_key,payload_hash,payload_json) VALUES(?,?,'return',?,?,?)")->execute([$saleId,$sale['seller_id'],$key,$hash,json_encode($payload,JSON_THROW_ON_ERROR)]);return (int)$db->lastInsertId();
     });
+}
+function directFinalizeReturnCredit(PDO $db,int $credit): void {
+    // The last return of a line absorbs its original rounding, leaving no cent behind.
+    $q=$db->prepare('SELECT * FROM accounting_invoice_lines WHERE invoice_id=?');$q->execute([$credit]);$totals=['base_amount'=>'0.00','tax_amount'=>'0.00','total_amount'=>'0.00'];
+    foreach($q->fetchAll() as $line){
+        $original=$db->prepare('SELECT * FROM accounting_invoice_lines WHERE id=?');$original->execute([$line['original_line_id']]);$original=$original->fetch();
+        $used=$db->prepare("SELECT COALESCE(SUM(l.quantity),0) AS quantity,COALESCE(SUM(l.base_amount),0) AS base_amount,COALESCE(SUM(l.tax_amount),0) AS tax_amount,COALESCE(SUM(l.total_amount),0) AS total_amount FROM accounting_invoice_lines l JOIN accounting_invoices i ON i.id=l.invoice_id WHERE l.original_line_id=? AND i.status='posted' AND i.document_type='credit'");$used->execute([$line['original_line_id']]);$used=$used->fetch();
+        if(bccomp($line['quantity'],bcsub($original['quantity'],$used['quantity'],2),2)===0){
+            foreach($totals as $field=>$value){$line[$field]=bcsub($original[$field],$used[$field],2);if(bccomp($line[$field],'0',2)<0)throw new InvalidArgumentException('Las notas previas superan el importe original. Revisa la factura antes de devolver.');}
+            $db->prepare('UPDATE accounting_invoice_lines SET base_amount=?,tax_amount=?,total_amount=? WHERE id=?')->execute([$line['base_amount'],$line['tax_amount'],$line['total_amount'],$line['id']]);
+        }
+        foreach($totals as $field=>$value)$totals[$field]=bcadd($value,$line[$field],2);
+    }
+    $db->prepare('UPDATE accounting_invoices SET base_amount=?,tax_amount=?,total_amount=? WHERE id=?')->execute([$totals['base_amount'],$totals['tax_amount'],$totals['total_amount'],$credit]);
+    $q=$db->prepare('SELECT * FROM accounting_invoices WHERE id=?');$q->execute([$credit]);invoiceFreezeUsdDebt($db,$q->fetch());
 }
 function directResolveCustomerReturn(CompanyConnection $db,int $id,array $input,bool $approve): void {
     permissionRequire('venta_directa.returns',$approve?'confirm':'cancel',$id);
@@ -125,6 +160,7 @@ function directResolveCustomerReturn(CompanyConnection $db,int $id,array $input,
             $credit=createCreditNote($db,(int)$invoice['id'],(int)$invoice['version'],$payload['reason']);
             $q=$db->prepare('SELECT * FROM accounting_invoices WHERE id=?');$q->execute([$credit]);$creditInvoice=$q->fetch();$q=$db->prepare('SELECT id,original_line_id FROM accounting_invoice_lines WHERE invoice_id=?');$q->execute([$credit]);$creditQty=[];
             foreach($q->fetchAll() as $line)$creditQty[$line['id']]=$payload['lines'][$line['original_line_id']]??'0';saveCreditNoteQuantities($db,$creditInvoice,$creditQty);
+            directFinalizeReturnCredit($db,$credit);
             $q=$db->prepare('SELECT * FROM inventory_operations WHERE id=? FOR UPDATE');$q->execute([$sale['operation_id']]);$delivery=$q->fetch();
             $q=$db->prepare("SELECT COUNT(*) FROM inventory_operations WHERE return_of_id=? AND status IN ('draft','waiting','ready')");$q->execute([$delivery['id']]);if($q->fetchColumn())throw new InvalidArgumentException('Resuelve la devolución de inventario pendiente antes de continuar.');
             $operation=createStockReturn($db,(int)$delivery['id'],(int)$delivery['version']);

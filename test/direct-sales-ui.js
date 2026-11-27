@@ -124,6 +124,17 @@ const {spawn}=require('node:child_process');
                 assert.equal(await ev(`document.querySelector(${JSON.stringify(dialog+' iframe')}).getAttribute('src')`),'about:blank');
             }
         }
+        for(const width of [390,1440]){
+            await call('Emulation.setDeviceMetricsOverride',{width,height:844,deviceScaleFactor:1,mobile:width<600});
+            await call('Page.navigate',{url:base+'/modules/venta_directa/devoluciones.php?sale_id='+process.env.NEXO_DIRECT_SALE+'&mode=total'});
+            await until('document.readyState==="complete"&&!!document.querySelector("[data-direct-return-form]")');
+            const state=await ev(`(()=>{const f=document.querySelector('[data-direct-return-form]'),q=[...f.querySelectorAll('[data-return-quantity]')];return {mode:f.elements.return_mode.value,quantities:q.every(i=>i.readOnly&&i.value===i.dataset.returnRemaining),overflow:document.documentElement.scrollWidth>innerWidth+1};})()`);
+            assert.deepEqual(state,{mode:'total',quantities:true,overflow:false});
+            await ev(`(()=>{const f=document.querySelector('[data-direct-return-form]'),m=f.elements.return_mode;m.value='partial';m.dispatchEvent(new Event('change'));const q=f.querySelector('[data-return-quantity]');q.value='0.50';m.value='total';m.dispatchEvent(new Event('change'));m.value='partial';m.dispatchEvent(new Event('change'));})()`);
+            assert.equal(await ev(`document.querySelector('[data-return-quantity]').value==='0.50'&&!document.querySelector('[data-return-quantity]').readOnly`),true,'Switching return modes loses partial input');
+            const out=path.resolve('work/direct-return-review');fs.mkdirSync(out,{recursive:true});
+            const shot=await call('Page.captureScreenshot',{format:'png'});fs.writeFileSync(path.join(out,'return-'+width+'.png'),Buffer.from(shot.data,'base64'));
+        }
         assert.deepEqual(errors,[]);
         console.log('PASS: browser mobile/desktop, stock catalog, exact cart totals, credit due date, cart recovery, real confirmation, receipt and request permissions.');
     }finally{

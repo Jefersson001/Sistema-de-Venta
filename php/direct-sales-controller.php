@@ -17,6 +17,8 @@ function renderDirectSales(bool $requests=false,bool $warehouseStock=false): voi
         'seller'=>null,'sellers'=>[],'products'=>[],'customers'=>[],'terms'=>[],'rows'=>[],'detail'=>null,'lines'=>[],
         'locations'=>[],'input'=>[],'can_create'=>permissionHas($resource,'create')&&permissionContact()>0,
         'warehouse_stock'=>$warehouseStock,'supply_rows'=>[],'source'=>null,'source_stock'=>[]];
+    $status=$_GET['status']??'all';
+    $page['status_filter']=is_string($status)&&($status==='overdue'||isset(invoiceFilterStates()[$status]))?$status:'all';
     $id=accessId($_GET['id']??null);
     if(isset($_GET['id'])&&!$id)authStop(404,'El registro no está disponible.');
     if(isset($_GET['view'])&&(!is_string($_GET['view'])||!in_array($_GET['view'],['stock','history'],true)))authStop(404,'La vista no está disponible.');
@@ -55,9 +57,14 @@ function renderDirectSales(bool $requests=false,bool $warehouseStock=false): voi
             $q=$db->prepare("SELECT c.id,c.name,c.phone FROM contacts c JOIN contact_types t ON t.id=c.type_id WHERE c.company_id=? AND c.active=1 AND t.system_key='client' AND ".permissionWhere('contactos.contacts','c')." ORDER BY c.name");
             $q->execute([companyActiveId()]);$page['customers']=$q->fetchAll();
             $q=$db->prepare('SELECT id,name,days FROM accounting_payment_terms WHERE company_id=? ORDER BY days,name');$q->execute([companyActiveId()]);$page['terms']=$q->fetchAll();
-            $q=$db->query('SELECT d.id,d.request_key,d.payment_mode,d.seller_id,d.sale_id,d.operation_id,d.invoice_id,d.created_at,i.status AS invoice_status,i.name,i.total_amount,i.currency_code,i.due_date,i.payment_state,c.name AS customer_name,s.name AS seller_name
+            $statusWhere='';$statusParams=[];
+            if(isset(invoiceStatuses()[$page['status_filter']])){$statusWhere=' AND i.status=?';$statusParams[]=$page['status_filter'];}
+            elseif($page['status_filter']==='sent')$statusWhere=" AND i.status='posted' AND i.sent_at IS NOT NULL";
+            elseif($page['status_filter']==='overdue'){$statusWhere=" AND i.status='posted' AND i.document_type='invoice' AND i.payment_state IN ('not_paid','in_payment','partial') AND i.due_date<?";$statusParams[]=commerceToday();}
+            elseif(isset(invoicePaymentStates()[$page['status_filter']])){$statusWhere=" AND i.status='posted' AND i.payment_state=?";$statusParams[]=$page['status_filter'];}
+            $q=$db->prepare('SELECT d.id,d.request_key,d.payment_mode,d.seller_id,d.sale_id,d.operation_id,d.invoice_id,d.created_at,i.status AS invoice_status,i.name,i.total_amount,i.currency_code,i.due_date,i.payment_state,c.name AS customer_name,s.name AS seller_name
                 FROM direct_sale_checkouts d JOIN accounting_invoices i ON i.id=d.invoice_id JOIN contacts c ON c.id=i.contact_id JOIN contacts s ON s.id=d.seller_id
-                WHERE '.permissionWhere($resource,'d').' ORDER BY d.id DESC LIMIT 100');$page['rows']=$q->fetchAll();
+                WHERE '.permissionWhere($resource,'d').$statusWhere.' ORDER BY d.id DESC LIMIT 100');$q->execute($statusParams);$page['rows']=$q->fetchAll();
             if($id){
                 $q=$db->prepare('SELECT d.*,i.status AS invoice_status,i.name,i.invoice_date,i.due_date,i.currency_code,i.total_amount,i.payment_state,c.phone AS customer_phone,c.name AS customer_name,s.name AS seller_name FROM direct_sale_checkouts d JOIN accounting_invoices i ON i.id=d.invoice_id JOIN contacts c ON c.id=i.contact_id JOIN contacts s ON s.id=d.seller_id WHERE d.id=? AND '.permissionWhere($resource,'d'));
                 $q->execute([$id]);$page['detail']=$q->fetch();

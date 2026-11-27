@@ -90,6 +90,8 @@ try{
     $cash=dsId($post('seller',$path,$salePost));
     $q=$db->prepare('SELECT d.*,i.status,i.total_amount,i.due_date,i.invoice_date,i.payment_state FROM direct_sale_checkouts d JOIN accounting_invoices i ON i.id=d.invoice_id WHERE d.id=?');$q->execute([$cash]);$cashRow=$q->fetch();
     dsExpect($cashRow['status']==='posted'&&$cashRow['total_amount']==='15.40'&&$cashRow['payment_state']==='not_paid'&&$cashRow['due_date']===$cashRow['invoice_date'],'Factura de contado, comisión, impuesto o vencimiento incorrectos.');
+    require __DIR__.'/direct-sales-history-cases.php';
+    if(in_array('--history-smoke',$argv,true))return;
     [, $withoutSend]=authTestRequest($server,$path.'?id='.$cash,$cookies['seller']);
     $printDom=new DOMDocument();@$printDom->loadHTML('<?xml encoding="UTF-8">'.$withoutSend);$printXPath=new DOMXPath($printDom);
     $printLinks=$printXPath->query('//*[@data-direct-document-print]');
