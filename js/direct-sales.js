@@ -1,6 +1,10 @@
 (() => {
     'use strict';
     const root=document.querySelector('[data-direct-root]');if(!root)return;
+    const paymentPanel=root.querySelector('#registrar-cobro'),paymentTrigger=root.querySelector('[data-open-direct-payment]');
+    paymentTrigger?.addEventListener('click',()=>{if(!paymentPanel)return;paymentPanel.open=true;paymentPanel.scrollIntoView({block:'start',behavior:'smooth'});paymentPanel.querySelector('[name=amount]')?.focus({preventScroll:true});});
+    paymentPanel?.addEventListener('toggle',()=>paymentTrigger?.setAttribute('aria-expanded',String(paymentPanel.open)));
+    root.querySelector('[data-close-direct-payment]')?.addEventListener('click',()=>{paymentPanel.open=false;paymentTrigger?.focus();});
     root.querySelector('.direct-history-filters select[name="status"]')?.addEventListener('change',event=>event.target.form.requestSubmit());
     root.querySelector('[data-direct-payment]')?.addEventListener('submit',event=>{event.target.querySelector('button[type="submit"]').disabled=true;});
     window.addEventListener('pageshow',()=>{const button=root.querySelector('[data-direct-payment] button[type="submit"]');if(button)button.disabled=false;});

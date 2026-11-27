@@ -24,7 +24,7 @@ Confirmar crea atómicamente orden confirmada, entrega realizada y factura regis
 
 El carrito se guarda por usuario, empresa y vendedor. No reserva stock. Sin conexión se conserva, pero no puede confirmarse. Al reconectar se vuelve a validar. No hay ventas ni pagos en cola sin conexión.
 
-Desde **Mis ventas → abrir venta → Registrar cobro total o parcial** se registra importe, moneda, fecha, cuenta, medio, referencia y fotos/PDF. Funciona con cualquier vencimiento. Se usa la tasa vigente cuando corresponde otra moneda y se impide superar el saldo por cubrir. Cuenta y medio deben pertenecer a la empresa activa.
+Desde **Mis ventas → abrir venta → Registrar cobro** se registra importe, moneda, fecha, cuenta, medio, referencia y fotos/PDF. Funciona con cualquier vencimiento. Se usa la tasa vigente cuando corresponde otra moneda y se impide superar el saldo por cubrir. Cuenta y medio deben pertenecer a la empresa activa.
 
 El cobro nativo queda aplicado a la factura y pendiente de validación del jefe. La pantalla distingue saldo sin confirmar, cobros en revisión y saldo por cubrir. Las claves de reintento impiden duplicados y los comprobantes se guardan privadamente dentro de la transacción. El cobro no confirma dinero ni liquida comisiones. La conciliación conserva el flujo y permisos de Contabilidad.
 
