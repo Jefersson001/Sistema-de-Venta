@@ -33,6 +33,7 @@ function renderDocumentShare(string $kind='invoice'): void {
     $db=createDatabaseConnection();$company=companyActiveId();$errors=[];$input=[];$repeatConfirmation=false;$embedded=($_GET['embedded']??'')==='1';
     try{$record=emailSource($db,$kind,$id,$type);}catch(InvalidArgumentException $e){authStop(404,$e->getMessage());}
     $choices=emailSourceChoices($db,$record,$kind);$settings=loadWhatsappSettings($db,$company);
+    if(documentMessagePreviewResponse($db,$record,$kind,$settings,$choices,true))return;
     $json=$_SERVER['REQUEST_METHOD']==='POST'&&in_array($_POST['action']??'',['prepare_whatsapp','mark_whatsapp_sent'],true)&&str_contains($_SERVER['HTTP_ACCEPT']??'','application/json');
     if($_SERVER['REQUEST_METHOD']==='POST')try{
         $action=$_POST['action']??'';$shareId=0;
@@ -54,7 +55,7 @@ function renderDocumentShare(string $kind='invoice'): void {
     foreach($links as &$link){$link['active']=!empty($link['message_only'])||(!$link['revoked_at']&&$link['expires_at']>(new DateTimeImmutable('now',new DateTimeZone('America/Caracas')))->format('Y-m-d H:i:s'));if($link['active']&&(string)$link['id']===($_GET['share']??''))$prepared=$link;}unset($link);
     if($prepared)try{$urls=whatsappShareUrls($prepared);}catch(Throwable $e){$errors[]=documentShareFailure(new DocumentSharePreparationException('recovery',$e));}
     if($prepared&&!$input){$input=['phone'=>$prepared['recipient_phone'],'documents'=>[]];if($prepared['content_json']!==null)$input['documents']=json_decode($prepared['content_json'],true,16,JSON_THROW_ON_ERROR);else{$q=$db->prepare('SELECT document_key FROM document_share_files WHERE share_id=? AND company_id=?');$q->execute([$prepared['id'],$company]);$input['documents']=$q->fetchAll(PDO::FETCH_COLUMN);}}
-    $previousPreparation=whatsappPreviousPreparation($db,$kind,$id,$company);$messagePreview='';try{$messagePreview=whatsappRenderedMessage($db,$record,$kind,$settings,$choices,true,false);}catch(Throwable){$messagePreview='No se pudo generar la vista previa. Revisa la plantilla de WhatsApp de esta empresa.';}
+    $previousPreparation=whatsappPreviousPreparation($db,$kind,$id,$company);$messagePreview='';try{$previewSelected=validateDocumentContentSelection($input['documents']??['message:'.$kind],$choices);$messagePreview=whatsappRenderedMessage($db,$record,$kind,$settings,$choices,(bool)array_filter($previewSelected,'isDocumentMessageSelection'),(bool)array_filter($previewSelected,static fn($key)=>!isDocumentMessageSelection($key)),$previewSelected);}catch(Throwable){$messagePreview='No se pudo generar la vista previa. Revisa la selección y la plantilla de WhatsApp de esta empresa.';}
     $source=match($kind){'order'=>'index.php?id='.$id,'delivery'=>'operaciones.php?type=delivery&id='.$id,default=>'index.php?'.http_build_query(['type'=>$type,'id'=>$id])};
     $modules=require __DIR__.'/config/modules.php';$moduleKey=match($kind){'order'=>'ventas','delivery'=>'inventario',default=>'contabilidad'};$module=$modules[$moduleKey];$databaseStatus=getDatabaseStatus();
     ob_start();require dirname(__DIR__).'/html/accounting/whatsapp.php';echo permissionRenderHtml(ob_get_clean());

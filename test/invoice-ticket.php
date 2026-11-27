@@ -8,6 +8,8 @@ $s=startAuthTestServer();$cookie=tempnam(sys_get_temp_dir(),'ticket-qa-');$guest
 try{
     $db=$s['db'];$login='ticket.'.bin2hex(random_bytes(5));$password=bin2hex(random_bytes(12));$token=prepareFirstAdministrator($db);
     $actor=createFirstAdministrator($db,['name'=>'Usuario ticket QA','login'=>$login,'password'=>$password,'password_confirmation'=>$password],hash('sha256',$token));$db->exec('SET @nexo_company_id=1,@nexo_actor_id='.$actor);
+    $logo=base64_decode('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+aDbcAAAAASUVORK5CYII=');
+    $db->prepare("UPDATE business_company SET logo_data=?,logo_mime='image/png' WHERE id=1")->execute([$logo]);
     $insert=static function(string $table,array $data)use($db):int{$db->prepare('INSERT INTO '.$table.' ('.implode(',',array_keys($data)).') VALUES ('.implode(',',array_fill(0,count($data),'?')).')')->execute(array_values($data));return (int)$db->lastInsertId();};
     $types=$db->query('SELECT system_key,id FROM contact_types WHERE system_key IS NOT NULL')->fetchAll(PDO::FETCH_KEY_PAIR);
     $product=$insert('inventory_products',['name'=>'Producto ticket','product_type'=>'service']);

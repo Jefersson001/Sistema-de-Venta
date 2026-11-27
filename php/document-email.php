@@ -3,6 +3,7 @@ declare(strict_types=1);
 require_once __DIR__.'/company-mail.php';
 require_once __DIR__.'/document-print.php';
 require_once __DIR__.'/currency-repository.php';
+require_once __DIR__.'/document-messages.php';
 
 function emailInvoice(PDO $db,int $id,string $type): array {
     $resource=permissionInvoiceResource($type);permissionRequire($resource,'send',$id);
@@ -14,23 +15,40 @@ function emailDocumentChoices(PDO $db,array $invoice): array {
     $sale=$invoice['invoice_type']==='customer';$base=authBasePath().'/modules/';
     $source=$base.'contabilidad/index.php?type='.$invoice['invoice_type'].'&id='.$invoice['id'];
     $choices=['invoice:'.$invoice['id']=>['label'=>($invoice['document_type']==='credit'?'Nota de crédito':'Factura').' · '.$invoice['name'],'source'=>$source,'id'=>(int)$invoice['id']]];
-    $orderId=(int)($invoice[$sale?'sale_id':'purchase_id']??0);if(!$orderId)return $choices;
+    $orderId=(int)($invoice[$sale?'sale_id':'purchase_id']??0);if(!$orderId)return documentChoicesWithTickets($choices);
     $table=$sale?'sales_quotations':'purchase_orders';$resource=$sale?'ventas.orders':'compras.orders';
     $q=$db->prepare('SELECT id,name FROM '.$table.' WHERE id=? AND company_id=? AND '.($sale?'customer_id':'supplier_id').'=?');$q->execute([$orderId,$invoice['company_id'],$invoice['contact_id']]);$order=$q->fetch();
-    if(!$order)return $choices;
+    if(!$order)return documentChoicesWithTickets($choices);
     if(permissionHas($resource)&&permissionRecord($resource,$orderId))$choices['order:'.$orderId]=['label'=>($sale?'Orden de venta':'Orden de compra').' · '.$order['name'],'source'=>$base.($sale?'ventas':'compras').'/index.php?id='.$orderId,'id'=>$orderId];
-    $resource=$sale?'inventario.deliveries':'inventario.receipts';if(!permissionHas($resource))return $choices;
+    $resource=$sale?'inventario.deliveries':'inventario.receipts';if(!permissionHas($resource))return documentChoicesWithTickets($choices);
     $q=$db->prepare("SELECT id,name FROM inventory_operations WHERE ".($sale?'quotation_id':'purchase_order_id')."=? AND company_id=? AND contact_id=? AND return_of_id IS NULL AND status='done' ORDER BY id");$q->execute([$orderId,$invoice['company_id'],$invoice['contact_id']]);
     foreach($q->fetchAll() as $operation)if(permissionRecord($resource,(int)$operation['id']))$choices['operation:'.$operation['id']]=['label'=>($sale?'Entrega':'Recepción').' · '.$operation['name'],'source'=>$base.'inventario/operaciones.php?type='.($sale?'delivery':'receipt').'&id='.$operation['id'],'id'=>(int)$operation['id']];
-    return $choices;
+    return documentChoicesWithTickets($choices);
 }
 function emailDocumentPdf(PDO $db,array $choice): string {
     require_once dirname(__DIR__).'/vendor/autoload.php';
     $model=transferRouteModel($choice['source']);if(!$model)throw new InvalidArgumentException('Documento no disponible.');
     $document=businessDocumentData($db,$model,$choice['id']);
+    if(($choice['format']??'a4')==='ticket')return emailInvoiceTicketPdf($db,$document);
     ob_start();require dirname(__DIR__).'/html/email-document-pdf.php';$html=ob_get_clean();
     $options=new \Dompdf\Options();$options->set('isRemoteEnabled',false);$options->set('isPhpEnabled',false);$options->set('isJavascriptEnabled',false);$options->set('chroot',dirname(__DIR__).'/vendor/dompdf/dompdf/lib/fonts');$options->set('defaultFont','DejaVu Sans');
     $pdf=new \Dompdf\Dompdf($options);$pdf->loadHtml($html,'UTF-8');$pdf->setPaper('A4');$pdf->render();return $pdf->output();
+}
+function emailInvoiceTicketPdf(PDO $db,array $document): string {
+    if($document['kind']!=='invoices')throw new InvalidArgumentException('El ticket corresponde únicamente a facturas.');
+    $document=invoiceTicketDocument($db,$document);
+    ob_start();require dirname(__DIR__).'/html/email-ticket-pdf.php';$html=ob_get_clean();
+    $options=new \Dompdf\Options();$options->set('isRemoteEnabled',false);$options->set('isPhpEnabled',false);$options->set('isJavascriptEnabled',false);$options->set('defaultFont','Courier');$options->set('chroot',dirname(__DIR__).'/vendor/dompdf/dompdf/lib/fonts');
+    $width=80*72/25.4;$maximum=2000*72/25.4;
+    $bottom=0;
+    $pdf=new \Dompdf\Dompdf($options);
+    // Frames are released after rendering; measure the ticket while its frame still exists.
+    $pdf->setCallbacks([['event'=>'end_frame','f'=>static function($frame)use(&$bottom){if($frame->get_node()->nodeName==='main'){$box=$frame->get_border_box();$bottom=max($bottom,$box['y']+$box['h']+3*72/25.4);}}]]);
+    $pdf->loadHtml($html,'UTF-8');$pdf->setPaper([0,0,$width,$maximum]);$pdf->render();
+    if($bottom>0&&$bottom<$maximum&&$pdf->getCanvas()->get_page_count()===1){
+        $pdf=new \Dompdf\Dompdf($options);$pdf->loadHtml($html,'UTF-8');$pdf->setPaper([0,0,$width,max(40*72/25.4,ceil($bottom)+4)]);$pdf->render();
+    }
+    return $pdf->output();
 }
 function emailSource(PDO $db,string $kind,int $id,string $type='customer'): array {
     if($kind==='invoice'){$row=emailInvoice($db,$id,$type);$row['email_default']='invoice:'.$id;return $row;}
@@ -46,8 +64,8 @@ function emailSourceChoices(PDO $db,array $record,string $kind): array {
     if($kind==='invoice')return emailDocumentChoices($db,$record);
     $base=authBasePath().'/modules/';$id=(int)$record['id'];$order=(int)($record['sale_id']??0);
     $choices=[$record['email_default']=>['label'=>($kind==='order'?'Orden de venta':'Entrega').' · '.$record['name'],'source'=>$base.($kind==='order'?'ventas/index.php?id=':'inventario/operaciones.php?type=delivery&id=').$id,'id'=>$id]];
-    if(!$order)return $choices;
-    $q=$db->prepare('SELECT id,name FROM sales_quotations WHERE id=? AND company_id=? AND customer_id=?');$q->execute([$order,$record['company_id'],$record['contact_id']]);$sale=$q->fetch();if(!$sale)return $choices;
+    if(!$order)return documentChoicesWithTickets($choices);
+    $q=$db->prepare('SELECT id,name FROM sales_quotations WHERE id=? AND company_id=? AND customer_id=?');$q->execute([$order,$record['company_id'],$record['contact_id']]);$sale=$q->fetch();if(!$sale)return documentChoicesWithTickets($choices);
     if(permissionHas('ventas.orders')&&permissionRecord('ventas.orders',$order))$choices['order:'.$order]=['label'=>'Orden de venta · '.$sale['name'],'source'=>$base.'ventas/index.php?id='.$order,'id'=>$order];
     if(permissionHas('inventario.deliveries')){
         $q=$db->prepare("SELECT id,name FROM inventory_operations d WHERE d.quotation_id=? AND d.company_id=? AND d.contact_id=? AND d.operation_type='delivery' AND d.return_of_id IS NULL AND d.status='done' AND ".permissionWhere('inventario.deliveries','d'));$q->execute([$order,$record['company_id'],$record['contact_id']]);
@@ -57,7 +75,7 @@ function emailSourceChoices(PDO $db,array $record,string $kind): array {
         $q=$db->prepare("SELECT id,name FROM accounting_invoices i WHERE i.sale_id=? AND i.contact_id=? AND i.company_id=? AND i.invoice_type='customer' AND i.document_type='invoice' AND i.status<>'cancel' AND ".permissionWhere('contabilidad.customer_invoices','i'));$q->execute([$order,$record['contact_id'],$record['company_id']]);
         foreach($q->fetchAll() as $bill)$choices['invoice:'.$bill['id']]=['label'=>'Factura · '.$bill['name'],'source'=>$base.'contabilidad/index.php?type=customer&id='.$bill['id'],'id'=>(int)$bill['id']];
     }
-    return $choices;
+    return documentChoicesWithTickets($choices);
 }
 final class EmailResendConfirmationRequired extends InvalidArgumentException {}
 function emailPreviousDelivery(PDO $db,string $kind,int $id,int $company): ?array {
@@ -84,9 +102,9 @@ function emailMessageRates(PDO $db,array $row,bool $stock,int $company): array {
     }
     return ['{tasa_factura}'=>$historical,'{tasa_actual}'=>$current,'{fecha_envio}'=>$now->format('d/m/Y H:i')];
 }
-function emailRenderedMessage(PDO $db,array $record,string $kind,array $settings,?array $choices=null,array $extraVariables=[]): string {
+function emailRenderedMessage(PDO $db,array $record,string $kind,array $settings,?array $choices=null,array $extraVariables=[],?array $documentData=null): string {
     $choices??=emailSourceChoices($db,$record,$kind);$choice=$choices[$record['email_default']];$model=transferRouteModel($choice['source']);if(!$model)throw new InvalidArgumentException('Documento no disponible.');
-    $data=businessDocumentData($db,$model,(int)$record['id']);$row=$data['row'];$stock=$data['stock'];$currency=$stock?'':(string)$row['currency_code'];$products=[];
+    $data=$documentData??businessDocumentData($db,$model,(int)$record['id']);$row=$data['row'];$stock=$data['stock'];$currency=$stock?'':(string)$row['currency_code'];$products=[];
     foreach($data['lines'] as $line){
         $quantity=(string)($stock?($row['status']==='done'?$line['quantity']:$line['demand']):$line['quantity']);if(str_contains($quantity,'.'))$quantity=rtrim(rtrim($quantity,'0'),'.');
         $text='• '.$line['product_name'].' — Cantidad: '.$quantity;
@@ -116,21 +134,19 @@ function sendInvoiceDocuments(CompanyConnection $db,int $id,string $type,array $
 function sendEmailDocuments(CompanyConnection $db,string $kind,int $id,string $type,array $input): int {
     $invoice=emailSource($db,$kind,$id,$type);$recipient=mailAddress($input['recipient']??'');$subject=mailText($input['subject']??'',200);
     if($subject==='')throw new InvalidArgumentException('Escribe un asunto.');
-    $selected=$input['documents']??null;if(!is_array($selected)||!count($selected)||count($selected)>21)throw new InvalidArgumentException('Selecciona Mensaje o al menos un documento PDF.');
-    foreach($selected as $value)if(!is_string($value))throw new InvalidArgumentException('Selección de documentos no válida.');$selected=array_values(array_unique($selected));sort($selected);
+    $choices=emailSourceChoices($db,$invoice,$kind);$selected=validateDocumentContentSelection($input['documents']??null,$choices);
     $key=$input['request_key']??null;if(!is_string($key)||!preg_match('/^[a-f0-9]{64}$/D',$key))throw new InvalidArgumentException('Recarga la ventana antes de enviar.');
-    $includeMessage=in_array('message',$selected,true);$company=companyActiveId();$settings=loadCompanyMail($db,$company,true);$choices=emailSourceChoices($db,$invoice,$kind);
-    foreach($selected as $value)if($value!=='message'&&!isset($choices[$value]))throw new InvalidArgumentException('Solo puedes adjuntar documentos autorizados relacionados con este registro.');
+    $includeMessage=(bool)array_filter($selected,'isDocumentMessageSelection');$company=companyActiveId();$settings=loadCompanyMail($db,$company,true);$choices=emailSourceChoices($db,$invoice,$kind);
     $q=$db->prepare('SELECT id,payload_hash,body FROM document_email_log WHERE request_key=? AND company_id=?');$q->execute([$key,$company]);$old=$q->fetch();
     // A retry retains the exact original message even if company settings changed.
-    $body=$old?$old['body']:($includeMessage?emailRenderedMessage($db,$invoice,$kind,$settings,$choices):'');
+    $body=$old?$old['body']:($includeMessage?documentSelectedMessages($db,$invoice,$kind,$settings,$choices,$selected):'');
     $payload=[$id,$type,$recipient,$subject,$body,$selected];if($kind!=='invoice')array_unshift($payload,$kind);
     $hash=hash('sha256',json_encode($payload,JSON_THROW_ON_ERROR));if($old){if(!hash_equals($old['payload_hash'],$hash))throw new InvalidArgumentException('Esta solicitud ya se utilizó con otros datos.',409);return (int)$old['id'];}
-    $files=[];$bytes=0;$choices['message']=['label'=>'Mensaje'];
+    $files=[];$bytes=0;$choices['message']=['label'=>documentMessageKinds()[$kind]];$choices+=documentMessageOptions($choices);
     emailRequireResendConfirmation($db,$kind,$id,$company,$input);$mail=companyMailer($settings,$company);
     // Render a consistent read snapshot before any network connection is attempted.
     $db->beginTransaction();
-    try{foreach($selected as $value){if($value==='message')continue;$pdf=emailDocumentPdf($db,$choices[$value]);$bytes+=strlen($pdf);if($bytes>12*1024*1024)throw new InvalidArgumentException('Los adjuntos superan 12 MB. Envía menos documentos.');$name=preg_replace('/[^\pL\pN._-]+/u','-',$choices[$value]['label']).'.pdf';$files[]=['name'=>$name,'pdf'=>$pdf];}$db->commit();}catch(Throwable $e){if($db->inTransaction())$db->rollBack();throw $e;}
+    try{foreach($selected as $value){if(isDocumentMessageSelection($value))continue;$pdf=emailDocumentPdf($db,$choices[$value]);$bytes+=strlen($pdf);if($bytes>12*1024*1024)throw new InvalidArgumentException('Los adjuntos superan 12 MB. Envía menos documentos.');$name=preg_replace('/[^\pL\pN._-]+/u','-',$choices[$value]['label']).'.pdf';$files[]=['name'=>$name,'pdf'=>$pdf];}$db->commit();}catch(Throwable $e){if($db->inTransaction())$db->rollBack();throw $e;}
     try{
         // Serialize registering sends, without holding the lock during SMTP.
         $db->beginTransaction();$q=$db->prepare('SELECT id FROM business_company WHERE id=? FOR UPDATE');$q->execute([$company]);
@@ -144,7 +160,7 @@ function sendEmailDocuments(CompanyConnection $db,string $kind,int $id,string $t
         foreach($files as $file)$mail->addStringAttachment($file['pdf'],$file['name'],'base64','application/pdf');
         if(!$mail->send())throw new RuntimeException('SMTP');
         $db->prepare("UPDATE document_email_log SET status='sent',sent_at=CURRENT_TIMESTAMP WHERE id=?")->execute([$log]);
-        $sentDocuments=$selected;if($includeMessage&&$kind==='invoice')$sentDocuments[]='invoice:'.$id;
+        $sentDocuments=$selected;if(in_array('message:invoice',$selected,true)||($includeMessage&&$kind==='invoice'&&in_array('message',$selected,true)))$sentDocuments=array_merge($sentDocuments,array_keys(documentMessageTargets($choices,'invoice',$selected,$invoice['email_default'])));foreach($selected as $key)if(str_starts_with($key,'ticket:'))$sentDocuments[]='invoice:'.substr($key,7);
         foreach(array_unique($sentDocuments) as $documentKey)if(str_starts_with($documentKey,'invoice:'))$db->prepare("UPDATE accounting_invoices SET sent_at=COALESCE(sent_at,CURRENT_TIMESTAMP) WHERE id=? AND company_id=? AND status='posted'")->execute([(int)substr($documentKey,8),$company]);
     }catch(Throwable){
         // SMTP delivery can be ambiguous after a connection drop. Never retry automatically.

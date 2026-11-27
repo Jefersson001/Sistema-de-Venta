@@ -2,6 +2,7 @@
 declare(strict_types=1);
 require_once __DIR__.'/connection.php';
 require_once __DIR__.'/permissions.php';
+require_once __DIR__.'/document-message-templates.php';
 
 function companyMailKey(): string {
     $encoded=getenv('NEXO_MAIL_ENCRYPTION_KEY');
@@ -24,7 +25,7 @@ function loadCompanyMail(PDO $db,int $company,bool $secret=false): array {
     $q=$db->prepare('SELECT * FROM company_mail_settings WHERE company_id=?');$q->execute([$company]);$row=$q->fetch()?:['enabled'=>0,'smtp_host'=>'smtp.gmail.com','smtp_port'=>587,'encryption'=>'starttls','smtp_user'=>'','from_email'=>'','from_name'=>'','reply_to'=>'','version'=>0,'password_cipher'=>null];
     $row['message_template']=$row['message_template']??companyMailDefaultMessage();
     $row['payment_details']=$row['payment_details']??'';
-    $row['has_password']=!empty($row['password_cipher']);if(!$secret)unset($row['password_cipher']);return $row;
+    $row=companyDocumentMessageTemplates($row);$row['has_password']=!empty($row['password_cipher']);if(!$secret)unset($row['password_cipher']);return $row;
 }
 function companyMailDefaultMessage(): string {
     return "¡Hola, {cliente}!\nEspero que te encuentres muy bien.\n\nTe compartimos el detalle de {documento}:\n\n{productos}\n\nTotal: {total}\n\nMedios de pago:\n{medios_pago}\n\nAgradecemos tu confianza y preferencia. Si realizas un pago, recuerda enviarnos el comprobante.\n\n{empresa}";
@@ -54,7 +55,7 @@ function saveCompanyMail(PDO $db,int $company,array $input): void {
         // Lock a stable parent even before a settings row exists.
         $q=$db->prepare('SELECT id FROM business_company WHERE id=? FOR UPDATE');$q->execute([$company]);if(!$q->fetchColumn())throw new InvalidArgumentException('Empresa no disponible.');
         $current=loadCompanyMail($db,$company,true);if((int)($input['version']??-1)!==(int)$current['version'])throw new InvalidArgumentException('La configuración cambió. Recarga antes de guardar.',409);
-        $messageTemplate=companyMailMessageTemplate($input['message_template']??$current['message_template']);
+        $templates=validateDocumentMessageTemplates($input,$current);$messageTemplate=$templates['message_template_invoice'];
         $paymentDetails=mailText($input['payment_details']??$current['payment_details'],10000,true);
         $cipher=$current['password_cipher'];
         if($cipher&&$password===''&&($input['remove_password']??'')!=='1'&&($current['smtp_host']!==$host||(int)$current['smtp_port']!==$port||$current['smtp_user']!==$user||$current['encryption']!==$encryption))throw new InvalidArgumentException('Al cambiar el servidor o usuario SMTP, introduce de nuevo la credencial.');
@@ -63,6 +64,7 @@ function saveCompanyMail(PDO $db,int $company,array $input): void {
         if($enabled&&(!$cipher||$user===''))throw new InvalidArgumentException('Para habilitar el correo, indica el usuario SMTP y una credencial de aplicación.');
         $db->prepare('INSERT INTO company_mail_settings(company_id,enabled,smtp_host,smtp_port,encryption,smtp_user,password_cipher,from_email,from_name,reply_to,message_template) VALUES(?,?,?,?,?,?,?,?,?,?,?) ON DUPLICATE KEY UPDATE enabled=VALUES(enabled),smtp_host=VALUES(smtp_host),smtp_port=VALUES(smtp_port),encryption=VALUES(encryption),smtp_user=VALUES(smtp_user),password_cipher=VALUES(password_cipher),from_email=VALUES(from_email),from_name=VALUES(from_name),reply_to=VALUES(reply_to),message_template=VALUES(message_template),version=version+1')->execute([$company,(int)$enabled,$host,$port,$encryption,$user,$cipher,$from,$name,$reply,$messageTemplate]);
         $db->prepare('UPDATE company_mail_settings SET payment_details=? WHERE company_id=?')->execute([$paymentDetails,$company]);
+        $db->prepare('UPDATE company_mail_settings SET message_template_order=?,message_template_delivery=?,message_template_invoice=? WHERE company_id=?')->execute([$templates['message_template_order'],$templates['message_template_delivery'],$templates['message_template_invoice'],$company]);
         $db->commit();
     }catch(Throwable $e){if($db->inTransaction())$db->rollBack();throw $e;}
 }

@@ -2,6 +2,9 @@
 .email-main h1 { font-size:24px; }
 .email-main .contact-sheet { margin-block:18px; }
 .email-main textarea { display:block; width:100%; }
+.document-template-grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(min(100%,250px),1fr)); gap:16px; }
+.document-template-grid>label { min-width:0; }
+.document-template-grid textarea { min-height:240px; resize:vertical; }
 .email-documents { border:1px solid var(--k-line); border-radius:10px; padding:12px; margin:18px 0; }
 .module-workspace .email-documents label,.module-workspace .email-main .contact-checkbox { display:flex; flex-direction:row; align-items:center; gap:10px; min-height:44px; overflow-wrap:anywhere; }
 .module-workspace .email-main input[type=checkbox] { width:18px; height:18px; min-width:18px; min-height:18px; padding:0; margin:0; flex:0 0 18px; }
@@ -49,6 +52,9 @@
 .email-resend-confirmation .contact-button { min-height:44px; }
 .whatsapp-message-text { margin:0; padding:14px; border:1px solid var(--k-line); border-radius:10px; background:var(--k-green-soft); color:var(--k-text); white-space:pre-wrap; overflow-wrap:anywhere; font-family:inherit; font-size:14px; line-height:1.6; }
 .whatsapp-public-link { margin-top:14px; }
+.email-compose .document-content-heading { margin:14px 0 8px; font-size:13px; font-weight:600; color:var(--k-muted); }
+.email-document-options label:has(input:disabled) { opacity:.6; }
+.email-document-options label small { display:block; font-size:11px; line-height:1.4; margin-top:4px; }
 @media(min-width:721px){.invoice-email-dialog[data-document-share-dialog] { height:min(660px,90dvh); }}
 @media(max-width:600px){.email-wizard-footer { padding:12px 14px calc(12px + env(safe-area-inset-bottom,0px)); gap:8px; }.email-wizard-footer .contact-button { min-height:44px; }.email-wizard-footer .contact-button-primary { flex:1 1 auto; }}
 @media(max-width:600px){.email-recipient-grid { grid-template-columns:minmax(0,1fr); gap:10px; }.module-workspace .email-compose>.contact-sheet { padding:12px; margin-block:12px; }.email-compose-heading h1 { font-size:19px; }.email-document-options { grid-template-columns:repeat(auto-fit,minmax(130px,1fr)); }.email-compose .email-compose-documents { padding:8px; }.module-workspace .email-compose-documents label { padding:8px; }.email-history summary { min-height:44px; }}

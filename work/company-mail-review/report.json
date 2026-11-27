@@ -6,7 +6,7 @@
       "inside": true,
       "overflow": false,
       "checked": [
-        "message"
+        "message:invoice"
       ],
       "recipient": "cliente@example.test"
     },
@@ -32,7 +32,7 @@
       "inside": true,
       "overflow": false,
       "checked": [
-        "message"
+        "message:invoice"
       ],
       "recipient": "cliente@example.test"
     },
@@ -58,7 +58,7 @@
       "inside": true,
       "overflow": false,
       "checked": [
-        "message"
+        "message:invoice"
       ],
       "recipient": "cliente@example.test"
     },
@@ -84,7 +84,7 @@
       "inside": true,
       "overflow": false,
       "checked": [
-        "message"
+        "message:invoice"
       ],
       "recipient": "cliente@example.test"
     },
@@ -108,7 +108,7 @@
       "route": "/modules/ventas/index.php?id=365",
       "width": 390,
       "checked": [
-        "message"
+        "message:order"
       ],
       "overflow": false,
       "recipient": "cliente@example.test"
@@ -117,7 +117,7 @@
       "route": "/modules/ventas/index.php?id=365",
       "width": 1440,
       "checked": [
-        "message"
+        "message:order"
       ],
       "overflow": false,
       "recipient": "cliente@example.test"
@@ -126,7 +126,7 @@
       "route": "/modules/inventario/operaciones.php?type=delivery&id=564",
       "width": 390,
       "checked": [
-        "message"
+        "message:delivery"
       ],
       "overflow": false,
       "recipient": "cliente@example.test"
@@ -135,7 +135,7 @@
       "route": "/modules/inventario/operaciones.php?type=delivery&id=564",
       "width": 1440,
       "checked": [
-        "message"
+        "message:delivery"
       ],
       "overflow": false,
       "recipient": "cliente@example.test"

@@ -9,7 +9,7 @@ $insert('accounting_currency_rates',['currency_id'=>$currencyIds['VES'],'base_cu
 $todayRate=$insert('accounting_currency_rates',['currency_id'=>$currencyIds['VES'],'base_currency_id'=>$currencyIds['USD'],'rate_date'=>$today,'rate'=>'75.00']);
 $insert('accounting_currency_rates',['currency_id'=>$currencyIds['VES'],'base_currency_id'=>$currencyIds['USD'],'rate_date'=>$now->modify('+1 day')->format('Y-m-d'),'rate'=>'999.00']);
 $db->prepare('UPDATE accounting_invoices SET exchange_rate=?,exchange_rate_date=?,currency_primary_code=?,currency_alternate_code=? WHERE id=?')->execute(['50.00',$yesterday,'USD','VES',$invoice]);
-$db->prepare('UPDATE company_mail_settings SET message_template=?,payment_details=? WHERE company_id=1')->execute([$template,$paymentDetails]);
+$db->prepare('UPDATE company_mail_settings SET message_template_invoice=?,payment_details=? WHERE company_id=1')->execute([$template,$paymentDetails]);
 $previous=(string)$db->query('SELECT id FROM document_email_log WHERE invoice_id='.$invoice.' ORDER BY id DESC LIMIT 1')->fetchColumn();
 $count=count(file($dir.'/outbox'));$messageOnly=array_replace($post,['request_key'=>bin2hex(random_bytes(32)),'documents'=>['message'],'confirm_resend'=>'yes','previous_log_id'=>$previous]);
 cmCheck(authTestRequest($s,$url,$cookie,array_replace($messageOnly,['documents'=>[]]))[0]===422&&count(file($dir.'/outbox'))===$count,'Empty content sent.');

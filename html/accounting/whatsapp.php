@@ -1,5 +1,5 @@
 <?php
-$e=static fn($v)=>authEscape(is_scalar($v)?(string)$v:'');$selected=$input['documents']??($input?[]:['message']);if(!is_array($selected))$selected=[];
+$e=static fn($v)=>authEscape(is_scalar($v)?(string)$v:'');$selected=$input['documents']??($input?[]:['message:'.$kind]);if(!is_array($selected))$selected=[];
 $backToPrepare='compartir.php?'.http_build_query(['type'=>$type,'id'=>$id]+($embedded?['embedded'=>'1']:[]));
 ?>
 <!doctype html><html lang="es"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Compartir por WhatsApp | Konta</title><link rel="stylesheet" href="../../css/app.css"><link rel="stylesheet" href="../../css/modules.css"><script src="../../js/app.js" defer></script><?php require dirname(__DIR__).'/partials/theme.php'; ?><link rel="stylesheet" href="../../css/document-email.css?v=<?= filemtime(dirname(__DIR__,2).'/css/document-email.css') ?>"><script src="../../js/document-share.js?v=<?= filemtime(dirname(__DIR__,2).'/js/document-share.js') ?>" defer></script></head>
@@ -11,7 +11,7 @@ $backToPrepare='compartir.php?'.http_build_query(['type'=>$type,'id'=>$id]+($emb
 
 <form id="whatsapp-documents-form" data-prepare-url="<?= $e($backToPrepare) ?>" method="post" class="contact-sheet"><input type="hidden" name="csrf" value="<?= $e($_SESSION['auth_csrf']) ?>"><input type="hidden" name="action" value="prepare_whatsapp"><input type="hidden" name="request_key" value="<?= $e($input['request_key']??bin2hex(random_bytes(32))) ?>"><input type="hidden" name="previous_share_id" value="<?= (int)($previousPreparation['id']??0) ?>">
 <label>Teléfono del destinatario *<input type="tel" name="phone" maxlength="40" required autocomplete="tel" value="<?= $e($input['phone']??$phone) ?>" placeholder="0412 1234567"></label>
-<fieldset class="email-documents email-compose-documents"><legend>Contenido del mensaje</legend><div class="email-document-options"><label><input type="checkbox" name="documents[]" value="message" <?= in_array('message',$selected,true)?'checked':'' ?>><span>Mensaje</span></label><?php foreach($choices as $key=>$choice): ?><label><input type="checkbox" name="documents[]" value="<?= $e($key) ?>" <?= in_array($key,$selected,true)?'checked':'' ?>><span><?= $e($choice['label']) ?></span></label><?php endforeach; ?></div></fieldset>
+<?php require dirname(__DIR__).'/partials/document-content-options.php'; ?>
 
 <details class="email-message-preview"><summary>Vista previa del mensaje</summary><pre data-share-message><?= $e($urls['message']??$messagePreview) ?></pre></details></form>
 <details class="contact-sheet email-history"><summary>Preparaciones guardadas (<span data-share-history-count><?= count($links) ?></span>)</summary>
@@ -26,4 +26,4 @@ $backToPrepare='compartir.php?'.http_build_query(['type'=>$type,'id'=>$id]+($emb
 <dialog class="email-resend-confirmation" data-share-repeat-confirmation <?= $repeatConfirmation?'data-confirmation-required':'' ?> aria-labelledby="share-repeat-title"><h2 id="share-repeat-title">Confirmar nueva preparación</h2><p>Ya existe una preparación guardada para este documento. ¿Quieres preparar otro mensaje?</p><div><button type="button" class="contact-button" data-share-repeat-no autofocus>No, cancelar</button><button type="submit" form="whatsapp-documents-form" name="confirm_share" value="yes" class="contact-button contact-button-primary">Sí, preparar de nuevo</button></div></dialog>
 <?php if($previousPreparation): ?><noscript><section class="contact-sheet"><p>Ya existe un mensaje preparado para este documento.</p><button type="submit" form="whatsapp-documents-form" name="confirm_share" value="yes" class="contact-button">Sí, preparar de nuevo</button><a href="<?= $e($source) ?>">No, volver al documento</a></section></noscript><?php endif; ?>
 <?php if($urls): ?><script type="application/json" data-share-initial><?= json_encode(whatsappWizardResult($db,$kind,$id,$type,(int)$prepared['id'],$embedded),JSON_HEX_TAG|JSON_HEX_AMP|JSON_HEX_APOS|JSON_HEX_QUOT|JSON_THROW_ON_ERROR) ?></script><?php endif; ?>
-</body></html>
+<script src="../../js/document-messages.js?v=<?= filemtime(dirname(__DIR__,2).'/js/document-messages.js') ?>" defer></script></body></html>

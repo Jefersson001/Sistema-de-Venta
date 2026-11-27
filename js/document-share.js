@@ -2,7 +2,7 @@
     const form=document.querySelector('#whatsapp-documents-form'),confirmation=document.querySelector('[data-share-repeat-confirmation]');
     const prepare=document.querySelector('[data-share-prepare]'),chat=document.querySelector('[data-whatsapp-chat]'),copyMessage=document.querySelector('[data-copy-message]'),cancel=document.querySelector('[data-dismiss-share-wizard]');
     const preview=document.querySelector('[data-share-message]'),error=document.querySelector('[data-share-error]'),status=document.querySelector('[data-copy-status]');
-    let prepared=null,busy=false;const originalPreview=preview?.textContent||'',canPrepare=prepare&&!prepare.disabled;
+    let prepared=null,busy=false,originalPreview=preview?.textContent||'';const canPrepare=prepare&&!prepare.disabled;
     const editableInputs=[...(form?.querySelectorAll('input:not([type=hidden]),select,textarea')||[])].map(input=>[input,input.disabled]);
     const lockEditor=locked=>{for(const [input,disabled] of editableInputs)input.disabled=locked||disabled;};
     const sentLabel=data=>(data.marked_sent_at?'Enviado · '+(data.marked_sent_action==='copy'?'Copiado':'Abierto en WhatsApp')+' · '+data.marked_sent_at:'Mensaje preparado')+(data.message_only?'':' · Enlace PDF vigente · Vence '+data.expires_at);
@@ -43,6 +43,7 @@
             event.preventDefault();if(busy||prepared)return;
             if(Number(form.elements.previous_share_id.value)>0&&event.submitter?.name!=='confirm_share'){if(!confirmation.open)confirmation.showModal();return;}
             const body=new FormData(form);if(event.submitter?.name)body.append(event.submitter.name,event.submitter.value);
+            originalPreview=preview?.textContent||'';
             confirmation.close();busy=true;error.hidden=true;error.textContent='';prepare.disabled=true;prepare.setAttribute('aria-busy','true');cancel.setAttribute('aria-disabled','true');if(cancel.tagName==='BUTTON')cancel.disabled=true;
             lockEditor(true);
             try{

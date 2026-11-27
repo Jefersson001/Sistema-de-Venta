@@ -9,5 +9,13 @@
         ticket.style.cssText=original;style.textContent='@page { size: '+width+'mm '+height+'mm; margin: 3mm; }';
     };
     window.addEventListener('beforeprint',prepare);
-    document.querySelector('[data-print-ticket]')?.addEventListener('click',async()=>{await document.fonts.ready;await Promise.all([...ticket.images].map(img=>img.decode().catch(()=>{})));prepare();window.print();});
+    // Keep printing inside the click so mobile browsers retain the user's activation.
+    document.querySelector('[data-print-ticket]')?.addEventListener('click',()=>{prepare();window.print();});
+    // Asset preparation must never prevent the print dialog from opening.
+    prepare();
+    document.fonts?.ready?.then(prepare).catch(()=>{});
+    for(const image of ticket.querySelectorAll('img')){
+        image.addEventListener('load',prepare,{once:true});
+        image.addEventListener('error',prepare,{once:true});
+    }
 })();

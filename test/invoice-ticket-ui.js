@@ -22,6 +22,9 @@ const fs=require('node:fs'),os=require('node:os'),path=require('node:path'),asse
    for(const width of [320,390,1440]){
     await call('Emulation.setDeviceMetricsOverride',{width,height:900,deviceScaleFactor:1,mobile:width<600});
     assert.equal(await ev('document.documentElement.scrollWidth<=innerWidth+1'),true,'Ticket preview overflows '+paper+' '+width);
+    const printClick=await ev(`(()=>{let called=0;window.print=()=>called++;document.querySelector('[data-print-ticket]').click();return {called,rules:[...document.querySelectorAll('style[media=print]')].map(s=>s.textContent).join('')};})()`);
+    assert.equal(printClick.called,1,'Print button must invoke window.print directly for '+paper+' mm / '+width+' px.');
+    assert.ok(printClick.rules.includes('size: '+paper+'mm '),'Print button did not prepare the paper size.');
     checks.push({paper,width});
     if(width===390){const shot=await call('Page.captureScreenshot',{format:'png'});fs.writeFileSync(path.join(out,'ticket-'+paper+'.png'),Buffer.from(shot.data,'base64'));}
    }
