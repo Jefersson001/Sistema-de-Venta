@@ -1,0 +1,18 @@
+{
+  "checks": [
+    {
+      "width": 390,
+      "modules": 10,
+      "plans": 4,
+      "overflow": false
+    },
+    {
+      "width": 1440,
+      "modules": 10,
+      "plans": 4,
+      "overflow": false
+    }
+  ],
+  "previewOnly": false,
+  "errors": []
+}

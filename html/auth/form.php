@@ -30,4 +30,4 @@
 <button class="konta-button konta-button-primary konta-auth-submit" type="submit"><?= $mode==='login'?'Entrar al sistema':($mode==='activate'?'Crear administrador':'Guardar contraseña') ?><?= kontaIcon('arrow') ?></button>
 </form><p class="konta-auth-footnote"><?= kontaIcon('shield') ?>Tu acceso está vinculado a tus permisos.</p>
 <?php if($mode==='password'): ?><form class="konta-auth-exit" method="post" action="<?= authBasePath() ?>/logout.php"><input type="hidden" name="csrf" value="<?= authEscape($_SESSION['auth_csrf']) ?>"><button class="konta-text-button">Cerrar sesión</button></form><?php endif; ?>
-</section></main><footer class="konta-auth-footer">© <?= date('Y') ?> Konta Software · Gestión empresarial</footer></body></html>
+</section></main><footer class="konta-auth-footer"><?php if($mode==='login'): ?><a class="konta-public-link" href="<?= authBasePath() ?>/conoce-konta.php">Conoce Konta</a> · <?php endif; ?>© <?= date('Y') ?> Konta Software · Gestión empresarial</footer></body></html>

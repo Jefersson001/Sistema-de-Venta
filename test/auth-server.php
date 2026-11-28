@@ -22,7 +22,7 @@ function startAuthTestServer(): array
             if(!preg_match('/^[a-zA-Z0-9_]+$/D',$table))throw new RuntimeException('Tabla inválida.');
             $sql=$db->query('SHOW CREATE TABLE `'.$source.'`.`'.$table.'`')->fetch(PDO::FETCH_NUM)[1];$db->exec($sql);
             // No copiar credenciales, sesiones de activación ni límites de cuentas reales.
-            if(!str_starts_with($table,'auth_')&&$table!=='company_user_access') {
+            if(!str_starts_with($table,'auth_')&&!str_starts_with($table,'commercial_')&&$table!=='company_user_access') {
                 $fields=[];$values=[];$companyOwned=false;
                 foreach($db->query('SHOW COLUMNS FROM `'.$table.'`')->fetchAll() as $column) {
                     if(str_contains($column['Extra'],'GENERATED'))continue;

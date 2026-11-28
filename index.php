@@ -5,6 +5,8 @@ declare(strict_types=1);
 require_once __DIR__.'/php/auth.php';
 require_once __DIR__.'/php/permissions.php';
 $GLOBALS['permission_runtime']=true;
+authStartSession();
+if(!isset($_SESSION['auth_user_id'])){require_once __DIR__.'/php/commercial-controller.php';renderCommercialSite();return;}
 $currentUser=authRequireLogin();
 require_once __DIR__ . '/php/database-status.php';
 require_once __DIR__.'/php/navigation-search.php';

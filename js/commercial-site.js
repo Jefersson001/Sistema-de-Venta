@@ -1,0 +1,17 @@
+(() => {
+    'use strict';
+    document.documentElement.classList.add('commercial-js');
+    const header=document.querySelector('.site-header'),menu=document.querySelector('[data-menu-toggle]');
+    if(menu){menu.hidden=false;const close=()=>{header.dataset.menuOpen='false';menu.setAttribute('aria-expanded','false');};menu.addEventListener('click',()=>{const open=menu.getAttribute('aria-expanded')!=='true';header.dataset.menuOpen=String(open);menu.setAttribute('aria-expanded',String(open));});header.querySelectorAll('nav a').forEach(a=>a.addEventListener('click',close));document.addEventListener('keydown',e=>{if(e.key==='Escape'&&menu.getAttribute('aria-expanded')==='true'){close();menu.focus();}});}
+    const tabs=[...document.querySelectorAll('[data-module-tab]')],panels=[...document.querySelectorAll('[data-module-panel]')],tablist=document.querySelector('.module-tabs');
+    if(tablist){tablist.setAttribute('role','tablist');tablist.setAttribute('aria-label','Módulos del sistema');tabs.forEach(tab=>{tab.id='tab-'+tab.dataset.moduleTab;tab.setAttribute('role','tab');tab.setAttribute('aria-controls','module-'+tab.dataset.moduleTab);});panels.forEach(panel=>{panel.setAttribute('role','tabpanel');panel.setAttribute('aria-labelledby','tab-'+panel.dataset.modulePanel);panel.tabIndex=0;});
+        const select=key=>{tabs.forEach(tab=>{const active=tab.dataset.moduleTab===key;tab.setAttribute('aria-selected',String(active));tab.tabIndex=active?0:-1;});panels.forEach(panel=>panel.hidden=panel.dataset.modulePanel!==key);};
+        select('ventas');tabs.forEach((tab,index)=>{tab.addEventListener('click',event=>{event.preventDefault();select(tab.dataset.moduleTab);});tab.addEventListener('keydown',event=>{let next;if(['ArrowRight','ArrowDown'].includes(event.key))next=(index+1)%tabs.length;else if(['ArrowLeft','ArrowUp'].includes(event.key))next=(index-1+tabs.length)%tabs.length;else if(event.key==='Home')next=0;else if(event.key==='End')next=tabs.length-1;else return;event.preventDefault();select(tabs[next].dataset.moduleTab);tabs[next].focus();});});
+    }
+    document.querySelectorAll('[data-select-plan]').forEach(link=>link.addEventListener('click',event=>{const select=document.querySelector('#demo-plan');if(!select)return;event.preventDefault();select.value=link.dataset.selectPlan;document.querySelector('#demo').scrollIntoView({behavior:matchMedia('(prefers-reduced-motion: reduce)').matches?'instant':'smooth'});}));
+    document.querySelectorAll('a[href="#privacidad"]').forEach(link=>link.addEventListener('click',()=>document.querySelector('#privacidad').open=true));
+    if(location.hash==='#privacidad')document.querySelector('#privacidad').open=true;
+    const feedback=document.querySelector('[data-form-feedback]');if(feedback)feedback.focus();
+    const preview=document.querySelector('[data-panel-dialog]'),previewTrigger=document.querySelector('[data-preview-open]');
+    if(preview&&previewTrigger){let overflow='';previewTrigger.addEventListener('click',()=>{overflow=document.body.style.overflow;preview.showModal();document.body.style.overflow='hidden';});preview.querySelector('[data-preview-close]').addEventListener('click',()=>preview.close());preview.addEventListener('close',()=>{document.body.style.overflow=overflow;previewTrigger.focus();});preview.addEventListener('click',event=>{if(event.target!==preview)return;const r=preview.getBoundingClientRect();if(event.clientX<r.left||event.clientX>r.right||event.clientY<r.top||event.clientY>r.bottom)preview.close();});}
+})();
