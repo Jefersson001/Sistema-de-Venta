@@ -1,1 +1,9 @@
-<details class="workspace-user-menu"><summary><span class="workspace-user-avatar"><?= $e($initial) ?></span><span class="workspace-user-name"><strong><?= $e($user['full_name']) ?></strong><small><?= $e($user['business_name']) ?></small></span><span class="workspace-user-chevron" aria-hidden="true"></span></summary><div class="workspace-user-options"><a href="<?= $base ?>/portal-demo.php?section=cuenta" <?= $accountPage?'aria-current="page"':'' ?>><?= kontaIcon('contactos') ?>Mi cuenta</a><form method="post" action="<?= $base ?>/portal-demo.php"><input type="hidden" name="csrf" value="<?= $e($_SESSION['auth_csrf']) ?>"><input type="hidden" name="action" value="logout"><button type="submit"><?= kontaIcon('back') ?>Cerrar sesión</button></form></div></details>
+<?php
+$menuBase=$base??authBasePath();
+$menuName=$menuName??$user['full_name'];
+$menuSubtitle=$menuSubtitle??$user['business_name'];
+$menuInitial=$initial??mb_strtoupper(mb_substr(trim($menuName),0,1));
+$menuAccountUrl=$menuAccountUrl??($menuBase.'/portal-demo.php?section=cuenta');
+$menuAccountActive=$menuAccountActive??($accountPage??false);
+$menuLogoutAction=$menuLogoutAction??($menuBase.'/portal-demo.php');
+?><details class="workspace-user-menu"><summary><span class="workspace-user-avatar"><?= $e($menuInitial) ?></span><span class="workspace-user-name"><strong><?= $e($menuName) ?></strong><small><?= $e($menuSubtitle) ?></small></span><span class="workspace-user-chevron" aria-hidden="true"></span></summary><div class="workspace-user-options"><a href="<?= $menuAccountUrl ?>" <?= $menuAccountActive?'aria-current="page"':'' ?>><?= kontaIcon('contactos') ?>Mi cuenta</a><form method="post" action="<?= $menuLogoutAction ?>"><input type="hidden" name="csrf" value="<?= $e($_SESSION['auth_csrf']) ?>"><input type="hidden" name="action" value="logout"><button type="submit"><?= kontaIcon('back') ?>Cerrar sesión</button></form></div></details>
