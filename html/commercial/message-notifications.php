@@ -1,0 +1,5 @@
+<?php $notificationSide=str_ends_with($menuLogoutAction,'/admin-comercial.php')?'admin':'client'; ?>
+<details class="message-notifications" data-message-notifications data-url="<?= $e($menuBase.'/conversacion-demo.php?'.http_build_query(['side'=>$notificationSide,'notifications'=>1])) ?>" data-destination="<?= $e($menuBase.($notificationSide==='admin'?'/solicitudes-demo.php':'/portal-demo.php')) ?>">
+    <summary aria-label="Notificaciones de mensajes" title="Mensajes" data-notification-toggle><svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M18 8a6 6 0 0 0-12 0c0 7-3 7-3 9h18c0-2-3-2-3-9"/><path d="M10 21h4"/></svg><span class="notification-count" data-notification-count hidden></span></summary>
+    <section class="notification-panel" aria-label="Notificaciones de mensajes"><header><h2>Mensajes</h2><span data-notification-summary aria-live="polite">Consultando…</span></header><div class="notification-items" data-notification-items><p class="notification-empty">Cargando mensajes…</p></div></section>
+</details>

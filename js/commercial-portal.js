@@ -24,6 +24,7 @@
         const selectTab=tab=>{
             requestTabs.forEach(link=>{const selected=link===tab;link.setAttribute('aria-selected',String(selected));link.tabIndex=selected?0:-1;if(selected)link.setAttribute('aria-current','page');else link.removeAttribute('aria-current');});
             requestPanels.forEach(panel=>panel.hidden=panel.dataset.requestPanel!==tab.dataset.requestTab);
+            tab.closest('.request-detail')?.classList.toggle('chat-focused',tab.dataset.requestTab==='seguimiento');
             const activeTab=document.querySelector('input[name="active_tab"]');if(activeTab)activeTab.value=tab.dataset.requestTab;
         };
         requestTabs.forEach((tab,index)=>{

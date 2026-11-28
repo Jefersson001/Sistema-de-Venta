@@ -42,7 +42,7 @@ function commercialSaveDemo(PDO $db,array $data,string $key,string $ip,?int $own
         $db->prepare('UPDATE commercial_demo_rate_limits SET hits=?,window_started=? WHERE bucket=?')->execute([$hits+1,$expired?$now->format('Y-m-d H:i:s'):$limit['window_started'],$bucket]);
         $fields=array_keys($data);$q=$db->prepare('INSERT INTO commercial_demo_requests (request_key,payload_hash,'.implode(',',$fields).',consented_at,internal_notes) VALUES ('.implode(',',array_fill(0,count($fields)+4,'?')).')');$q->execute(array_merge([$key,$hash],array_values($data),[$now->format('Y-m-d H:i:s'),'']));
         $id=(int)$db->lastInsertId();
-        if($owner!==null)$db->prepare('INSERT INTO commercial_demo_events(request_id,status,message) VALUES(?,?,?)')->execute([$id,'new','Recibimos tu solicitud de demostración.']);
+        if($owner!==null){$db->prepare('INSERT INTO commercial_demo_events(request_id,status,message) VALUES(?,?,?)')->execute([$id,'new','Recibimos tu solicitud de demostración.']);commercialChatSystemEvent($db,(int)$db->lastInsertId());}
         $db->commit();return $id;
     }catch(Throwable $e){
         if($db->inTransaction())$db->rollBack();
@@ -66,9 +66,14 @@ function commercialUpdateDemo(PDO $db,array $input,int $actor): void {
         }
         $q=$db->prepare('SELECT status,public_message FROM commercial_demo_requests WHERE id=? AND version=? FOR UPDATE');$q->execute([$id,$version]);$previous=$q->fetch();
         if(!$previous)throw new InvalidArgumentException('La solicitud cambió. Recarga antes de guardar.',409);
+        if(!array_key_exists('public_message',$input))$message=$previous['public_message']??'';
         if($status==='approved'&&$previous['status']!=='approved'&&($message===''||$message===($previous['public_message']??'')))$message='Tu demo fue aprobada. Ya puedes ir al login del sistema con el usuario y la contraseña que te haya entregado administración.';
         $q=$db->prepare('UPDATE commercial_demo_requests SET status=?,internal_notes=?,public_message=?,updated_by=NULL,updated_by_commercial_admin=?,version=version+1 WHERE id=? AND version=?');$q->execute([$status,$notes,$message,$actor,$id,$version]);
-        if($status!==$previous['status']||$message!==($previous['public_message']??''))$db->prepare('INSERT INTO commercial_demo_events(request_id,status,message) VALUES(?,?,?)')->execute([$id,$status,$message]);
+        if($status!==$previous['status']||$message!==($previous['public_message']??'')){$db->prepare('INSERT INTO commercial_demo_events(request_id,status,message) VALUES(?,?,?)')->execute([$id,$status,$message]);commercialChatSystemEvent($db,(int)$db->lastInsertId());}
         $db->commit();
     }catch(Throwable $e){if($db->inTransaction())$db->rollBack();throw $e;}
+}
+
+function commercialChatSystemEvent(PDO $db,int $event): void {
+    $q=$db->prepare("INSERT IGNORE INTO commercial_chat_messages(request_id,sender_type,sender_id,sender_name,body,event_id,created_at) SELECT request_id,'system',0,'Konta',CONCAT(status,IF(message='','',CONCAT(': ',message))),id,created_at FROM commercial_demo_events WHERE id=?");$q->execute([$event]);
 }

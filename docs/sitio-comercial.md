@@ -15,9 +15,9 @@ El visitante crea una cuenta de interesado, inicia sesión y solicita la demostr
 
 El portal abre un panel de seguimiento con indicadores de solicitudes, filtro inmediato por estado, estado actual e historial. Los indicadores resumen todas las solicitudes del propietario, incluso cuando el listado está filtrado o paginado. «Solicitar demo» abre una vista de formulario independiente (`/portal-demo.php?section=solicitar`), con Enviar solicitud y Cancelar; el panel principal no incluye el formulario al pie. Los enlaces antiguos `?nueva=1` también abren esta vista. Los errores de validación se muestran en la vista de creación conservando los datos ingresados. Si el cliente tiene una solicitud sin rechazar, la vista muestra un aviso y no permite crear otra.
 
-El espacio del cliente utiliza navegación lateral en escritorio y navegación inferior en teléfonos. Mi espacio ofrece Mis solicitudes y, cuando corresponde, Solicitar demo; Seguimiento es una pestaña dentro de cada solicitud. «Conocer el sistema» está dentro de Mi espacio. El nombre aparece arriba a la derecha y abre un menú con Mi cuenta y Cerrar sesión. Mi cuenta es una vista independiente (`/portal-demo.php?section=cuenta`), donde se muestran los datos de contacto y el cambio de contraseña; no aparece en el menú lateral ni en el panel de seguimiento. Cada solicitud distingue sus datos del historial de respuestas, e incluye una explicación del estado actual. No incluye chat en tiempo real ni mensajes públicos entre clientes. Su diseño está aislado en `css/commercial-workspace.css`.
+El espacio del cliente utiliza navegación lateral en escritorio y navegación inferior en teléfonos. Mi espacio ofrece Mis solicitudes y, cuando corresponde, Solicitar demo; Conversación es una pestaña dentro de cada solicitud. «Conocer el sistema» está dentro de Mi espacio. El nombre aparece arriba a la derecha y abre un menú con Mi cuenta y Cerrar sesión. Mi cuenta es una vista independiente (`/portal-demo.php?section=cuenta`), donde se muestran los datos de contacto y el cambio de contraseña; no aparece en el menú lateral ni en el panel de seguimiento. Cada solicitud distingue sus datos del historial de respuestas, e incluye una explicación del estado actual. La conversación se actualiza cada seis segundos mientras está visible; no hay mensajes entre clientes. Su diseño está aislado en `css/commercial-workspace.css`.
 
-Mis solicitudes utiliza una lista tipo tree (tabla), con filtro por estado y paginación. Al pulsar una fila se abre la ficha `/portal-demo.php?request=ID`. La ficha es de consulta, muestra las fases según el historial real y ofrece las pestañas Datos de la solicitud y Seguimiento. Las pestañas funcionan mediante enlaces si no hay JavaScript y mediante navegación accesible con teclado cuando está disponible. El servidor comprueba el propietario de cada ficha y devuelve 404 para identificadores ajenos o inexistentes. Volver al listado conserva el filtro y la página.
+Mis solicitudes utiliza una lista tipo tree (tabla), con filtro por estado y paginación. Al pulsar una fila se abre la ficha `/portal-demo.php?request=ID`. La ficha es de consulta, muestra las fases según el historial real y ofrece las pestañas Datos de la solicitud y Conversación. Las pestañas funcionan mediante enlaces si no hay JavaScript y mediante navegación accesible con teclado cuando está disponible. El servidor comprueba el propietario de cada ficha y devuelve 404 para identificadores ajenos o inexistentes. Volver al listado conserva el filtro y la página.
 
 Administración puede buscar solicitudes, cambiar su estado, escribir una respuesta visible para el solicitante y guardar notas internas privadas. Cada cambio de estado o respuesta se añade al historial visible en el portal. Editar solamente las notas privadas no añade actividad pública.
 
@@ -73,3 +73,27 @@ Subir el código, estilos, JavaScript e imagen incluidos en este cambio. La migr
 - `php test/commercial-site.php --browser`: añade pruebas reales de navegador en móvil y escritorio, envío del formulario y seguimiento privado.
 - `node test/commercial-site-ui.js --preview-only`: revisión del sitio local sin guardar solicitudes en la base real.
 - `php test/migrations.php` y `node test/deploy-startup.js`: mecanismo de migraciones y despliegue.
+
+## Conversaciones por solicitud
+
+La migración `20261128162513_conversaciones_portal_comercial.php` incorpora tablas globales de mensajes y lecturas comerciales, ajenas a los datos operativos de las empresas. Conserva el historial anterior como avisos del sistema y es idempotente. Se ejecuta en Dokploy con las demás migraciones de arranque.
+
+Cliente y administración escriben desde la pestaña Conversación; las notas internas permanecen privadas. Los mensajes muestran autor y fecha de Venezuela; aprobar o rechazar agrega un aviso a esa conversación. Las listas indican los mensajes de la otra parte sin leer (por administrador en el caso de administración). Se marcan al visualizar el final de la conversación; abrir solo Datos no los marca. Las listas actualizan sus contadores al cargarse.
+
+El chat requiere JavaScript y conexión. Consulta cada seis segundos solo con la pestaña y la página visibles; conserva borradores en la vista al cambiar de pestaña y ante errores de envío. Carga 60 mensajes por tramo y permite recuperar los anteriores. No envía correo, notificaciones fuera del navegador ni archivos adjuntos en esta versión. Los mensajes tienen un máximo de 2000 caracteres y se almacenan como texto, sin ejecutar HTML. Los reintentos idénticos no duplican mensajes.
+
+`conversacion-demo.php` autentica explícitamente el canal cliente o administrativo, comprueba propiedad de la solicitud, valida CSRF para enviar y marcar lecturas y limita los envíos. Guardar notas ya no vacía una respuesta pública anterior cuando ese campo no forma parte del formulario.
+
+Verificación: `php test/commercial-site.php --browser` incluye comprobaciones del chat en `test/commercial-chat-checks.php`, migración desde historial previo y ejecución repetida, controles de privacidad y mensajes sin leer, paginación y respuestas automáticas en el navegador.
+
+### Comodidad de la conversación
+
+Los mensajes se agrupan por fecha de Venezuela (Hoy, Ayer o fecha completa). Si llega un mensaje mientras se lee el historial, se conserva la posición y aparece un botón para ir a los nuevos. En teléfonos las fases se compactan al abrir Conversación y recuperan su distribución al volver a Datos o Notas.
+
+El borrador se guarda en el almacenamiento de este navegador, separado por instalación, sesión comercial, rol, usuario y solicitud. Se recupera al recargar o navegar dentro de la misma sesión, y se elimina al enviar o cerrar sesión; los espacios de sesiones anteriores se descartan. El cierre de sesión y la rotación de credenciales renuevan el espacio de borradores. No sincroniza borradores con otros dispositivos. Si el almacenamiento del navegador está deshabilitado, el chat sigue funcionando sin esta persistencia.
+
+### Campana de mensajes
+
+El menú de cuenta incluye una campana en ambos portales. Consulta cada diez segundos los mensajes humanos sin leer de la cuenta actual y muestra hasta doce solicitudes con su último mensaje y un contador total. Cada aviso abre directamente la pestaña Conversación. Consultar o desplegar avisos no marca mensajes como leídos; la lectura sigue realizándose dentro del chat. La campana se actualiza también al leer mensajes y respeta el aislamiento entre clientes y administradores comerciales. No genera notificaciones del sistema operativo.
+
+En computadora el chat utiliza aproximadamente el 54 % del ancho del panel y una altura mayor. En tableta y teléfono ocupa el ancho disponible y conserva una distribución vertical para lectura y escritura.

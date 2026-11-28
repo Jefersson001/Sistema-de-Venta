@@ -3,6 +3,7 @@ declare(strict_types=1);
 require_once __DIR__.'/auth.php';
 require_once __DIR__.'/commercial-repository.php';
 require_once __DIR__.'/ui-icons.php';
+require_once __DIR__.'/commercial-chat.php';
 require_once __DIR__.'/commercial-admin-auth.php';
 function renderCommercialSite(): void {
     authStartSession();authPrivacyHeaders();
@@ -40,5 +41,6 @@ function renderCommercialRequests(): void {
         }
     }
     $context=['status'=>$status,'q'=>$search,'page'=>$current];$base=authBasePath();$listUrl=$base.'/solicitudes-demo.php?'.http_build_query($context);
+    $unread=$user?commercialChatUnread($db,'admin',(int)$user['id'],array_column($rows,'id')):[];
     $statuses=commercialStatuses();$plans=commercialPlans();$sectors=commercialSectors();$e='authEscape';require dirname(__DIR__).'/html/commercial/requests.php';
 }

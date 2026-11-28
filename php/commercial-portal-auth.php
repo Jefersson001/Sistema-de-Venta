@@ -20,7 +20,7 @@ function commercialPortalUser(): ?array {
 }
 
 function commercialPortalForget(): void {
-    authStartSession();foreach(['portal_account_id','portal_auth_version','portal_started','portal_seen','commercial_form_keys','portal_success'] as $key)unset($_SESSION[$key]);
+    authStartSession();unset($_SESSION['commercial_chat_draft_client']);foreach(['portal_account_id','portal_auth_version','portal_started','portal_seen','commercial_form_keys','portal_success'] as $key)unset($_SESSION[$key]);
     session_regenerate_id(true);$_SESSION['auth_csrf']=bin2hex(random_bytes(32));
 }
 

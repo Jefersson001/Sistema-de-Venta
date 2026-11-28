@@ -2,9 +2,10 @@
 declare(strict_types=1);
 require_once __DIR__.'/commercial-portal-auth.php';
 require_once __DIR__.'/ui-icons.php';
+require_once __DIR__.'/commercial-chat.php';
 
 function renderCommercialPortal(): void {
-    authStartSession();authPrivacyHeaders();$errors=[];$input=[];$user=null;$rows=[];$events=[];$pages=1;$current=1;
+    authStartSession();authPrivacyHeaders();$unread=[];$errors=[];$input=[];$user=null;$rows=[];$events=[];$pages=1;$current=1;
     $counts=array_fill_keys(array_keys(commercialStatuses()),0);$total=0;$canRequest=false;$blockedRequest=null;$hasApprovedDemo=false;
     $requestDetail=null;$detailEvents=[];$detailRequested=isset($_GET['request'])&&($_GET['section']??'')!=='cuenta';
     $detailTab=($_GET['tab']??'')==='seguimiento'?'seguimiento':'datos';
@@ -65,6 +66,7 @@ function renderCommercialPortal(): void {
             if(!$requestDetail){http_response_code(404);$errors[]='No encontramos esa solicitud en tu cuenta.';}
             else{$q=$db->prepare('SELECT status,message,created_at FROM commercial_demo_events WHERE request_id=? ORDER BY id');$q->execute([$requestDetail['id']]);$detailEvents=$q->fetchAll();}
         }
+        $unread=commercialChatUnread($db,'client',(int)$user['id'],array_column($rows,'id'));
     }catch(Throwable $e){error_log('Seguimiento comercial: '.$e->getMessage());http_response_code(503);$errors[]='No pudimos cargar el seguimiento. Inténtalo más tarde.';}
     $plans=commercialPlans();$sectors=commercialSectors();$statuses=commercialStatuses();$e='authEscape';$base=authBasePath();
     require dirname(__DIR__).'/html/commercial/portal.php';

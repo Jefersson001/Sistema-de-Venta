@@ -3,7 +3,7 @@ declare(strict_types=1);
 require_once __DIR__.'/commercial-portal-auth.php';
 
 function commercialAdminForget(): void {
-    authStartSession();foreach(['commercial_admin_id','commercial_admin_version','commercial_admin_started','commercial_admin_seen','commercial_admin_setup_hash'] as $key)unset($_SESSION[$key]);
+    authStartSession();unset($_SESSION['commercial_chat_draft_admin']);foreach(['commercial_admin_id','commercial_admin_version','commercial_admin_started','commercial_admin_seen','commercial_admin_setup_hash'] as $key)unset($_SESSION[$key]);
     session_regenerate_id(true);$_SESSION['auth_csrf']=bin2hex(random_bytes(32));
 }
 function commercialAdminSession(array $account): void {

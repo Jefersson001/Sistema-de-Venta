@@ -15,6 +15,11 @@ try{
     $migration=require dirname(__DIR__).'/php/migrations/versioned/20261127182658_portal_clientes_demo.php';$migration($db);$migration($db);
     $adminMigration=require dirname(__DIR__).'/php/migrations/versioned/20261127222824_administracion_comercial_independiente.php';$beforeAdminMigration=$db->query('SELECT * FROM commercial_demo_requests ORDER BY id')->fetchAll();$adminMigration($db);$adminMigration($db);
     foreach($beforeAdminMigration as $oldRow){$q=$db->prepare('SELECT * FROM commercial_demo_requests WHERE id=?');$q->execute([$oldRow['id']]);$nowRow=$q->fetch();foreach($oldRow as $key=>$value)portalCheck($nowRow[$key]===$value,'Admin migration changed existing data.');}
+    // Recreate only new chat tables in this isolated fixture to test an upgrade with old history.
+    $db->exec('DROP TABLE IF EXISTS commercial_chat_reads,commercial_chat_messages');
+    $db->prepare('INSERT INTO commercial_demo_events(request_id,status,message) VALUES(?,?,?)')->execute([$legacyId,'new','Legacy shared history']);
+    $chatMigration=require dirname(__DIR__).'/php/migrations/versioned/20261128162513_conversaciones_portal_comercial.php';$chatMigration($db);$chatMigration($db);
+    portalCheck((int)$db->query("SELECT COUNT(*) FROM commercial_chat_messages WHERE body LIKE '%Legacy shared history%'")->fetchColumn()===1,'Chat migration did not preserve old shared history exactly once.');
     portalCheck(!$db->query("SELECT table_name FROM company_schema_tables WHERE table_name IN ('commercial_portal_accounts','commercial_demo_requests','commercial_demo_events')")->fetchColumn(),'Portal leaked into company ownership.');
     $token=prepareFirstAdministrator($db);$password=bin2hex(random_bytes(12));$login='portal.admin.'.bin2hex(random_bytes(4));$admin=createFirstAdministrator($db,['name'=>'Portal Admin','login'=>$login,'password'=>$password,'password_confirmation'=>$password],hash('sha256',$token));$db->exec('SET @nexo_company_id=1,@nexo_actor_id='.$admin);
     foreach(['guest','one','two','admin','erpadmin','setupother','expired','readonly','adminother'] as $key)$cookies[$key]=tempnam(sys_get_temp_dir(),'portal-qa-');
@@ -68,18 +73,19 @@ try{
     portalCheck(authTestRequest($server,'/modules/ventas/index.php',$cookies['admin'])[0]===303,'Commercial administrator inherited ERP access.');
     foreach($erpCounts as $table=>$count)portalCheck((int)$db->query('SELECT COUNT(*) FROM '.$table)->fetchColumn()===$count,'Commercial activation modified ERP '.$table);
     [$code,$inbox]=authTestRequest($server,'/solicitudes-demo.php',$cookies['admin']);portalCheck($code===200&&str_contains($inbox,'&lt;script&gt;')&&str_contains($inbox,'admin-request-row')&&!str_contains($inbox,'name="public_message"'),'Admin tree missing or contains edit forms.');
-    [$detailCode,$adminDetail]=authTestRequest($server,'/solicitudes-demo.php?request='.$lead['id'],$cookies['admin']);portalCheck($detailCode===200&&str_contains($adminDetail,'name="public_message"')&&str_contains($adminDetail,'data-request-tab="notas"'),'Admin form missing tabs or editor.');
+    [$detailCode,$adminDetail]=authTestRequest($server,'/solicitudes-demo.php?request='.$lead['id'],$cookies['admin']);portalCheck($detailCode===200&&str_contains($adminDetail,'data-demo-chat')&&str_contains($adminDetail,'data-request-tab="notas"'),'Admin form missing tabs or editor.');
     portalCheck(authTestRequest($server,'/solicitudes-demo.php?request=999999999',$cookies['admin'])[0]===404,'Missing admin record was not rejected.');
 
     $update=['csrf'=>authTestToken($inbox),'id'=>(string)$lead['id'],'version'=>(string)$lead['version'],'status'=>'scheduled','internal_notes'=>'SECRET-ADMIN-ONLY','public_message'=>'Demo coordinada: conversaremos sobre tus productos.'];
     portalCheck(authTestRequest($server,'/solicitudes-demo.php',$cookies['admin'],array_replace($update,['csrf'=>'bad']))[0]===403,'Admin update missing CSRF.');
     portalCheck(authTestRequest($server,'/solicitudes-demo.php',$cookies['admin'],$update)[0]===303,'Follow-up failed.');$audit=$db->query('SELECT updated_by,updated_by_commercial_admin FROM commercial_demo_requests WHERE id='.(int)$lead['id'])->fetch();portalCheck($audit['updated_by']===null&&(int)$audit['updated_by_commercial_admin']===$commercialAdmin,'Follow-up audit mixed ERP and commercial identities.');portalCheck(authTestRequest($server,'/solicitudes-demo.php',$cookies['admin'],$update)[0]===409,'Stale update accepted.');
-    [, $page]=authTestRequest($server,'/portal-demo.php?request='.$lead['id'].'&tab=seguimiento',$cookies['one']);portalCheck(str_contains($page,$update['public_message'])&&str_contains($page,'Demo coordinada')&&!str_contains($page,'SECRET-ADMIN-ONLY'),'Public history missing or private notes leaked.');
+    [, $page]=authTestRequest($server,'/portal-demo.php?request='.$lead['id'].'&tab=seguimiento',$cookies['one']);portalCheck(str_contains($page,'data-demo-chat')&&!str_contains($page,'SECRET-ADMIN-ONLY'),'Public history missing or private notes leaked.');
     [$otherCode, $pageTwo]=authTestRequest($server,'/portal-demo.php?request='.$lead['id'],$cookies['two']);portalCheck($otherCode===404,'Another account opened the request detail.');portalCheck(!str_contains($pageTwo,$update['public_message']),'Public reply leaked to other account.');
     $privateOnly=$update;$privateOnly['version']=(string)((int)$lead['version']+1);$privateOnly['internal_notes']='SECOND-PRIVATE-NOTE';
     portalCheck(authTestRequest($server,'/solicitudes-demo.php',$cookies['admin'],$privateOnly)[0]===303,'Private note update failed.');
     portalCheck((int)$db->query('SELECT COUNT(*) FROM commercial_demo_events WHERE request_id='.(int)$lead['id'])->fetchColumn()===2,'Private note added public history.');
     // Approval only publishes the login link; provisioning stays manual.
+    require __DIR__.'/commercial-chat-checks.php';
     [, $beforeApproval]=authTestRequest($server,'/portal-demo.php',$cookies['one']);portalCheck(!str_contains($beforeApproval,'data-system-access'),'Login link is visible before approval.');
     $countsBeforeApproval=[];foreach(['auth_users','business_company','company_user_access'] as $table)$countsBeforeApproval[$table]=(int)$db->query('SELECT COUNT(*) FROM '.$table)->fetchColumn();
     $approve=$update;$approve['action']='approve';$approve['version']=(string)$db->query('SELECT version FROM commercial_demo_requests WHERE id='.(int)$lead['id'])->fetchColumn();
